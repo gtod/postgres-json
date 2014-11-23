@@ -60,14 +60,15 @@ create, typically at the REPL."
 ;; it, I'd use it...
 
 ;; I think I want to change this to (model &optional (package-name model))
-(defmacro bake-interface (name)
+(defmacro bake-interface (name &key (to-json 'to-json))
   "Dynamically create (or recreate) and populate a lisp package called
 NAME, a symbol, to house the implementation and public interface
 functions of a PostgreSQL JSON persistence model.  Export the symbols
-of the interface functions from that package.  You must have
-previously invoked CREATE-BACKEND for a model of the same name and
-using the same values for *DB-SCHEMA* and *DB-SEQUENCE*.  Returns the
-model package."
+of the interface functions from that package.  TO-JSON may be a symbol
+for any function of one argument that will serialize lisp objects to
+JSON.  You must have previously invoked CREATE-BACKEND for a model of
+the same name and using the same values for *DB-SCHEMA* and
+*DB-SEQUENCE*.  Returns the model package."
   (ensure-model-package name)
   (let* ((schema *db-schema*)
          (name-old (sym t name "-old"))
@@ -85,8 +86,8 @@ model package."
        (defprepare-get-all-ids$ ,name ,table)
 
        ;; Exported model functions proper
-       (defun-insert ,name :next-id ,next-id)
-       (defun-update ,name)
+       (defun-insert ,name :next-id ,next-id :to-json-fn ,to-json)
+       (defun-update ,name :to-json-fn ,to-json)
        (defun-get ,name)
        (defun-delete ,name)
        (defun-keys ,name)
