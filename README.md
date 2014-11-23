@@ -148,7 +148,7 @@ baked on demand (per model) there is no source code to bounce to for
 your interface functions.  But you can do (in Emacs):
 `slime-documentation` for say `cat:insert`.
 
-### User's guide (under sonstruction)
+### User's guide (under construction)
 
 You can supply `to-json` and `from-json` keyword arguments at bake
 time to override the yason based defaults:
