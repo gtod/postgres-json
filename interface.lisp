@@ -2,14 +2,34 @@
 
 ;;;; PUBLIC
 
+;;; We have two validity periods for our public special variables:
+;;; 'bake' time and run time.
+
+;;; If a special variable has bake time validity, its value will be
+;;; used *only at macro expansion time*, to determine aspects of the
+;;; model.  It may also be used by DB functions unrelated to specific
+;;; models, such as CREATE-DEFAULT_SCHEMA.
+
+;;; Run time validity means that the special can be rebound by the
+;;; user for any specific model call --- it is actually evaluated in
+;;; the run time code the baking macros generate.
+
+;;; It is well worth macroexpanding a (bake-interface cat) call and
+;;; then macroexpanding down into say (defun-update ...) and further
+;;; to get all this mubo jumbo to gell.
+
 (defvar *db-schema* 'pgj-schema
   "A symbol being the name of the default PostgreSQL schema to use to
-house our database objects.")
+house our database objects.  This is not a run time special variable:
+it is only used by CREATE-DEFAULT-SCHEMA, CREATE-DEFAULT-SEQUENCE,
+CREATE-BACKEND and BAKE-INTERFACE.")
 
 (defvar *db-sequence* 'pgj-seq
   "A symbol being the name of the default global PostgreSQL sequence
 that will be created to provide unique IDs for all JSON objects
-inserted into PostgreSQL tables by this library.")
+inserted into PostgreSQL tables by this library.  This is not a run
+time special variable: it is only used by CREATE-DEFAULT-SEQUENCE,
+CREATE-BACKEND and BAKE-INTERFACE.")
 
 (defvar *db-handle-serialization-failure-p* t
   "UPDATE and DELETE calls on the model will use the Postgres
@@ -86,10 +106,12 @@ create, typically at the REPL."
   "Dynamically create (or recreate) and populate a lisp package called
 NAME, a symbol, to house the implementation and public interface
 functions of a PostgreSQL JSON persistence model.  Export the symbols
-of the interface functions from that package.  TO-JSON may be a symbol
-for any function of one argument that will serialize lisp objects to
-JSON.  You must have previously invoked CREATE-BACKEND for a model of
-the same name and using the same values for *DB-SCHEMA* and
+of the interface functions from that package.  Once 'baked' all the
+schema, sequence, table names etc. are hardcoded into Postmodern
+prepared queries, so can not be modified at run time.  TO-JSON may be
+a symbol for any function of one argument that will serialize lisp
+objects to JSON.  You must have previously invoked CREATE-BACKEND for
+a model of the same name and using the same values for *DB-SCHEMA* and
 *DB-SEQUENCE*.  Returns the model package."
   (ensure-model-package name)
   (let* ((schema *db-schema*)
