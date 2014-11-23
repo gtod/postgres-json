@@ -10,9 +10,14 @@ database table using the jsonb type.
 PostgreSQL 9.4 (in Beta as at late November 2014) is a rock solid
 RDBMS which now also supports
 [JSON types](http://www.postgresql.org/docs/9.4/static/datatype-json.html).
+For many years Marijn Haverbeke's [Postmodern](http://marijnhaverbeke.nl/postmodern/)
+has provided an excellent Common Lisp interface to PostgreSQL.
 
-Common Lisp has some good JSON libraries as compared by Sabra On The Hill:
-[JSON libraries comparison](https://sites.google.com/site/sabraonthehill/home/json-libraries).
+Common Lisp also has some good JSON libraries as compared by Sabra On
+The Hill: [JSON libraries
+comparison](https://sites.google.com/site/sabraonthehill/home/json-libraries).
+[Yason](http://common-lisp.net/project/yason/) is a dependency of this project
+but in fact you can use whatever Common Lisp JSON library you like.
 
 Having spent some time working with the full blown NoSQL database
 RethinkDB, thanks to the wonderful
@@ -22,15 +27,15 @@ Postgres.  This library represents a few steps in that direction.
 
 ## Status
 
-Firstly, at at late November 2014 it is little more than a proof of
-concept.  If you stumble upon this repo by all means take it for a
-spin but don't plan a cross country tour.
+This library is **under development**. The very simple interface of
+the persistence model is probably stable and it compiles and seems to
+work, but there is still much to do before an Alpha release.
 
 ## Documentation
 
 Just about everything has a doc string, but that's more for
 maintainers than users.  The interface you get per model is just five
-functions (for now), illustrated below.  Because the interface is
+functions for now, illustrated below.  Because the interface is
 baked on demand (per model) there is no source code to bounce to for
 your interface functions.  But you can do (in Emacs):
 `slime-documentation` for say `cat:insert`.
@@ -200,7 +205,8 @@ interface should be...
 The "immutability" part comes from the fact that when you use the
 model to update or delete, we actually copy the current row to the
 `_old` table before proceeding.  So we have a full history of the
-objects lifetime.  TODO: write some nice interface functions for this.
+object's lifetime.  TODO: write some nice interface functions for
+this.
 
 #### JSON == NoSQL
 
@@ -223,5 +229,7 @@ Letters, numbers and dashes are OK in symbol names for PostgreSQL objects.
 Don't try anything too funky besides.
 
 All the Postmodern conditions will leak through this abstraction, at
-present it is a pretty thin layer.  However work has been done on
-handling serialization failures under the covers.
+present it is a pretty thin layer.  However because we are using the
+PG *repeatable read isolation level* to safely insert and update two
+tables at once work has been done to handle *serialization failures*
+under the covers.  See the PG docs for more info on isolation levels.
