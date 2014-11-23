@@ -3,9 +3,9 @@ POSTGRES-JSON
 
 ## Overview
 
-A simple interface (and implementation) for immutable persistence of
-Common Lisp objects (that can be JSON serialized) to a PostgreSQL 9.4+
-database table using the jsonb type.
+A simple interface for immutable persistence of Common Lisp objects
+(that can be JSON serialized) to a PostgreSQL 9.4+ relation using the
+jsonb type.
 
 PostgreSQL 9.4 (in Beta as at late November 2014) is a rock solid
 RDBMS which now also supports
@@ -30,15 +30,6 @@ Postgres.  This library represents a few steps in that direction.
 This library is **under development**. The very simple interface of
 the persistence model is probably stable and it compiles and seems to
 work, but there is still much to do before an Alpha release.
-
-## Documentation
-
-Just about everything has a doc string, but that's more for
-maintainers than users.  The interface you get per model is just five
-functions for now, illustrated below.  Because the interface is
-baked on demand (per model) there is no source code to bounce to for
-your interface functions.  But you can do (in Emacs):
-`slime-documentation` for say `cat:insert`.
 
 ## Quickstart
 
@@ -148,6 +139,46 @@ We need a bulk insert, but still it's fun to do something like
 (pp-json (cat:get 77))
 ```
 
+## Documentation
+
+Just about everything has a doc string, but that's more for
+maintainers than users.  The interface you get per model is just five
+functions for now, illustrated below.  Because the interface is
+baked on demand (per model) there is no source code to bounce to for
+your interface functions.  But you can do (in Emacs):
+`slime-documentation` for say `cat:insert`.
+
+### User's guide (under sonstruction)
+
+You can supply `to-json` and `from-json` keyword arguments at bake
+time to override the yason based defaults:
+
+```common-lisp
+PJ-TEST> (bake-interface cat :to-json jsown:to-json :from-json jsown:parse)
+#<PACKAGE "CAT">
+PJ-TEST> (cat:insert (obj "name" "clementine" "coat" "rugged tortoiseshell"))
+82
+PJ-TEST> (cat:get 82)
+(:OBJ ("coat" . "rugged tortoiseshell") ("name" . "clementine"))
+```
+
+But you can also specify `to-json` for `insert` and `update` and
+`from-json` for `get` at run time:
+
+```common-lisp
+PJ-TEST> (cat:get 82 :from-json 'yason:parse)
+#<HASH-TABLE :TEST EQUAL :COUNT 2 {100799D833}>
+PJ-TEST> (pp-json (cat:get 82 :from-json 'yason:parse))
+{
+    "coat":"rugged tortoiseshell",
+    "name":"clementine"
+}
+```
+
+I think the run time arguments are probably best used at the REPL for
+experimenting because you probably want consistent (ie. at bake time)
+to/from JSON serialization behaviour per model.
+
 ## Design
 
 ### What lisp objects can be serialized?
@@ -208,7 +239,7 @@ model to update or delete, we actually copy the current row to the
 object's lifetime.  TODO: write some nice interface functions for
 this.
 
-#### JSON == NoSQL
+#### PostgreSQL 9.4 + JSON == NoSQL++
 
 The whole point is that we are only using a few columns in the
 PostgreSQL model tables, and just for management purposes: all the
@@ -218,8 +249,8 @@ consistent in their content...
 
 However, I think it may well be practical to support referential
 integrity, based just on the primary key id column in different
-models.  So we should be able to support a "CAT owns one or more
-HUMANS" relationship etc.  This is the point of using PostgreSQL for
+models.  So we should be able to support a *CAT owns one or more
+HUMANS* relationship etc.  This is the point of using PostgreSQL for
 JSON: we can choose precisely how much of the old fashioned database
 goodness to go with the new fashioned JSON devil may care hedonism...
 
