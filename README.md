@@ -7,7 +7,7 @@ A simple interface (and implementation) for immutable persistence of
 Common Lisp objects (that can be JSON serialized) to a PostgreSQL 9.4+
 database table using the jsonb type.
 
-PostgreSQL 9.4 (in Beta as at late November 2014) is a rock soild
+PostgreSQL 9.4 (in Beta as at late November 2014) is a rock solid
 RDBMS which now also supports
 [JSON types](http://www.postgresql.org/docs/9.4/static/datatype-json.html)
 
@@ -53,7 +53,10 @@ If you now get a result from `(pomo:query "select 1")` you are ready
 to go.
 
 Clone this repo to sit under your `~/quicklisp/local-projects` and do
-`(ql:quickload :postgres-json)`. (Sometimes I need to delete
+
+`(ql:quickload :postgres-json)`.
+
+(Sometimes I need to delete
 `~/quicklisp/local-projects/system-index.txt` for this to work).
 
 Now evaluate these forms at the REPL:
@@ -85,10 +88,10 @@ they do not have to (TODO).  Certainly we need only create the PG
 backend for our model once.  `bake-interface` is a little more tricky,
 it needs to be
 
-```common-lisp
+```
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (bake-interface cat))
-```  
+```
 
 when included in source code files for compilation since (for better
 or worse) it's making the lisp package `cat` dynamically, so needs to
@@ -138,7 +141,7 @@ We need a bulk insert, but still it's fun to do something like
                    "likes" '("sunshine" 42))))
 
 (pp-json (cat:get 77))
-```                   
+```
 
 ## Design
 
@@ -152,7 +155,7 @@ For example: `(bake-interface cat :to-json jsown:to-json)`
 
 ### I do not want integer keys
 
-This is not too hard.  You can supply an keyword argument USE-ID to
+This is not too hard.  You can supply a keyword argument `use-id` to
 `insert` or (and this will take a little more effort, see
 `bake-interface`) you could make a UUID sequence in PG and get values
 from that.  TODO.
@@ -163,7 +166,7 @@ The backend for a model cat (say) looks like
 
 ```sql
                                     Table "pgj_schema.cat"
-   Column   |           Type           |                       Modifiers                       
+   Column   |           Type           |                       Modifiers
 ------------+--------------------------+-------------------------------------------------------
  id         | integer                  | not null
  valid_to   | timestamp with time zone | not null default 'infinity'::timestamp with time zone
@@ -176,7 +179,7 @@ Indexes:
 
 ```sql
             Table "pgj_schema.cat_old"
-   Column   |           Type           | Modifiers 
+   Column   |           Type           | Modifiers
 ------------+--------------------------+-----------
  id         | integer                  | not null
  valid_to   | timestamp with time zone | not null
@@ -196,7 +199,7 @@ interface should be...
 
 The "immutability" part comes from the fact that when you use the
 model to update or delete, we actually copy the current row to the
-_old table before proceeding.  So we have a full history of the
+`_old` table before proceeding.  So we have a full history of the
 objects lifetime.  TODO: write some nice interface functions for this.
 
 #### JSON == NoSQL

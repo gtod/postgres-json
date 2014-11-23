@@ -159,7 +159,7 @@ TO-JSON-FN must be a symbol for a function of one argument to
 serialize lisp objects to JSON strings."
   `(defun-model-op insert (,model :export-p t) (object &optional use-id)
      "Insert lisp object OBJECT into PostgreSQL after JSON
-serialization.  If USE-ID is supplied, use that that as the primary
+serialization.  If USE-ID is supplied, use that as the primary
 key for this object rather than the automatically generated one.
 Return the ID."
      (with-transaction-type (read-committed-rw)

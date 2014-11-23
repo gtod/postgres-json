@@ -55,6 +55,3 @@ etc.  Different libraries, different results.
 
 Would be nice to lisply abstract the JSON select stuff from PG.
 Of course, you can still go to the DB directly if you like.
-
-
-
