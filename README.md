@@ -9,10 +9,10 @@ database table using the jsonb type.
 
 PostgreSQL 9.4 (in Beta as at late November 2014) is a rock solid
 RDBMS which now also supports
-[JSON types](http://www.postgresql.org/docs/9.4/static/datatype-json.html)
+[JSON types](http://www.postgresql.org/docs/9.4/static/datatype-json.html).
 
 Common Lisp has some good JSON libraries as compared by Sabra On The Hill:
-[JSON libraries comparison](https://sites.google.com/site/sabraonthehill/home/json-libraries)
+[JSON libraries comparison](https://sites.google.com/site/sabraonthehill/home/json-libraries).
 
 Having spent some time working with the full blown NoSQL database
 RethinkDB, thanks to the wonderful
@@ -40,7 +40,7 @@ your interface functions.  But you can do (in Emacs):
 You will need a working PostgreSQL 9.4 beta install.  On Debian I
 followed the instructions
 [here](https://wiki.postgresql.org/wiki/Apt).  There is a FAQ on
-getting the 9.4 beta which you sould read to get the apt source line.
+getting the 9.4 beta which you should read to get the apt source line.
 Since I already had an earlier install, Debian put the new PostgreSQL
 cluster at port 5433 rather than 5432.  YMMV.
 
@@ -99,7 +99,7 @@ be evaluated at compile time so you can write `(cat:get 44)` etc...
 
 In the output below I have elided some of the return values for brevity.
 `obj` is a trivial function to turn a list of pairs into a hash table.
-`pp-json` is trivial function to pretty print (thanks to yason) an
+`pp-json` is a trivial function to pretty print (thanks to yason) an
 arbitrarily nested lisp object of hash tables and lists as JSON.
 
 ```common-lisp
@@ -219,9 +219,9 @@ goodness to go with the new fashioned JSON devil may care hedonism...
 
 ## Notes
 
-Charcaters and dashes are OK in symbol names for PostgreSQL objects.
+Letters, numbers and dashes are OK in symbol names for PostgreSQL objects.
 Don't try anything too funky besides.
 
-All the Postmodern conditons will leak through this abstraction.  At
-present it is a pretty thin layer.  However some work has been done
-on handling serialization failures under the covers.
+All the Postmodern conditions will leak through this abstraction, at
+present it is a pretty thin layer.  However work has been done on
+handling serialization failures under the covers.
