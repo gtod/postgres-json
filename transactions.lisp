@@ -39,20 +39,24 @@ read only/read write options."
      ,@body))
 
 (defmacro with-retry-serialization-failure ((label) &body body)
-  "Wrap BODY forms in a short loop of increasing sleep times to retry
-upon seeing CL-POSTGRES-ERROR:SERIALIZATION-FAILURE conditions from
-Postmodern.  This condition must be handled when using the PostgreSQL
-repeatable read isolation level however we don't sleep more than
-around 20 seconds in total so the end client may _still_ have to
-handle this condition.  The string LABEL will be used to
-label logging output.  The result of evaluating the BODY forms is
-returned."
+  "If *DB-HANDLE-SERIALIZATION-FAILURE-P* is NIL at run time this is a
+no op.  Otherwise we wrap BODY forms in a short loop of increasing
+sleep times to retry upon seeing
+CL-POSTGRES-ERROR:SERIALIZATION-FAILURE conditions from Postmodern.
+This condition must be handled when using the PostgreSQL repeatable
+read isolation level however we don't sleep more than around 20
+seconds in total (but see *SERIALIZATION-FAILURE-SLEEP-TIMES*) so the
+end client may _still_ have to handle this condition.  The string
+LABEL will be used to label logging output.  The result of evaluating
+the BODY forms is returned."
   (with-unique-names (body-fn)
     `(flet ((,body-fn () ,@body))
-       (dolist (sleep '(0 1 2 4 7) (,body-fn))
-         (handler-case
-             (return (,body-fn))
-           (cl-postgres-error:serialization-failure ()
-             (log:debug "Handle serialization failure of ~A.  Sleeping around: ~A" ,label sleep)
-             (unless (zerop sleep) ; Do not wait the first time through
-               (sleep (+ sleep (/ (random 2000) 1000))))))))))
+       (if *db-handle-serialization-failure-p*
+           (dolist (sleep *serialization-failure-sleep-times* (,body-fn))
+             (handler-case
+                 (return (,body-fn))
+               (cl-postgres-error:serialization-failure ()
+                 (log:debug "Handle serialization failure of ~A.  Sleeping around: ~A" ,label sleep)
+                 (unless (zerop sleep) ; Do not wait the first time through
+                   (sleep (+ sleep (/ (random 2000) 1000)))))))
+           (,body-fn)))))

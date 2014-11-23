@@ -41,3 +41,13 @@
       (update-cat 1))))
 
 ;; now try select count(*) from cat_old;
+
+(defun update-one-allow-failure ()
+  (flet ((update-cat (id)
+           (bt:make-thread
+            (lambda ()
+              (with-connection '("cusoon" "gtod" "" "localhost" :port 5433)
+                (let ((*db-handle-serialization-failure-p* nil))
+                  (cat:update id (obj "name" (format nil "name-~A" id) "coat" "scruffy"))))))))
+    (dotimes (i 3)
+      (update-cat 1))))

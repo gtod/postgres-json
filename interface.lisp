@@ -11,6 +11,28 @@ house our database objects.")
 that will be created to provide unique IDs for all JSON objects
 inserted into PostgreSQL tables by this library.")
 
+(defvar *db-handle-serialization-failure-p* t
+  "UPDATE and DELETE calls on the model will use the Postgres
+'repeatable read isolation level' so 'serialization failures' may
+occur.  When this special variable is set to T (the default), these
+failures are handled under the covers.  (However, if excessive time
+elapses, client code may still see a
+CL-POSTGRES-ERROR:SERIALIZATION-FAILURE).  If you would rather
+explicitly handle _all_ serialization failures in your client code,
+set this to NIL.  This is a run time variable, that is the model code
+respects this setting for any specifc model UPDATE or DELETE call.")
+
+;; I think it sort of makes sense not to sleep at all for the first
+;; retry, but then to back off pretty fast.  But I am no expert...
+(defvar *serialization-failure-sleep-times* '(0 1 2 4 7)
+  "The length of this list of real numbers determines the number of
+times to retry when a Postgres transaction COMMIT see a
+CL-POSTGRES-ERROR:SERIALIZATION-FAILURE condition.  For each retry we
+sleep the duration specified, plus a random number of milliseconds
+between 0 and 2000.  However, if 0 sleep is specified, we do not sleep
+at all.  This is a run time variable, that is the model code respects
+this setting for any specifc model UPDATE or DELETE call.")
+
 ;;; Before everything - create sequence, create schema
 (defun create-default-schema ()
   "Create a PostgreSQL schema with name *DB-SCHEMA*."
