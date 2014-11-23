@@ -102,17 +102,19 @@ create, typically at the REPL."
 ;; it, I'd use it...
 
 ;; I think I want to change this to (model &optional (package-name model))
-(defmacro bake-interface (name &key (to-json 'to-json))
+(defmacro bake-interface (name &key (to-json 'to-json) (from-json 'from-json))
   "Dynamically create (or recreate) and populate a lisp package called
 NAME, a symbol, to house the implementation and public interface
 functions of a PostgreSQL JSON persistence model.  Export the symbols
 of the interface functions from that package.  Once 'baked' all the
 schema, sequence, table names etc. are hardcoded into Postmodern
 prepared queries, so can not be modified at run time.  TO-JSON may be
-a symbol for any function of one argument that will serialize lisp
-objects to JSON.  You must have previously invoked CREATE-BACKEND for
-a model of the same name and using the same values for *DB-SCHEMA* and
-*DB-SEQUENCE*.  Returns the model package."
+a symbol for a function of one argument that will serialize lisp
+objects to JSON.  FROM-JSON may be a symbol for a function of one
+argument that parses a JSON string to a lisp object.  You must have
+previously invoked CREATE-BACKEND for a model of the same name and
+using the same values for *DB-SCHEMA* and *DB-SEQUENCE*.  Expands into
+code that returns the model package."
   (ensure-model-package name)
   (let* ((schema *db-schema*)
          (name-old (sym t name "-old"))
@@ -132,7 +134,7 @@ a model of the same name and using the same values for *DB-SCHEMA* and
        ;; Exported model functions proper
        (defun-insert ,name :next-id ,next-id :to-json-fn ,to-json)
        (defun-update ,name :to-json-fn ,to-json)
-       (defun-get ,name)
+       (defun-get ,name :from-json-fn ,from-json)
        (defun-delete ,name)
        (defun-keys ,name)
 
