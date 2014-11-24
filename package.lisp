@@ -7,8 +7,8 @@
    :*db-handle-serialization-failure-p*
    :*serialization-failure-sleep-times*
    :def-model-package
-   :create-default-schema
    :drop-schema-cascade
-   :create-default-sequence
+   :create-default-db-schema
+   :create-default-db-sequence
    :create-model-backend
    :bake-model))

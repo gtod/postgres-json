@@ -54,12 +54,12 @@ at all.  This is a run time variable, that is the model code respects
 this setting for any specifc model UPDATE or DELETE call.")
 
 ;;; Before everything - create sequence, create schema
-(defun create-default-schema ()
+(defun create-default-db-schema ()
   "Create a PostgreSQL schema with name *DB-SCHEMA*."
-  (create-schema *db-schema*)
+  (pomo:create-schema *db-schema*)
   (values))
 
-(defun create-default-sequence ()
+(defun create-default-db-sequence ()
   "Create a PostgreSQL sequence with name *DB-SEQUENCE* in *DB-SCHEMA*
 to act as the source of unique ids across _all_ database model tables.
 If using PSQL remember to do something like
