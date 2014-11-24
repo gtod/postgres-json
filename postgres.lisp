@@ -12,27 +12,33 @@ and executing.")
 
 (defun drop-schema-cascade (name)
   "Drop a PostgreSQL schema and cascade delete all contained DB
-objects(!) with name NAME, a symbol.  Requires an active DB connection."
+objects(!) with name NAME, a symbol.  Requires an active DB
+connection."
   (when (string-equal "public" (symbol-name name))
     (error 'database-safety-net
            :attempted-to "Drop schema PUBLIC"
            :suggestion "Try pomo:drop-schema"))
   (pomo:drop-schema name :cascade t)
-  name)
+  (values))
 
-;;; Could we use currval to tell if it exists or not?
+;; We could use the pomo:sequence-exists-p but that checks in _all_
+;; schemas which is not really what we want.  Just let them see the
+;; error...
 (defun create-sequence (name schema)
   "Create a PostgreSQL sequence with NAME in SCHEMA (both symbols).
 Requires an active DB connection."
   (run `(:create-sequence ,(qualified-name name schema)))
-  name)
+  (values))
 
 ;;;; Qualified PostgreSQL table names using Postmodern's S-SQL
 
 (defun qualified-name (name schema)
+  "Return the S-SQL :dot form of NAME and SCHEMA, both symbols."
   `(:dot ',schema ',name))
 
 (defun qualified-name-string (name schema)
+  "Return a string of the Postgres 'qualified name' of NAME and SCHEMA,
+both strings"
   (format nil "~A.~A" (to-sql-name schema) (to-sql-name name)))
 
 (defun db-op-name (op name schema package-name)

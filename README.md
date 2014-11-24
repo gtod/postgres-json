@@ -165,6 +165,11 @@ PJ-TEST> (cat:get 82)
 But you can also specify `to-json` for `insert` and `update` and
 `from-json` for `get` at run time:
 
+#### Schema search paths
+
+We don't have to worry too much about schema search paths because the
+PG *qualified name* is baked into the model.
+
 ```common-lisp
 PJ-TEST> (cat:get 82 :from-json 'yason:parse)
 #<HASH-TABLE :TEST EQUAL :COUNT 2 {100799D833}>

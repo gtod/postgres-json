@@ -56,7 +56,8 @@ this setting for any specifc model UPDATE or DELETE call.")
 ;;; Before everything - create sequence, create schema
 (defun create-default-schema ()
   "Create a PostgreSQL schema with name *DB-SCHEMA*."
-  (create-schema *db-schema*))
+  (create-schema *db-schema*)
+  (values))
 
 (defun create-default-sequence ()
   "Create a PostgreSQL sequence with name *DB-SEQUENCE* in *DB-SCHEMA*
