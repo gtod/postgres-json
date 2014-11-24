@@ -141,15 +141,6 @@ code that returns the model package."
 
        (find-package ',name))))
 
-
-(defmacro def-model-package (keyword)
-  `(defpackage ,keyword
-     (:use ,@*model-use-symbols*)
-     (:shadow ,@*model-shadow-symbols*)
-     (:export ,@*model-export-symbols*)))
-
-
-
 ;; (defun drop-backend (name))
 ;; (defun delete-model (name))
 

@@ -1,16 +1,11 @@
 (in-package :postgres-json)
 
-(defun ensure-model-package (name)
-  "Create (or recreate) a lisp package with name NAME, a symbol, to
-house the implementation and interface of our model."
-  (when (find-package name)
-    (delete-package name))
-  (let ((package (make-package name :use *model-use-symbols*)))
-    (shadow *model-shadow-symbols* package)
-    (export (mapcar (lambda (symbol)
-                      (sym name symbol))
-                    *model-export-symbols*)
-            package)))
+;; Do we need to delete it first?
+(defmacro def-model-package (keyword)
+  `(defpackage ,keyword
+     (:use ,@*model-use-symbols*)
+     (:shadow ,@*model-shadow-symbols*)
+     (:export ,@*model-export-symbols*)))
 
 (defmacro defprepare-model-op (name (package-name) &body body)
   "A DEFPREPARED like form for defining a Postmodern statement

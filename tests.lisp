@@ -5,9 +5,7 @@
 (in-package :pj-test)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (progn
-    (def-model-package :booking)
-    (bake-interface booking)))
+  (bake-interface booking))
 
 (defvar *test-schema* 'net-gtod-postgres-json-test-schema)
 
