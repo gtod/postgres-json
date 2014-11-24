@@ -1,53 +1,91 @@
 (defpackage :pj-test
-  (:nicknames :pj-test)
-  (:use :cl :postmodern :postgres-json)
+  (:use :cl :postgres-json)
   (:import-from :postgres-json :obj :pp-json))
+
+(DEFPACKAGE :BOOKING
+  (:USE :CL :POSTMODERN)
+  (:SHADOW DELETE GET)
+  (:EXPORT POSTGRES-JSON::INSERT
+           POSTGRES-JSON::UPDATE
+           POSTGRES-JSON::GET
+           POSTGRES-JSON::DELETE
+           POSTGRES-JSON::KEYS))
 
 (in-package :pj-test)
 
-;;; See quickstart to ensure you have created the default schema,
-;;; sequence and the backend for cat
-
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (bake-interface cat))
+  (bake-interface booking))
 
-(defun insert-some (&optional (number 40))
-  (dotimes (i number)
-    (cat:insert (obj "name" (format nil "name-~A" i) "coat" "scruffy"))))
+(defvar *test-schema* 'net-gtod-postgres-json-test-schema)
 
-;; quickload bordeaux-threads if need be
+(defparameter *test-schema-exists-message*
+  "Not willing to run tests in existing schema.  Unless this schema
+contains important data of yours (unlikey given the name its got but
+you can never be too careful with other people's data), you might want
+to drop it with (drop-schema-cascade *test-schema*) and try again: ~A")
 
-(log:config :debug)
+(defparameter *bookings-json* 
+  (merge-pathnames "tests.json" (asdf:system-source-directory :postgres-json)))
 
-(defun update-some ()
-  (flet ((update-cat (id)
-           (bt:make-thread
-            (lambda ()
-              (with-connection '("cusoon" "gtod" "" "localhost" :port 5433)
-                (cat:update id (obj "name" (format nil "name-~A" id) "coat" "scruffy")))))))
-    (loop for id from 4 to 23
-          do (update-cat id))))
 
-;; In PSQL: set search_path pgj_schema,public;
-;; now try select count(*) from cat_old;
+;; ;; Mmm, this is ugly.  I suspect it's effective because we just
+;; ;; _replace_ it with the proper one with backed in *test-schema* in
+;; ;; setup, but it's all a bit of a mess...
+;; (eval-when (:compile-toplevel :load-toplevel :execute)
+;;   (let ((*db-schema* 'net-gtod-postgres-json-test-schema)) ;Mmmm BROKEN!
+;;     (create-default-schema)
+;;     (create-default-sequence)
+;;     (create-backend booking)
+;;     (bake-interface booking)))
 
-(defun update-one ()
-  (flet ((update-cat (id)
-           (bt:make-thread
-            (lambda ()
-              (with-connection '("cusoon" "gtod" "" "localhost" :port 5433)
-                (cat:update id (obj "name" (format nil "name-~A" id) "coat" "scruffy")))))))
-    (dotimes (i 20)
-      (update-cat 1))))
+;; (defun setup ()
+;;   (when (pomo:schema-exist-p *test-schema*)
+;;     (error *test-schema-exists-message* *test-schema*))
+  
+;;   )
 
-;; now try select count(*) from cat_old;
+(defun insert-bookings ()
+  (alexandria:with-input-from-file (stream *bookings-json*)
+    (dolist (booking (yason:parse stream))
+      (booking:insert booking))))
 
-(defun update-one-allow-failure ()
-  (flet ((update-cat (id)
-           (bt:make-thread
-            (lambda ()
-              (with-connection '("cusoon" "gtod" "" "localhost" :port 5433)
-                (let ((*db-handle-serialization-failure-p* nil))
-                  (cat:update id (obj "name" (format nil "name-~A" id) "coat" "scruffy"))))))))
-    (dotimes (i 3)
-      (update-cat 1))))
+;; (defun insert-some (&optional (number 40))
+;;   (dotimes (i number)
+;;     (cat:insert (obj "name" (format nil "name-~A" i) "coat" "scruffy"))))
+
+;; ;; quickload bordeaux-threads if need be
+
+;; (log:config :debug)
+
+;; (defun update-some ()
+;;   (flet ((update-cat (id)
+;;            (bt:make-thread
+;;             (lambda ()
+;;               (with-connection '("cusoon" "gtod" "" "localhost" :port 5433)
+;;                 (cat:update id (obj "name" (format nil "name-~A" id) "coat" "scruffy")))))))
+;;     (loop for id from 4 to 23
+;;           do (update-cat id))))
+
+;; ;; In PSQL: set search_path pgj_schema,public;
+;; ;; now try select count(*) from cat_old;
+
+;; (defun update-one ()
+;;   (flet ((update-cat (id)
+;;            (bt:make-thread
+;;             (lambda ()
+;;               (with-connection '("cusoon" "gtod" "" "localhost" :port 5433)
+;;                 (cat:update id (obj "name" (format nil "name-~A" id) "coat" "scruffy")))))))
+;;     (dotimes (i 20)
+;;       (update-cat 1))))
+
+;; ;; now try select count(*) from cat_old;
+
+;; (defun update-one-allow-failure ()
+;;   (flet ((update-cat (id)
+;;            (bt:make-thread
+;;             (lambda ()
+;;               (with-connection '("cusoon" "gtod" "" "localhost" :port 5433)
+;;                 (let ((*db-handle-serialization-failure-p* nil))
+;;                   (cat:update id (obj "name" (format nil "name-~A" id) "coat" "scruffy"))))))))
+;;     (dotimes (i 3)
+;;       (update-cat 1))))

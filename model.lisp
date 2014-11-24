@@ -4,8 +4,15 @@
 ;;;; (mostly Postmodern defprepare forms) and the interface macros
 ;;;; to create a model.
 
-;;;; Special variables
-(defparameter *model-export-list* '(insert update get delete keys)
+(defparameter *model-use-symbols* '(:cl :postmodern)
+  "The packages to :use on our model packages.")
+
+(defparameter *model-shadow-symbols* '(cl:delete cl:get)
+  "Symbols to shadow in our model packages, typically so we might
+export them as part of the model's interface.  These will need to be
+shadowed in the POSTGRES-JSON defpackage form as well.")
+
+(defparameter *model-export-symbols* '(insert update get delete keys)
   "The list of symbols to export from our model interface.")
 
 ;;; Now you can just rebind these and have the functions below use

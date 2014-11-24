@@ -1,11 +1,5 @@
 (in-package :postgres-json)
 
-(defparameter *model-use-packages* '(:cl :postmodern)
-  "The packages to :USE on our model packages.")
-
-(defparameter *shadow-symbols* '(cl:delete cl:get)
-  "Symbols to shadow in our model packages, typically so we might
-export them as part of the model's interface.")
 
 (defun ensure-model-package (name export-list)
   "Create (or recreate) a lisp package with name NAME, a symbol, to
