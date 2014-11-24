@@ -35,6 +35,12 @@ Requires an active DB connection."
 (defun qualified-name-string (name schema)
   (format nil "~A.~A" (to-sql-name schema) (to-sql-name name)))
 
+(defun db-op-name (op name schema package-name)
+  "Return a symbol interned in the package denoted by PACKAGE-NAME
+with name <OP>-<SCHEMA>-<NAME>$ where <...> stands for string
+interpolation."
+  (sym package-name op "-" schema "-" name "$"))
+
 ;;;; Utility
 
 (defun run (form)
