@@ -1,16 +1,15 @@
 (in-package :postgres-json)
 
-
-(defun ensure-model-package (name export-list)
+(defun ensure-model-package (name)
   "Create (or recreate) a lisp package with name NAME, a symbol, to
 house the implementation and interface of our model."
   (when (find-package name)
     (delete-package name))
-  (let ((package (make-package name :use *model-use-packages*)))
-    (shadow *shadow-symbols* package)
+  (let ((package (make-package name :use *model-use-symbols*)))
+    (shadow *model-shadow-symbols* package)
     (export (mapcar (lambda (symbol)
                       (sym name symbol))
-                    export-list)
+                    *model-export-symbols*)
             package)))
 
 (defmacro defprepare-model-op (name (package-name) &body body)

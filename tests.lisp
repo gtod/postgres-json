@@ -2,16 +2,10 @@
   (:use :cl :postgres-json)
   (:import-from :postgres-json :obj :pp-json))
 
-(DEFPACKAGE :BOOKING
-  (:USE :CL :POSTMODERN)
-  (:SHADOW DELETE GET)
-  (:EXPORT POSTGRES-JSON::INSERT
-           POSTGRES-JSON::UPDATE
-           POSTGRES-JSON::GET
-           POSTGRES-JSON::DELETE
-           POSTGRES-JSON::KEYS))
-
 (in-package :pj-test)
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (def-model-package :booking))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (bake-interface booking))
