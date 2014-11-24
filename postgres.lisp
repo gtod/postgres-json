@@ -5,22 +5,19 @@
 and executing.")
 
 ;;;; High level DB operations
+;;;; See also postmodern util.lisp
 
 ;;; We can get away with these not being prepared statments because (I
 ;;; imagine) they are infrequently used, and usually from the REPL.
 
-(defun create-schema (name)
-  "Create a PostgreSQL schema with name NAME, a symbol.  Requires an
-active DB connection."
-  (run (format nil "create schema ~A" (to-sql-name name)))
-  name)
-
-(defun drop-schema-cascade! (name)
+(defun drop-schema-cascade (name)
   "Drop a PostgreSQL schema and cascade delete all contained DB
 objects(!) with name NAME, a symbol.  Requires an active DB connection."
   (when (string-equal "public" (symbol-name name))
-    (error 'database-safety-net :attempted-to "Drop schema PUBLIC"))
-  (run (format nil "drop schema ~A cascade" (to-sql-name name)))
+    (error 'database-safety-net
+           :attempted-to "Drop schema PUBLIC"
+           :suggestion "Try pomo:drop-schema"))
+  (pomo:drop-schema name :cascade t)
   name)
 
 ;;; Could we use currval to tell if it exists or not?

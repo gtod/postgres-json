@@ -7,7 +7,7 @@
    :*db-handle-serialization-failure-p*
    :*serialization-failure-sleep-times*
    :create-default-schema
-   :drop-schema-cascade!
+   :drop-schema-cascade
    :create-default-sequence
    :create-backend
    :bake-interface))
