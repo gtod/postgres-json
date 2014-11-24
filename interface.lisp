@@ -116,7 +116,7 @@ argument that parses a JSON string to a lisp object.  You must have
 previously invoked CREATE-BACKEND for a model of the same name and
 using the same values for *DB-SCHEMA* and *DB-SEQUENCE*.  Expands into
 code that returns the model package."
-  (ensure-model-package name)
+  (ensure-model-package name *model-export-list*)
   (let* ((schema *db-schema*)
          (name-old (sym t name "-old"))
          (table (qualified-name name schema))

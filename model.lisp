@@ -5,6 +5,8 @@
 ;;;; to create a model.
 
 ;;;; Special variables
+(defparameter *model-export-list* '(insert update get delete keys)
+  "The list of symbols to export from our model interface.")
 
 ;;; Now you can just rebind these and have the functions below use
 ;;; them nicely.  But of course you'd need to recompile this file in
@@ -151,7 +153,7 @@ symbol we FUNCALL it with two arguments: the value of the id to be
 used for the DB insert and the lisp OBJECT supplied to INSERT.
 TO-JSON-FN must be a symbol for a function of one argument to
 serialize lisp objects to JSON strings."
-  `(defun-model-op insert (,model :export-p t) (object &optional use-id)
+  `(defun-model-op insert (,model) (object &optional use-id)
      "Insert lisp object OBJECT into PostgreSQL after JSON
 serialization.  If USE-ID is supplied, use that as the primary
 key for this object rather than the automatically generated one.
@@ -168,7 +170,7 @@ Return the ID."
   "Define the model operation UPDATE to be exported from the package
 MODEL, a symbol.  TO-JSON-FN must be a symbol for a function of one
 argument to serialize lisp objects to JSON strings."
-  `(defun-model-op update (,model :export-p t) (id object)
+  `(defun-model-op update (,model) (id object)
      "Update the current value of object with primary key ID to be the
 JSON serialization of OBJECT.  Return ID."
      (log:debug "Attempt update of ~A" id)
@@ -183,7 +185,7 @@ JSON serialization of OBJECT.  Return ID."
 MODEL, a symbol.  FROM-JSON-FN must be symbol for a function of one
 argument to parse a JSON string to a lisp object.  Make it #'identity
 so no parse occurs and you will get the JSON string proper."
-  `(defun-model-op get (,model :export-p t) (id &key (from-json ',from-json-fn))
+  `(defun-model-op get (,model) (id &key (from-json ',from-json-fn))
      "Lookup the object with primary key ID and return a parse of the
 JSON string by the function designator FROM-JSON."
      (funcall from-json
@@ -193,7 +195,7 @@ JSON string by the function designator FROM-JSON."
 (defmacro defun-delete (model)
   "Define the model operation DELETE to be exported from the package
 MODEL, a symbol."
-  `(defun-model-op delete (,model :export-p t) (id)
+  `(defun-model-op delete (,model) (id)
      "Delete the object with primary key ID.  Returns ID if
 successful, NIL otherwise."
      (log:debug "Attempt delete of ~A" id)
@@ -205,7 +207,7 @@ successful, NIL otherwise."
 (defmacro defun-keys (model)
   "Define the model operation KEYS to be exported from the package
 MODEL, a symbol."
-  `(defun-model-op keys (,model :export-p t) ()
+  `(defun-model-op keys (,model) ()
      "Returns two values: a list of all primary keys for this model
 and the length of that list."
      (with-transaction-type (read-committed-ro)

@@ -7,32 +7,30 @@
   "Symbols to shadow in our model packages, typically so we might
 export them as part of the model's interface.")
 
-(defun ensure-model-package (name)
+(defun ensure-model-package (name export-list)
   "Create (or recreate) a lisp package with name NAME, a symbol, to
 house the implementation and interface of our model."
   (when (find-package name)
     (delete-package name))
   (let ((package (make-package name :use *model-use-packages*)))
-    (shadow *shadow-symbols* package)))
+    (shadow *shadow-symbols* package)
+    (export (mapcar (lambda (symbol)
+                      (sym name symbol))
+                    export-list)
+            package)))
 
-(defmacro defprepare-model-op (name (package-name &key export-p) &body body)
+(defmacro defprepare-model-op (name (package-name) &body body)
   "A DEFPREPARED like form for defining a Postmodern statement
 function with name NAME in the model package denoted by PACKAGE-NAME,
-a symbol.  The function's symbol may be exported by setting EXPORT-P
-true."
-  `(progn
-     (defprepared ,(ensure-symbol name package-name) ,@body)
-     ,(when export-p
-        `(export (find-symbol (symbol-name ',name) ',package-name) ',package-name))))
+a symbol."
+  `(defprepared ,(ensure-symbol name package-name) ,@body))
 
-(defmacro defun-model-op (name (package-name &key export-p) args &body body)
+(defmacro defun-model-op (name (package-name) args &body body)
   "A DEFUN like form for defining a function with name NAME in the
 model package denoted by PACKAGE-NAME, a symbol.  The function's
 symbol may be exported by setting EXPORT-P true."
   `(with-fbound-symbols-in-package (,package-name)
-     (defun ,(ensure-symbol name package-name) (,@args) ,@body)
-     ,(when export-p
-        `(export (find-symbol (symbol-name ',name) ',package-name) ',package-name))))
+     (defun ,(ensure-symbol name package-name) (,@args) ,@body)))
 
 ;;; This is maybe more funcky that I'd like, in the sense that I
 ;;; wonder if there is not a much simpler way to accomplish the same
