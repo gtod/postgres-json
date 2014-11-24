@@ -10,5 +10,5 @@
    :create-default-schema
    :drop-schema-cascade
    :create-default-sequence
-   :create-backend
+   :create-model-backend
    :bake-model))

@@ -69,25 +69,22 @@ If using PSQL remember to do something like
 to be able to see the tables, indexes, etc. in your new schema."
   (create-sequence *db-sequence* *db-schema*))
 
-;; Want to change this to model...
-;;; Once only per model, typically at the REPL
-(defmacro create-backend (name)
-  "Create PostgreSQL tables and other objects with names based on
-NAME, a symbol and for a PostgreSQL JSON persistence model lisp
-package, also called NAME.  Create the DB objects in database schema
-*DB-SCHEMA*.  This should only be run once per model you wish to
-create, typically at the REPL."
-  (check-type name symbol)
-  (let* ((schema *db-schema*)
-         (name-old (sym t name "-old"))
+(defun create-model-backend% (name schema)
+  (let* ((name-old (sym t name "-old"))
          (index (sym t name "-gin"))
          (index-old (sym t name "-old-gin")))
-    `(progn
-       (create-base-table ',name ',schema)
-       (create-old-table ',name-old ',schema)
-       (when (eq 'jsonb *jdoc-type*)
-         (create-gin-index ',index ',name ',schema)
-         (create-gin-index ',index-old ',name-old ',schema)))))
+    (create-base-table name schema)
+    (create-old-table name-old schema)
+    (when (eq 'jsonb *jdoc-type*)
+      (create-gin-index index name schema)
+      (create-gin-index index-old name-old schema))))
+
+(defmacro create-model-backend (name &key (schema *db-schema*))
+  "Create PostgreSQL tables and other DB objects with names based on
+NAME, a symbol, for a PostgreSQL JSON persistence model.  Create the
+DB objects in database schema *DB-SCHEMA*.  This should only be run
+once per model you wish to create, typically at the REPL."
+  `(create-model-backend% ',name ',schema))
 
 ;; There is an important serial dependence of the various definitions
 ;; of our model, found here in BAKE-INTERFACE.  Consider an example
