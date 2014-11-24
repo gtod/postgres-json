@@ -121,7 +121,7 @@ code that returns the model package."
          (name-old (sym t name "-old"))
          (table (qualified-name name schema))
          (table-old (qualified-name name-old schema))
-         (next-id (sequence-op-name "nextval" *db-sequence* schema name)))
+         (next-id (db-op-name "nextval" *db-sequence* schema name)))
     `(progn
        ;; Low level DB access
        (defprepare-nextval-sequence$ ,*db-sequence* ,schema ,name)
