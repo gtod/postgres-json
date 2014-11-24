@@ -103,26 +103,14 @@ create, typically at the REPL."
 ;; it, I'd use it...
 
 ;; I think I want to change this to (model &optional (package-name model))
-(defmacro bake-interface (name &key (to-json 'to-json) (from-json 'from-json))
-  "Dynamically create (or recreate) and populate a lisp package called
-NAME, a symbol, to house the implementation and public interface
-functions of a PostgreSQL JSON persistence model.  Export the symbols
-of the interface functions from that package.  Once 'baked' all the
-schema, sequence, table names etc. are hardcoded into Postmodern
-prepared queries, so can not be modified at run time.  TO-JSON may be
-a symbol for a function of one argument that will serialize lisp
-objects to JSON.  FROM-JSON may be a symbol for a function of one
-argument that parses a JSON string to a lisp object.  You must have
-previously invoked CREATE-BACKEND for a model of the same name and
-using the same values for *DB-SCHEMA* and *DB-SEQUENCE*.  Expands into
-code that returns the model package."
-  (ensure-model-package name *model-export-list*)
+(defmacro bake-interface% (name &key to-json from-json)
   (let* ((schema *db-schema*)
          (name-old (sym t name "-old"))
          (table (qualified-name name schema))
          (table-old (qualified-name name-old schema))
          (next-id (db-op-name "nextval" *db-sequence* schema name)))
     `(progn
+       (def-model-package ,name)
        ;; Low level DB access
        (defprepare-nextval-sequence$ ,*db-sequence* ,schema ,name)
        (defprepare-insert$ ,name ,table)
@@ -140,6 +128,22 @@ code that returns the model package."
        (defun-keys ,name)
 
        (find-package ',name))))
+
+(defmacro bake-interface (name &key (to-json 'to-json) (from-json 'from-json))
+  "Dynamically create (or recreate) and populate a lisp package called
+NAME, a symbol, to house the implementation and public interface
+functions of a PostgreSQL JSON persistence model.  Export the symbols
+of the interface functions from that package.  Once 'baked' all the
+schema, sequence, table names etc. are hardcoded into Postmodern
+prepared queries, so can not be modified at run time.  TO-JSON may be
+a symbol for a function of one argument that will serialize lisp
+objects to JSON.  FROM-JSON may be a symbol for a function of one
+argument that parses a JSON string to a lisp object.  You must invoke
+CREATE-BACKEND for a model of the same name and using the same values
+for *DB-SCHEMA* and *DB-SEQUENCE* before calling your model's
+functions.  Expands into code that returns the model package."
+  `(progn (def-model-package ,name)
+          (bake-interface% ,name :to-json ,to-json :from-json ,from-json)))
 
 ;; (defun drop-backend (name))
 ;; (defun delete-model (name))

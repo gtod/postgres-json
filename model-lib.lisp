@@ -1,11 +1,14 @@
 (in-package :postgres-json)
 
 ;; Do we need to delete it first?
-(defmacro def-model-package (keyword)
-  `(defpackage ,keyword
-     (:use ,@*model-use-symbols*)
-     (:shadow ,@*model-shadow-symbols*)
-     (:export ,@*model-export-symbols*)))
+(defmacro def-model-package (name)
+  `(progn
+     (when-let (package (find-package ',name))
+       (delete-package package))
+     (defpackage ,name
+       (:use ,@*model-use-symbols*)
+       (:shadow ,@*model-shadow-symbols*)
+       (:export ,@*model-export-symbols*))))
 
 (defmacro defprepare-model-op (name (package-name) &body body)
   "A DEFPREPARED like form for defining a Postmodern statement
