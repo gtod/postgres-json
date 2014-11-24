@@ -103,16 +103,15 @@ create, typically at the REPL."
 ;; it, I'd use it...
 
 ;; I think I want to change this to (model &optional (package-name model))
-(defmacro bake-interface% (name to-json from-json)
-  (let* ((schema *db-schema*)
-         (name-old (sym t name "-old"))
+(defmacro bake-model% (name schema sequence to-json from-json)
+  (let* ((name-old (sym t name "-old"))
          (table (qualified-name name schema))
          (table-old (qualified-name name-old schema))
-         (next-id (db-op-name "nextval" *db-sequence* schema name)))
+         (next-id (db-op-name "nextval" sequence schema name)))
     `(progn
        (def-model-package ,name)
        ;; Low level DB access
-       (defprepare-nextval-sequence$ ,*db-sequence* ,schema ,name)
+       (defprepare-nextval-sequence$ ,sequence ,schema ,name)
        (defprepare-insert$ ,name ,table)
        (defprepare-insert-old$ ,name ,table ,table-old)
        (defprepare-update$ ,name ,table)
@@ -129,7 +128,8 @@ create, typically at the REPL."
 
        (find-package ',name))))
 
-(defmacro bake-interface (name &key (to-json 'to-json) (from-json 'from-json))
+(defmacro bake-model (name &key (schema *db-schema*) (sequence *db-sequence*)
+                                (to-json 'to-json) (from-json 'from-json))
   "Expands to code that creates (or recreates) and populates a lisp
 package called NAME, a symbol, to house the implementation and public
 interface functions of a PostgreSQL JSON persistence model.  Exports
@@ -140,7 +140,7 @@ argument that parses a JSON string to a lisp object.  You must invoke
 CREATE-BACKEND precisely once for a model of the same name before
 calling your model's functions.  Returns the model package."
   `(progn (def-model-package ,name)
-          (bake-interface% ,name ,to-json ,from-json)))
+          (bake-model% ,name ,schema ,sequence ,to-json ,from-json)))
 
 ;; (defun drop-backend (name))
 ;; (defun delete-model (name))
