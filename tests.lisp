@@ -4,6 +4,8 @@
 
 (in-package :pj-test)
 
+;; Do we just get around this by putting it in a separate file we
+;; compile before this file?
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (bake-interface booking))
 

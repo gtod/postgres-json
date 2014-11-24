@@ -103,7 +103,7 @@ create, typically at the REPL."
 ;; it, I'd use it...
 
 ;; I think I want to change this to (model &optional (package-name model))
-(defmacro bake-interface% (name &key to-json from-json)
+(defmacro bake-interface% (name to-json from-json)
   (let* ((schema *db-schema*)
          (name-old (sym t name "-old"))
          (table (qualified-name name schema))
@@ -130,20 +130,17 @@ create, typically at the REPL."
        (find-package ',name))))
 
 (defmacro bake-interface (name &key (to-json 'to-json) (from-json 'from-json))
-  "Dynamically create (or recreate) and populate a lisp package called
-NAME, a symbol, to house the implementation and public interface
-functions of a PostgreSQL JSON persistence model.  Export the symbols
-of the interface functions from that package.  Once 'baked' all the
-schema, sequence, table names etc. are hardcoded into Postmodern
-prepared queries, so can not be modified at run time.  TO-JSON may be
-a symbol for a function of one argument that will serialize lisp
+  "Expands to code that creates (or recreates) and populates a lisp
+package called NAME, a symbol, to house the implementation and public
+interface functions of a PostgreSQL JSON persistence model.  Exports
+the symbols of the interface functions from that package.  TO-JSON may
+be a symbol for a function of one argument that will serialize lisp
 objects to JSON.  FROM-JSON may be a symbol for a function of one
 argument that parses a JSON string to a lisp object.  You must invoke
-CREATE-BACKEND for a model of the same name and using the same values
-for *DB-SCHEMA* and *DB-SEQUENCE* before calling your model's
-functions.  Expands into code that returns the model package."
+CREATE-BACKEND precisely once for a model of the same name before
+calling your model's functions.  Returns the model package."
   `(progn (def-model-package ,name)
-          (bake-interface% ,name :to-json ,to-json :from-json ,from-json)))
+          (bake-interface% ,name ,to-json ,from-json)))
 
 ;; (defun drop-backend (name))
 ;; (defun delete-model (name))
