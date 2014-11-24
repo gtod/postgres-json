@@ -2,13 +2,13 @@
   (:use :cl :alexandria :postmodern :s-sql)
   (:shadow :get :delete)
   (:export 
-   :*db-schema*
-   :*db-sequence*
    :*db-handle-serialization-failure-p*
    :*serialization-failure-sleep-times*
    :def-model-package
-   :drop-schema-cascade
+   :create-db-schema
+   :create-db-sequence
    :create-default-db-schema
    :create-default-db-sequence
+   :drop-db-schema-cascade
    :create-model-backend
    :bake-model))

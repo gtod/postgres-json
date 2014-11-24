@@ -10,7 +10,39 @@ and executing.")
 ;;; We can get away with these not being prepared statments because (I
 ;;; imagine) they are infrequently used, and usually from the REPL.
 
-(defun drop-schema-cascade (name)
+(defun create-db-schema (name)
+  "Create a new PostgreSQL schema call NAME, a symbol.  Requires an
+active DB connection.
+
+If you are using PSQL remember to do something like
+
+  SET search_path TO <your_schema>, public;
+
+to be able to see the tables, indexes, etc. in your new schema."
+  (pomo:create-schema name)
+  (values))
+
+(defun create-default-db-schema ()
+  "Create a PostgreSQL schema with name *DB-SCHEMA*.  Requires an
+active DB connection."
+  (create-db-schema *db-schema*))
+
+;; We could use the pomo:sequence-exists-p but that checks in _all_
+;; schemas which is not really what we want.  Just let them see the
+;; error...
+(defun create-db-sequence (name schema)
+  "Create a PostgreSQL sequence with NAME in SCHEMA (both symbols).
+Requires an active DB connection."
+  (run `(:create-sequence ,(qualified-name name schema)))
+  (values))
+
+(defun create-default-db-sequence ()
+  "Create a PostgreSQL sequence with name *DB-SEQUENCE* in *DB-SCHEMA*
+to act as the source of unique ids across _all_ database model tables.
+Requires an active DB connection."
+  (create-db-sequence *db-sequence* *db-schema*))
+
+(defun drop-db-schema-cascade (name)
   "Drop a PostgreSQL schema and cascade delete all contained DB
 objects(!) with name NAME, a symbol.  Requires an active DB
 connection."
@@ -19,15 +51,6 @@ connection."
            :attempted-to "Drop schema PUBLIC"
            :suggestion "Try pomo:drop-schema"))
   (pomo:drop-schema name :cascade t)
-  (values))
-
-;; We could use the pomo:sequence-exists-p but that checks in _all_
-;; schemas which is not really what we want.  Just let them see the
-;; error...
-(defun create-sequence (name schema)
-  "Create a PostgreSQL sequence with NAME in SCHEMA (both symbols).
-Requires an active DB connection."
-  (run `(:create-sequence ,(qualified-name name schema)))
   (values))
 
 ;;;; Qualified PostgreSQL table names using Postmodern's S-SQL

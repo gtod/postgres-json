@@ -53,22 +53,6 @@ between 0 and 2000.  However, if 0 sleep is specified, we do not sleep
 at all.  This is a run time variable, that is the model code respects
 this setting for any specifc model UPDATE or DELETE call.")
 
-;;; Before everything - create sequence, create schema
-(defun create-default-db-schema ()
-  "Create a PostgreSQL schema with name *DB-SCHEMA*."
-  (pomo:create-schema *db-schema*)
-  (values))
-
-(defun create-default-db-sequence ()
-  "Create a PostgreSQL sequence with name *DB-SEQUENCE* in *DB-SCHEMA*
-to act as the source of unique ids across _all_ database model tables.
-If using PSQL remember to do something like
-
-  SET search_path TO pgj_schema, public;
-
-to be able to see the tables, indexes, etc. in your new schema."
-  (create-sequence *db-sequence* *db-schema*))
-
 (defun create-model-backend% (name schema)
   (let* ((name-old (sym t name "-old"))
          (index (sym t name "-gin"))
