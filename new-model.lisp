@@ -12,43 +12,91 @@
 
 (defparameter *query-functions* (make-hash-table :test #'equal))
 
-(defun query-key (label operation)
-  (format nil "~A:~A" (symbol-name label) (symbol-name operation)))
+(defun query-key (model operation)
+  (format nil "~A:~A" (symbol-name model) (symbol-name operation)))
 
-(defun lookup-query (label operation)
-  (gethash (query-key label operation) *query-functions*))
+(defun lookup-query (model operation)
+  (gethash (query-key model operation) *query-functions*))
 
-(defun set-lookup-query (label operation query)
-  (setf (gethash (query-key label operation) *query-functions*)
+(defun set-lookup-query (model operation query)
+  (setf (gethash (query-key model operation) *query-functions*)
         query))
 
 (defsetf lookup-query set-lookup-query)
 
-(defun insert (label object &key use-id (to-json 'to-json) stash-id)
+(defun insert (model object &key use-id (to-json 'to-json) stash-id)
   (with-transaction-type (read-committed-rw)
-    (let* ((id (if use-id use-id (nextval-sequence$ label)))
+    (let* ((id (if use-id use-id (nextval-sequence$ model)))
            (object (if stash-id
                        (funcall stash-id id object)
                        object)))
-      (insert$ label id (funcall to-json object))
+      (insert$ model id (funcall to-json object))
       id)))
 
-(defun insert$ (label id json)
-  (funcall (lookup-query label 'insert$) id json))
+(defun insert$ (model id json)
+  (funcall (lookup-query model 'insert$) id json))
 
-(defun make-insert$ (label table)
-  (setf (lookup-query label 'insert$)
-        (prepare (sql-compile `(:insert-into ,table :set ',*id* '$1 ',*jdoc* '$2)))))
+(defun nextval-sequence$ (model)
+  (funcall (lookup-query model 'nextval-sequence$)))
 
-(defun nextval-sequence$ (label)
-  (funcall (lookup-query label 'nextval-sequence$)))
+;;;; Make queries paramaterized on model
 
-(defun make-nextval-sequence$ (label sequence)
-  (setf (lookup-query 'nextval-sequence$)
+(defun make-nextval-sequence$ (model sequence)
+  (setf (lookup-query model 'nextval-sequence$)
         (prepare (sql-compile `(:select (:nextval ,sequence)))
             :single!)))
 
-(defun prepare-model (label &key (schema *db-schema*) (sequence *db-sequence*))
+(defun make-insert$ (model table)
+  (setf (lookup-query model 'insert$)
+        (prepare (sql-compile `(:insert-into ,table :set ',*id* '$1 ',*jdoc* '$2)))))
+
+(defun make-insert-old$ (model table old-table)
+  (setf (lookup-query model 'insert-old$)
+        (prepare (sql-compile `(:insert-into ,old-table
+                                             ;; Note the dependence on the column ordering of
+                                             ;; CREATE-OLD-TABLE since :insert-into will not let
+                                             ;; me explicitly specify column names...
+                                             (:select ',*id*
+                                                      (:transaction-timestamp)
+                                                      'valid-from
+                                                      ',*jdoc*
+                                                      :from ,table
+                                                      :where (:= ',*id* '$1))
+                                             :returning ',*id*)))))
+
+(defun make-update$ (model table)
+  (setf (lookup-query model 'update$)
+        (prepare (sql-compile `(:update ,table
+                                :set ',*jdoc* '$2 'valid-from (:transaction-timestamp)
+                                :where (:= ',*id* '$1)
+                                :returning ',*id*))
+            :single!)))
+
+(defun make-get$ (model table)
+  (setf (lookup-query model 'get$)
+        (prepare (sql-compile `(:select ',*jdoc* :from ,table :where (:= ',*id* '$1)))
+            :single!)))
+
+(defun make-delete$ (model table)
+  (setf (lookup-query model table)
+        (prepare (sql-compile `(:delete-from ,table :where (:= ',*id* '$1) :returning ',*id*))
+            :single)))
+
+(defun make-get-all-ids$ (model table)
+  (setf (lookup-query model table)
+        (prepare (sql-compile `(:select ',*id* :from ,table))
+            :column)))
+
+(defun prepare-model (model &key (schema *db-schema*) (sequence *db-sequence*))
   (with-connection '("cusoon" "gtod" "" "localhost" :port 5433)
-    (make-insert$ label (qualified-name label schema))
-    (make-nextval-sequence$ label (qualified-name-string sequence schema))))
+    (let* ((base model)
+           (old (sym t base "-old"))
+           (table (qualified-name base schema))
+           (table-old (qualified-name old schema)))
+      (make-nextval-sequence$ model (qualified-name-string sequence schema))
+      (make-insert$ model table)
+      (make-insert-old$ model table table-old)
+      (make-update$ model table)
+      (make-get$ model table)
+      (make-delete$ model table)
+      (make-get-all-ids$ model table))))
