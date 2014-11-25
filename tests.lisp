@@ -21,6 +21,7 @@ again.~%Schema: ~A")
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (declare-model booking))
 
+;; BROKEN
 (defmacro bake ()
   `(bake-model booking :schema ,*test-schema*))
 
