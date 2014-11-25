@@ -27,3 +27,6 @@
    :get
    :delete
    :keys))
+
+;;; Also some convenience functions (not exported) that you may wish to import:
+;;; (:import-from :postgres-json :obj :pp-json)

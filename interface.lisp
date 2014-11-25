@@ -52,7 +52,7 @@ once per model you wish to create, typically at the REPL."
 (defun bake-model (model &key (schema *db-schema*) (sequence *db-sequence*))
   "Prepare all the PostgreSQL queries necessary to support PostgreSQL
 JSON persistence model calls on MODEL, a symbol.  SCHEMA and SEQUENCE,
-both sysmbols, may be specified to use a specific DB schema and or
+both symbols, may be specified to use a specific DB schema and/or
 sequence for primary keys, respectively."
   (let* ((base model)
          (old (sym t base "-old"))
@@ -85,7 +85,7 @@ sequence for primary keys, respectively."
     (yason:encode object s)))
 
 (defun to-json (object)
-  "Convert a lisp OBJECT to a string of JSON."
+  "Convert a lisp OBJECT to a string of JSON, using YASON:ENCODE."
   (with-output-to-string (s)
     (yason:encode object s)))
 
