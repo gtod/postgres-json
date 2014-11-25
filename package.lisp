@@ -6,6 +6,8 @@
    ;; Specials
    :*db-schema*
    :*db-sequence*
+   :*to-json*
+   :*from-json*
    :*db-handle-serialization-failure-p*
    :*serialization-failure-sleep-times*
 
