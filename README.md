@@ -34,8 +34,8 @@ work, but there is still much to do before an Alpha release.
 ## Quickstart
 
 You will need a working PostgreSQL 9.4 beta install.  On Debian I
-followed the instructions
-[here](https://wiki.postgresql.org/wiki/Apt).  There is a FAQ on
+followed the instructions at
+https://wiki.postgresql.org/wiki/Apt.  There is a FAQ on
 getting the 9.4 beta which you should read to get the apt source line.
 Since I already had an earlier install, Debian put the new PostgreSQL
 cluster at port 5433 rather than 5432.  YMMV.
@@ -137,10 +137,8 @@ We need a bulk insert, but still it's fun to do something like
 
 Just about everything has a doc string, but that's more for
 maintainers than users.  The interface you get per model is just five
-functions for now, illustrated below.  Because the interface is
-baked on demand (per model) there is no source code to bounce to for
-your interface functions.  But you can do (in Emacs):
-`slime-documentation` for say `cat:insert`.
+functions for now, illustrated above.  All the interface functions
+have comprehensive doc strings.
 
 ### User's guide (under construction)
 
