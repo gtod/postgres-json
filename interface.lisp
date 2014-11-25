@@ -53,7 +53,11 @@ between 0 and 2000.  However, if 0 sleep is specified, we do not sleep
 at all.  This is a run time variable, that is the model code respects
 this setting for any specifc model UPDATE or DELETE call.")
 
-(defun create-model-backend% (name schema)
+(defun create-model-backend (name &key (schema *db-schema*))
+  "Create PostgreSQL tables and other DB objects with names based on
+NAME, a symbol, for a PostgreSQL JSON persistence model.  Create the
+DB objects in database schema *DB-SCHEMA*.  This should only be run
+once per model you wish to create, typically at the REPL."
   (let* ((name-old (sym t name "-old"))
          (index (sym t name "-gin"))
          (index-old (sym t name "-old-gin")))
@@ -62,13 +66,6 @@ this setting for any specifc model UPDATE or DELETE call.")
     (when (eq 'jsonb *jdoc-type*)
       (create-gin-index index name schema)
       (create-gin-index index-old name-old schema))))
-
-(defmacro create-model-backend (name &key (schema *db-schema*))
-  "Create PostgreSQL tables and other DB objects with names based on
-NAME, a symbol, for a PostgreSQL JSON persistence model.  Create the
-DB objects in database schema *DB-SCHEMA*.  This should only be run
-once per model you wish to create, typically at the REPL."
-  `(create-model-backend% ',name ',schema))
 
 ;; There is an important serial dependence of the various definitions
 ;; of our model, found here in BAKE-INTERFACE.  Consider an example
