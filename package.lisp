@@ -1,15 +1,27 @@
 (defpackage :postgres-json
   (:use :cl :alexandria :postmodern :s-sql)
   (:shadow :get :delete)
-  (:export 
+  (:export
+
+   ;; Specials
    :*db-schema*
    :*db-sequence*
    :*db-handle-serialization-failure-p*
    :*serialization-failure-sleep-times*
+
+   ;; PostgreSQL
    :database-safety-net
    :create-db-schema
    :create-db-sequence
    :drop-db-schema-cascade
+
+   ;; Setup a model
    :create-model-backend
-   :declare-model
-   :bake-model))
+   :bake-model
+
+   ;; Model user interface
+   :insert
+   :update
+   :get
+   :delete
+   :keys))

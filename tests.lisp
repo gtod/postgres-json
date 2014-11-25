@@ -1,5 +1,6 @@
 (defpackage :pj-test
   (:use :cl :postgres-json)
+  (:shadowing-import-from :postgres-json :get :delete)
   (:import-from :postgres-json :obj :pp-json))
 
 (in-package :pj-test)
@@ -13,17 +14,8 @@ you can never be too careful with other people's data), you might want
 to drop it with (drop-db-schema-cascade *test-schema*) and try
 again.~%Schema: ~A")
 
-(defparameter *bookings-json* 
+(defparameter *bookings-json*
   (merge-pathnames "tests.json" (asdf:system-source-directory :postgres-json)))
-
-;; Do we just get around this by putting it in a separate file we
-;; compile before this file?
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (declare-model booking))
-
-;; BROKEN
-(defmacro bake ()
-  `(bake-model booking :schema ,*test-schema*))
 
 (defun setup ()
   (if (pomo:schema-exist-p *test-schema*)
@@ -32,18 +24,21 @@ again.~%Schema: ~A")
         (create-db-schema)
         (create-db-sequence)
         (create-model-backend 'booking)
-        (bake))))
+        (bake-model 'booking)
+
+        (create-model-backend 'cat)
+        (bake-model 'cat))))
 
 (defun insert-bookings ()
   (alexandria:with-input-from-file (stream *bookings-json*)
     (dolist (booking (yason:parse stream))
-      (booking:insert booking))))
+      (insert 'booking booking))))
 
-;; (defun insert-some (&optional (number 40))
-;;   (dotimes (i number)
-;;     (cat:insert (obj "name" (format nil "name-~A" i) "coat" "scruffy"))))
+(defun insert-some-cats (&optional (number 40))
+  (dotimes (i number)
+    (insert 'cat (obj "name" (format nil "name-~A" i) "coat" "scruffy"))))
 
-;; ;; quickload bordeaux-threads if need be
+;; ;; quickload bordeaux-threads for tests below...
 
 ;; (log:config :debug)
 
@@ -52,7 +47,7 @@ again.~%Schema: ~A")
 ;;            (bt:make-thread
 ;;             (lambda ()
 ;;               (with-connection '("cusoon" "gtod" "" "localhost" :port 5433)
-;;                 (cat:update id (obj "name" (format nil "name-~A" id) "coat" "scruffy")))))))
+;;                 (update 'cat id (obj "name" (format nil "name-~A" id) "coat" "scruffy")))))))
 ;;     (loop for id from 4 to 23
 ;;           do (update-cat id))))
 
@@ -64,7 +59,7 @@ again.~%Schema: ~A")
 ;;            (bt:make-thread
 ;;             (lambda ()
 ;;               (with-connection '("cusoon" "gtod" "" "localhost" :port 5433)
-;;                 (cat:update id (obj "name" (format nil "name-~A" id) "coat" "scruffy")))))))
+;;                 (update 'cat id (obj "name" (format nil "name-~A" id) "coat" "scruffy")))))))
 ;;     (dotimes (i 20)
 ;;       (update-cat 1))))
 
@@ -76,6 +71,6 @@ again.~%Schema: ~A")
 ;;             (lambda ()
 ;;               (with-connection '("cusoon" "gtod" "" "localhost" :port 5433)
 ;;                 (let ((*db-handle-serialization-failure-p* nil))
-;;                   (cat:update id (obj "name" (format nil "name-~A" id) "coat" "scruffy"))))))))
+;;                   (update 'cat id (obj "name" (format nil "name-~A" id) "coat" "scruffy"))))))))
 ;;     (dotimes (i 3)
 ;;       (update-cat 1))))

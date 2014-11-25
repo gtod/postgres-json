@@ -59,39 +59,33 @@ Now evaluate these forms at the REPL:
 
 ```common-lisp
 (defpackage :pj-test
-  (:nicknames :pj-test)
   (:use :cl :postgres-json)
+  (:shadow :get :delete)
   (:import-from :postgres-json :obj :pp-json))
 
 (in-package :pj-test)
 
 ;; Creates a new PostgreSQL (PG) schema called *db-schema*
-(create-default-schema)
+(create-db-schema)
 
 ;; Creates a new PG sequence called *db-sequence*
-(create-default-sequence)
+(create-db-sequence)
 
 ;; Create the PG tables and indexes for our cat model
-(create-backend cat)
+(create-model-backend 'cat)
 
 ;; Make a new lisp package with some exported functions for cats
-(bake-interface cat)
+(bake-model 'cat)
 ```
 
 Each of the preceeding are essentially "one time" operations.  All
 models can certainly share the same PG schema and sequence, although
 they do not have to (TODO).  Certainly we need only create the PG
-backend for our model once.  `bake-interface` is a little more tricky,
-it needs to be
-
-```
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (bake-interface cat))
-```
-
-when included in source code files for compilation since (for better
-or worse) it's making the lisp package `cat` dynamically, so needs to
-be evaluated at compile time so you can write `(cat:get 44)` etc...
+backend for our model once. `bake-interface` is a little more tricky
+in that is dynamically creates severla Postmodern prepared queries and
+stashes them in a hash table where they are looked up when you use the
+interface functions below.  *Need to think about just how often this
+needs to be called...*
 
 In the output below I have elided some of the return values for brevity.
 `obj` is a trivial function to turn a list of pairs into a hash table.
@@ -99,25 +93,25 @@ In the output below I have elided some of the return values for brevity.
 arbitrarily nested lisp object of hash tables and lists as JSON.
 
 ```common-lisp
-PJ-TEST> (cat:insert (obj "name" "joey" "coat" "tabby"))
+PJ-TEST> (insert (obj "name" "joey" "coat" "tabby"))
 1
-PJ-TEST> (pp-json (cat:get 1))
+PJ-TEST> (pp-json (get 'cat 1))
 {
     "coat":"tabby",
     "name":"joey"
 }
-PJ-TEST> (cat:insert (obj "name" "max" "coat" "ginger"))
-PJ-TEST> (cat:insert (obj "name" "maud" "coat" "tortoiseshell"))
-PJ-TEST> (cat:keys)
+PJ-TEST> (insert 'cat (obj "name" "max" "coat" "ginger"))
+PJ-TEST> (insert 'cat (obj "name" "maud" "coat" "tortoiseshell"))
+PJ-TEST> (keys 'cat)
 (1 2 3)
-PJ-TEST> (cat:delete 2)
+PJ-TEST> (delete 'cat 2)
 2
-PJ-TEST> (cat:keys)
+PJ-TEST> (keys 'cat)
 (1 3)
-PJ-TEST> (cat:update 3 (obj "name" "maud" "coat" "tortoiseshell" "age" 7
-                            "likes" '("sunshine" 42)))
+PJ-TEST> (update 'cat 3 (obj "name" "maud" "coat" "tortoiseshell" "age" 7
+                             "likes" '("sunshine" 42)))
 3
-PJ-TEST> (pp-json (cat:get 3))
+PJ-TEST> (pp-json (get 'cat 3))
 {
     "age":7,
     "coat":"tortoiseshell",
@@ -133,10 +127,10 @@ We need a bulk insert, but still it's fun to do something like
 
 ```common-lisp
 (dotimes (i 100)
-  (cat:insert (obj "name" (format nil "maud-~A" i) "coat" "tortoiseshell" "age" 7
-                   "likes" '("sunshine" 42))))
+  (insert 'cat (obj "name" (format nil "maud-~A" i) "coat" "tortoiseshell" "age" 7
+                    "likes" '("sunshine" 42))))
 
-(pp-json (cat:get 77))
+(pp-json (get 'cat 77))
 ```
 
 ## Documentation
@@ -150,39 +144,28 @@ your interface functions.  But you can do (in Emacs):
 
 ### User's guide (under construction)
 
-You can supply `to-json` and `from-json` keyword arguments at bake
-time to override the yason based defaults:
-
-```common-lisp
-PJ-TEST> (bake-interface cat :to-json jsown:to-json :from-json jsown:parse)
-#<PACKAGE "CAT">
-PJ-TEST> (cat:insert (obj "name" "clementine" "coat" "rugged tortoiseshell"))
-82
-PJ-TEST> (cat:get 82)
-(:OBJ ("coat" . "rugged tortoiseshell") ("name" . "clementine"))
-```
-
-But you can also specify `to-json` for `insert` and `update` and
-`from-json` for `get` at run time:
-
 #### Schema search paths
 
 We don't have to worry too much about schema search paths because the
-PG *qualified name* is baked into the model.
+PG *qualified name* is baked into the model.  But you might want
+to set them when playing in PSQL:
+
+```sql
+SET search_path TO <your_schema>, public;
+```  
+
+You can specify `to-json` for `insert` and `update` and `from-json`
+for `get` at run time:
 
 ```common-lisp
-PJ-TEST> (cat:get 82 :from-json 'yason:parse)
+PJ-TEST> (get 'cat 82 :from-json 'yason:parse)
 #<HASH-TABLE :TEST EQUAL :COUNT 2 {100799D833}>
-PJ-TEST> (pp-json (cat:get 82 :from-json 'yason:parse))
+PJ-TEST> (pp-json (get 'cat 82 :from-json 'yason:parse))
 {
     "coat":"rugged tortoiseshell",
     "name":"clementine"
 }
 ```
-
-I think the run time arguments are probably best used at the REPL for
-experimenting because you probably want consistent (ie. at bake time)
-to/from JSON serialization behaviour per model.
 
 ## Design
 
@@ -261,8 +244,8 @@ goodness to go with the new fashioned JSON devil may care hedonism...
 
 ## Notes
 
-Letters, numbers and dashes are OK in symbol names for PostgreSQL objects.
-Don't try anything too funky besides.
+Letters, numbers and dashes are OK in symbol names for PostgreSQL
+objects.  Don't try anything too funky besides.
 
 All the Postmodern conditions will leak through this abstraction, at
 present it is a pretty thin layer.  However because we are using the

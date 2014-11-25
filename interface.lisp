@@ -2,34 +2,14 @@
 
 ;;;; PUBLIC
 
-;;; We have two validity periods for our public special variables:
-;;; 'bake' time and run time.
-
-;;; If a special variable has bake time validity, its value will be
-;;; used *only at macro expansion time*, to determine aspects of the
-;;; model.  It may also be used by DB functions unrelated to specific
-;;; models, such as CREATE-DEFAULT_SCHEMA.
-
-;;; Run time validity means that the special can be rebound by the
-;;; user for any specific model call --- it is actually evaluated in
-;;; the run time code the baking macros generate.
-
-;;; It is well worth macroexpanding a (bake-interface cat) call and
-;;; then macroexpanding down into say (defun-update ...) and further
-;;; to get all this mubo jumbo to gell.
-
 (defvar *db-schema* 'pgj-schema
   "A symbol being the name of the default PostgreSQL schema to use to
-house our database objects.  This is not a run time special variable:
-it is only used by CREATE-DEFAULT-SCHEMA, CREATE-DEFAULT-SEQUENCE,
-CREATE-BACKEND and BAKE-INTERFACE.")
+house database objects.")
 
 (defvar *db-sequence* 'pgj-seq
   "A symbol being the name of the default global PostgreSQL sequence
 that will be created to provide unique IDs for all JSON objects
-inserted into PostgreSQL tables by this library.  This is not a run
-time special variable: it is only used by CREATE-DEFAULT-SEQUENCE,
-CREATE-BACKEND and BAKE-INTERFACE.")
+inserted into PostgreSQL backend model tables by this library.")
 
 (defvar *db-handle-serialization-failure-p* t
   "UPDATE and DELETE calls on the model will use the Postgres
@@ -39,8 +19,7 @@ failures are handled under the covers.  (However, if excessive time
 elapses, client code may still see a
 CL-POSTGRES-ERROR:SERIALIZATION-FAILURE).  If you would rather
 explicitly handle _all_ serialization failures in your client code,
-set this to NIL.  This is a run time variable, that is the model code
-respects this setting for any specifc model UPDATE or DELETE call.")
+set this to NIL.")
 
 ;; I think it sort of makes sense not to sleep at all for the first
 ;; retry, but then to back off pretty fast.  But I am no expert...
@@ -50,8 +29,7 @@ times to retry when a Postgres transaction COMMIT see a
 CL-POSTGRES-ERROR:SERIALIZATION-FAILURE condition.  For each retry we
 sleep the duration specified, plus a random number of milliseconds
 between 0 and 2000.  However, if 0 sleep is specified, we do not sleep
-at all.  This is a run time variable, that is the model code respects
-this setting for any specifc model UPDATE or DELETE call.")
+at all.")
 
 (defun create-model-backend (model &key (schema *db-schema*))
   "Create PostgreSQL tables and other DB objects with names based on
@@ -68,62 +46,26 @@ once per model you wish to create, typically at the REPL."
       (create-gin-index index name schema)
       (create-gin-index index-old name-old schema))))
 
-;; There is an important serial dependence of the various definitions
-;; of our model, found here in BAKE-INTERFACE.  Consider an example
-;; model with symbol cat. The _definition_ of model interface function
-;; cat:insert can refer to model implementation function cat::insert$
-;; as just plain insert$ (see defun-insert) in the simple sense that
-;; the macroexpansion of insert$ below occurs _before_ that of insert.
-;; But it will not work the other way around!  That is, you cannot
-;; forward reference model functions.  Fortunately you will get
-;; undefined function warnings if you try it.  It's all to do with the
-;; dynamic determining of what's currently fbound inside the model by
-;; macro with-fbound-symbols-in-package.  If I knew a better way to do
-;; it, I'd use it...
-
-;; I think I want to change this to (model &optional (package-name model))
-(defmacro bake-model% (name schema sequence to-json from-json)
-  (let* ((name-old (sym t name "-old"))
-         (table (qualified-name name schema))
-         (table-old (qualified-name name-old schema))
-         (next-id (db-op-name "nextval" sequence schema name)))
-    `(progn
-       (def-model-package ,name)
-       ;; Low level DB access
-       (defprepare-nextval-sequence$ ,sequence ,schema ,name)
-       (defprepare-insert$ ,name ,table)
-       (defprepare-insert-old$ ,name ,table ,table-old)
-       (defprepare-update$ ,name ,table)
-       (defprepare-get$ ,name ,table)
-       (defprepare-delete$ ,name ,table)
-       (defprepare-get-all-ids$ ,name ,table)
-
-       ;; Exported model functions proper
-       (defun-insert ,name :next-id ,next-id :to-json-fn ,to-json)
-       (defun-update ,name :to-json-fn ,to-json)
-       (defun-get ,name :from-json-fn ,from-json)
-       (defun-delete ,name)
-       (defun-keys ,name)
-
-       (find-package ',name))))
-
-(defmacro declare-model (model &key (schema *db-schema*) (sequence *db-sequence*)
-                                    (to-json 'to-json) (from-json 'from-json))
-  "Expands to code that creates (or recreates) and populates a lisp
-package called MODEL, a symbol, to house the implementation and public
-interface functions of a PostgreSQL JSON persistence model.  Exports
-the symbols of the interface functions from that package.  TO-JSON may
-be a symbol for a function of one argument that will serialize lisp
-objects to JSON.  FROM-JSON may be a symbol for a function of one
-argument that parses a JSON string to a lisp object.  You must invoke
-CREATE-BACKEND precisely once for a model of the same name before
-calling your model's functions.  Returns the model package."
-  `(progn (def-model-package ,model)
-          (bake-model% ,model ,schema ,sequence ,to-json ,from-json)))
-
-(defmacro bake-model (model &key (schema *db-schema*) (sequence *db-sequence*)
-                                 (to-json 'to-json) (from-json 'from-json))
-  `(declare-model ,model :schema ,schema :sequence ,sequence))
+;; Investigate calling deallocate to drop prepared queries
+;; But they are probably connection specific anyway...
+;; What are the consequences of that?
+(defun bake-model (model &key (schema *db-schema*) (sequence *db-sequence*))
+  "Prepare all the PostgreSQL queries necessary to support PostgreSQL
+JSON persistence model calls on MODEL, a symbol.  SCHEMA and SEQUENCE,
+both sysmbols, may be specified to use a specific DB schema and or
+sequence for primary keys, respectively."
+  (let* ((base model)
+         (old (sym t base "-old"))
+         (table (qualified-name base schema))
+         (table-old (qualified-name old schema)))
+    (make-nextval-sequence$ model (qualified-name-string sequence schema))
+    (make-insert$ model table)
+    (make-insert-old$ model table table-old)
+    (make-update$ model table)
+    (make-get$ model table)
+    (make-delete$ model table)
+    (make-keys$ model table)
+    model))
 
 ;; (defun drop-backend (name))
 ;; (defun delete-model (name))
