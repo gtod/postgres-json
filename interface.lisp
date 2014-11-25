@@ -89,10 +89,6 @@ sequence for primary keys, respectively."
   (with-output-to-string (s)
     (yason:encode object s)))
 
-(defun from-json (json)
-  "Convert a JSON string to a lisp object."
-  (yason:parse json))
-
 (defun stash-id (id hash)
   "Add the pair \"id\" => ID to the hash-table HASH."
   (let ((copy (copy-hash-table hash)))
