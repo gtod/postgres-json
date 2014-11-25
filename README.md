@@ -81,8 +81,8 @@ Now evaluate these forms at the REPL:
 Each of the preceeding are essentially "one time" operations.  All
 models can certainly share the same PG schema and sequence, although
 they do not have to (TODO).  Certainly we need only create the PG
-backend for our model once. `bake-interface` is a little more tricky
-in that is dynamically creates severla Postmodern prepared queries and
+backend for our model once. `bake-model` is a little more tricky
+in that is dynamically creates several Postmodern prepared queries and
 stashes them in a hash table where they are looked up when you use the
 interface functions below.  *Need to think about just how often this
 needs to be called...*
@@ -175,13 +175,11 @@ This depends on your choice of JSON library: If you have a way to
 encode your lisp object (list, hash-table, array, CLOS objects, etc.)
 to JSON you can now put it straight into PostgreSQL 9.4+.
 
-For example: `(bake-interface cat :to-json jsown:to-json)`
-
 ### I do not want integer keys
 
 This is not too hard.  You can supply a keyword argument `use-id` to
 `insert` or (and this will take a little more effort, see
-`bake-interface`) you could make a UUID sequence in PG and get values
+`bake-model`) you could make a UUID sequence in PG and get values
 from that.  TODO.
 
 ### Backend
