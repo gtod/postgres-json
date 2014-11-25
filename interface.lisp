@@ -53,12 +53,13 @@ between 0 and 2000.  However, if 0 sleep is specified, we do not sleep
 at all.  This is a run time variable, that is the model code respects
 this setting for any specifc model UPDATE or DELETE call.")
 
-(defun create-model-backend (name &key (schema *db-schema*))
+(defun create-model-backend (model &key (schema *db-schema*))
   "Create PostgreSQL tables and other DB objects with names based on
-NAME, a symbol, for a PostgreSQL JSON persistence model.  Create the
+MODEL, a symbol, for a PostgreSQL JSON persistence model.  Create the
 DB objects in database schema *DB-SCHEMA*.  This should only be run
 once per model you wish to create, typically at the REPL."
-  (let* ((name-old (sym t name "-old"))
+  (let* ((name model)
+         (name-old (sym t name "-old"))
          (index (sym t name "-gin"))
          (index-old (sym t name "-old-gin")))
     (create-base-table name schema)
@@ -106,10 +107,10 @@ once per model you wish to create, typically at the REPL."
 
        (find-package ',name))))
 
-(defmacro bake-model (name &key (schema *db-schema*) (sequence *db-sequence*)
-                                (to-json 'to-json) (from-json 'from-json))
+(defmacro bake-model (model &key (schema *db-schema*) (sequence *db-sequence*)
+                                 (to-json 'to-json) (from-json 'from-json))
   "Expands to code that creates (or recreates) and populates a lisp
-package called NAME, a symbol, to house the implementation and public
+package called MODEL, a symbol, to house the implementation and public
 interface functions of a PostgreSQL JSON persistence model.  Exports
 the symbols of the interface functions from that package.  TO-JSON may
 be a symbol for a function of one argument that will serialize lisp
@@ -117,8 +118,8 @@ objects to JSON.  FROM-JSON may be a symbol for a function of one
 argument that parses a JSON string to a lisp object.  You must invoke
 CREATE-BACKEND precisely once for a model of the same name before
 calling your model's functions.  Returns the model package."
-  `(progn (def-model-package ,name)
-          (bake-model% ,name ,schema ,sequence ,to-json ,from-json)))
+  `(progn (def-model-package ,model)
+          (bake-model% ,model ,schema ,sequence ,to-json ,from-json)))
 
 ;; (defun drop-backend (name))
 ;; (defun delete-model (name))
