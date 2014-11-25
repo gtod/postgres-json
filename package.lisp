@@ -6,9 +6,10 @@
    :*db-sequence*
    :*db-handle-serialization-failure-p*
    :*serialization-failure-sleep-times*
-   :def-model-package
+   :database-safety-net
    :create-db-schema
    :create-db-sequence
    :drop-db-schema-cascade
    :create-model-backend
+   :declare-model
    :bake-model))

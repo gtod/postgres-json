@@ -4,38 +4,34 @@
 
 (in-package :pj-test)
 
-;; Do we just get around this by putting it in a separate file we
-;; compile before this file?
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (bake-interface booking))
-
 (defvar *test-schema* 'net-gtod-postgres-json-test-schema)
 
 (defparameter *test-schema-exists-message*
   "Not willing to run tests in existing schema.  Unless this schema
 contains important data of yours (unlikey given the name its got but
 you can never be too careful with other people's data), you might want
-to drop it with (drop-schema-cascade *test-schema*) and try again: ~A")
+to drop it with (drop-db-schema-cascade *test-schema*) and try
+again.~%Schema: ~A")
 
 (defparameter *bookings-json* 
   (merge-pathnames "tests.json" (asdf:system-source-directory :postgres-json)))
 
+;; Do we just get around this by putting it in a separate file we
+;; compile before this file?
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (declare-model booking))
 
-;; ;; Mmm, this is ugly.  I suspect it's effective because we just
-;; ;; _replace_ it with the proper one with backed in *test-schema* in
-;; ;; setup, but it's all a bit of a mess...
-;; (eval-when (:compile-toplevel :load-toplevel :execute)
-;;   (let ((*db-schema* 'net-gtod-postgres-json-test-schema)) ;Mmmm BROKEN!
-;;     (create-default-schema)
-;;     (create-default-sequence)
-;;     (create-backend booking)
-;;     (bake-interface booking)))
+(defmacro bake ()
+  `(bake-model booking :schema ,*test-schema*))
 
-;; (defun setup ()
-;;   (when (pomo:schema-exist-p *test-schema*)
-;;     (error *test-schema-exists-message* *test-schema*))
-  
-;;   )
+(defun setup ()
+  (if (pomo:schema-exist-p *test-schema*)
+      (error *test-schema-exists-message* *test-schema*)
+      (let ((*db-schema* *test-schema*))
+        (create-db-schema)
+        (create-db-sequence)
+        (create-model-backend 'booking)
+        (bake))))
 
 (defun insert-bookings ()
   (alexandria:with-input-from-file (stream *bookings-json*)

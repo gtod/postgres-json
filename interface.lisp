@@ -107,8 +107,8 @@ once per model you wish to create, typically at the REPL."
 
        (find-package ',name))))
 
-(defmacro bake-model (model &key (schema *db-schema*) (sequence *db-sequence*)
-                                 (to-json 'to-json) (from-json 'from-json))
+(defmacro declare-model (model &key (schema *db-schema*) (sequence *db-sequence*)
+                                    (to-json 'to-json) (from-json 'from-json))
   "Expands to code that creates (or recreates) and populates a lisp
 package called MODEL, a symbol, to house the implementation and public
 interface functions of a PostgreSQL JSON persistence model.  Exports
@@ -120,6 +120,10 @@ CREATE-BACKEND precisely once for a model of the same name before
 calling your model's functions.  Returns the model package."
   `(progn (def-model-package ,model)
           (bake-model% ,model ,schema ,sequence ,to-json ,from-json)))
+
+(defmacro bake-model (model &key (schema *db-schema*) (sequence *db-sequence*)
+                                 (to-json 'to-json) (from-json 'from-json))
+  `(declare-model ,model :schema ,schema :sequence ,sequence))
 
 ;; (defun drop-backend (name))
 ;; (defun delete-model (name))

@@ -15,11 +15,12 @@ shadowed in the POSTGRES-JSON defpackage form as well.")
 (defparameter *model-export-symbols* '(insert update get delete keys)
   "The list of symbols to export from our model interface.")
 
-;;; Now you can just rebind these and have the functions below use
-;;; them nicely.  But of course you'd need to recompile this file in
-;;; order for the macros to work.  Or we could hardcode the various
+;;; Now you could just rebind the following special variables that
+;;; configure the backend setup and have the model interface functions
+;;; use them nicely.  But of course you'd need to recompile this file
+;;; in order for the macros to work.  Or we could hardcode the various
 ;;; values as keyword arguments to the macros below to allow easier
-;;; user customization.  But that is for another time MacLeod.
+;;; user customization.  But that is for Another time MacLeod.
 
 (defvar *id* 'id
   "A symbol being the default name of the primary key column in
