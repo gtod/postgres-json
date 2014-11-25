@@ -10,7 +10,7 @@ and executing.")
 ;;; We can get away with these not being prepared statments because (I
 ;;; imagine) they are infrequently used, and usually from the REPL.
 
-(defun create-db-schema (&key (name *db-schema*))
+(defun create-db-schema (&key (schema *db-schema*))
   "Create a new PostgreSQL schema call SCHEMA, a symbol.  Requires an
 active DB connection.
 
@@ -19,27 +19,27 @@ If you are using PSQL remember to do something like
   SET search_path TO <your_schema>, public;
 
 to be able to see the tables, indexes, etc. in your new schema."
-  (pomo:create-schema name)
+  (pomo:create-schema schema)
   (values))
 
 ;; We could use the pomo:sequence-exists-p but that checks in _all_
 ;; schemas which is not really what we want.  Just let them see the
 ;; error...
-(defun create-db-sequence (&key (name *db-sequence*) (schema *db-schema*))
-  "Create a PostgreSQL sequence with NAME in SCHEMA (both symbols).
+(defun create-db-sequence (&key (sequence *db-sequence*) (schema *db-schema*))
+  "Create a PostgreSQL sequence with name SEQUENCE in SCHEMA (both symbols).
 Requires an active DB connection."
-  (run `(:create-sequence ,(qualified-name name schema)))
+  (run `(:create-sequence ,(qualified-name sequence schema)))
   (values))
 
-(defun drop-db-schema-cascade (name)
+(defun drop-db-schema-cascade (schema)
   "Drop a PostgreSQL schema and cascade delete all contained DB
-objects(!) with name NAME, a symbol.  Requires an active DB
+objects(!) with name SCHEMA, a symbol.  Requires an active DB
 connection."
-  (when (string-equal "public" (symbol-name name))
+  (when (string-equal "public" (symbol-name schema))
     (error 'database-safety-net
            :attempted-to "Drop schema PUBLIC"
            :suggestion "Try pomo:drop-schema"))
-  (pomo:drop-schema name :cascade t)
+  (pomo:drop-schema schema :cascade t)
   (values))
 
 ;;;; Qualified PostgreSQL table names using Postmodern's S-SQL
