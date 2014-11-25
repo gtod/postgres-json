@@ -240,6 +240,17 @@ HUMANS* relationship etc.  This is the point of using PostgreSQL for
 JSON: we can choose precisely how much of the old fashioned database
 goodness to go with the new fashioned JSON devil may care hedonism...
 
+#### Transaction isolation levels
+
+See [transactions](transactions.lisp) for how `INSERT` and `UPDATE`
+handle isolation levels using a retry loop.  We are not using the
+default Postgres isolation level but rather `repeatable read`.  Do let
+me know if you think it should be `serializable` and why, I am no
+exprrt.
+
+Also see project hermitage at https://github.com/ept/hermitage for
+plenty of gory detail on isolation levels.
+
 ## Notes
 
 Letters, numbers and dashes are OK in symbol names for PostgreSQL
