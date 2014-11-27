@@ -217,6 +217,9 @@ one.  If STASH-ID is a symbol we FUNCALL it with two arguments: the
 value of the id to be used for the DB insert and OBJECT.  TO-JSON must
 be a function designator for a function of one argument to serialize
 lisp objects to JSON strings.  Return the id."
+  (unless use-id
+    (ensure-model-query model 'nextval-sequence$))
+  (ensure-model-query model 'insert$)
   (with-transaction-type (read-committed-rw)
     (let* ((id (if use-id use-id (nextval-sequence$ model)))
            (object (if stash-id
@@ -232,6 +235,7 @@ designator for a function of one argument to serialize lisp objects to
 JSON strings.  Returns ID on success, NIL if there was no such ID
 found."
   (log:debug "Attempt update of ~A" id)
+  (ensure-model-query model 'insert-old$ 'update$)
   (with-retry-serialization-failure ("update")
     (with-transaction-type (repeatable-read-rw)
       (insert-old$ model id)
@@ -242,6 +246,7 @@ found."
 Postgres type *ID-TYPE*) in MODEL, a symbol, and return a parse of the
 JSON string by the the function of one argument designated by
 FROM-JSON.  Make it #'identity to return just the JSON string proper."
+  (ensure-model-query model 'get$)
   (funcall from-json (with-transaction-type (read-committed-ro)
                        (get$ model id))))
 
@@ -250,6 +255,7 @@ FROM-JSON.  Make it #'identity to return just the JSON string proper."
 Postgres type *ID-TYPE*).  Returns ID on success, NIL if there was no
 such ID found."
   (log:debug "Attempt delete of ~A" id)
+  (ensure-model-query model 'insert-old$ 'delete$)
   (with-retry-serialization-failure ("delete")
     (with-transaction-type (repeatable-read-rw)
       (insert-old$ model id)
@@ -258,5 +264,6 @@ such ID found."
 (defun keys (model)
   "Returns two values: a list of all primary keys for this MODEL, a
 symbol, and the length of that list."
+  (ensure-model-query model 'keys$)
   (with-transaction-type (read-committed-ro)
     (keys$ model)))
