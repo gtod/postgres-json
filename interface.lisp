@@ -34,20 +34,22 @@ sleep the duration specified, plus a random number of milliseconds
 between 0 and 2000.  However, if 0 sleep is specified, we do not sleep
 at all.")
 
-(defun create-model-backend (model &key (schema *db-schema*))
-  "Create PostgreSQL tables and other DB objects with names based on
-MODEL, a symbol, for a PostgreSQL JSON persistence model.  Create the
-DB objects in database schema *DB-SCHEMA*.  This should only be run
-once per model you wish to create, typically at the REPL."
-  (let* ((name model)
-         (name-old (sym t name "-old"))
-         (index (sym t name "-gin"))
-         (index-old (sym t name "-old-gin")))
-    (create-base-table name schema)
-    (create-old-table name-old schema)
-    (when (eq 'jsonb *jdoc-type*)
-      (create-gin-index index name schema)
-      (create-gin-index index-old name-old schema))))
+;; I spent a long time letting users create and user arbitrary schema.
+;; It's much simpler (for now) not too, and not to let them use the
+;; public schema either...
+(defun create-backend ()
+  "Create the schema *PGJ-SCHEMA* and other backend objects needed to
+house user created PostgreSQL JSON persistence models.  Call just once
+in a given PostgreSQL database."
+  (if (pomo:schema-exist-p *pgj-schema*)
+      (error 'database-safety-net
+             :attempted-to (format nil "Create the backend, when a schema called ~A already exists." *pgj-schema*)
+             :suggestion (format nil "Check carefully what data is in ~A" *pgj-schema*))
+      (progn
+        (pomo:create-schema *pgj-schema*)
+        (create-db-sequence *pgj-sequence* *pgj-schema*)
+        (create-model *meta-model* (meta-model-parameters))
+        *pgj-schema*)))
 
 ;; Investigate calling deallocate to drop prepared queries
 ;; But they are probably connection specific anyway...
