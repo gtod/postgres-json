@@ -26,8 +26,23 @@
     (setf (gethash "id" copy) id)
     copy))
 
+;;;; True utility functions, waiting for a real home
+
 (defun sym (package-name &rest args)
   "Return symbol being the concatenation of upcasing ARGS.  See
 ALEXANDRIA:FORMAT-SYMBOL for effect of PACKAGE-NAME."
   (format-symbol package-name "~:@(~{~A~}~)" args))
 
+(defun maphash-symbols-to-strings (hash &key (test #'equal))
+  (let ((new (make-hash-table :test test :size (hash-table-size hash))))
+    (maphash (lambda (key value)
+               (setf (gethash key new) (symbol-name value)))
+             hash)
+    new))
+
+(defun maphash-strings-to-symbols (hash &key (test #'equal))
+  (let ((new (make-hash-table :test test :size (hash-table-size hash))))
+    (maphash (lambda (key value)
+               (setf (gethash key new) (ensure-symbol value)))
+             hash)
+    new))
