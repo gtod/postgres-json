@@ -25,7 +25,7 @@ to be able to see the tables, indexes, etc. in your new schema."
 ;; We could use the pomo:sequence-exists-p but that checks in _all_
 ;; schemas which is not really what we want.  Just let them see the
 ;; error...
-(defun create-db-sequence (&key (sequence *db-sequence*) (schema *db-schema*))
+(defun create-db-sequence (sequence &optional (schema *pgj-schema*))
   "Create a PostgreSQL sequence with name SEQUENCE in SCHEMA (both symbols).
 Requires an active DB connection."
   (run `(:create-sequence ,(qualified-name sequence schema)))
