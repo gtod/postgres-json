@@ -31,6 +31,11 @@ Requires an active DB connection."
   (run `(:create-sequence ,(qualified-name sequence schema)))
   (values))
 
+(defun drop-db-table-cascade (table schema)
+  "Drop a PostgreSQL TABLE in SCHEMA (both symbols) and all dependent views,
+indexes etc.  Use with care."
+  (run (format nil "drop table ~A cascade" (qualified-name-string table schema))))
+
 (defun drop-db-schema-cascade (schema)
   "Drop a PostgreSQL schema and cascade delete all contained DB
 objects(!) with name SCHEMA, a symbol.  Requires an active DB
