@@ -4,22 +4,19 @@
   (:export
 
    ;; Specials
-   :*db-schema*
-   :*db-sequence*
    :*to-json*
    :*from-json*
    :*db-handle-serialization-failure-p*
    :*serialization-failure-sleep-times*
 
-   ;; PostgreSQL
-   :database-safety-net
-   :create-db-schema
-   :create-db-sequence
-   :drop-db-schema-cascade
-
    ;; Setup a model
-   :create-model-backend
-   :bake-model
+   :create-db-sequence
+   :create-backend
+   :create-model
+   :drop-backend!
+   :drop-model!
+   :flush-prepared-queries
+   :make-model-parameters
 
    ;; Model user interface
    :insert
