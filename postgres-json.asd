@@ -1,9 +1,10 @@
 (asdf:defsystem postgres-json
   :author "Gregory Tod <lisp@gtod.net>"
-  :version "0.1.0"
+  :version "0.1.5"
   :license "MIT"
-  :description "Create a trivial, effectively immutable, simple Common
-Lisp object persistence model using the PostgreSQL 9.4+ jsonb type."
+  :homepage "https://github.com/gtod/postgres-json"
+  :description "Create trivial, effectively immutable, simple Common
+Lisp object persistence models using the PostgreSQL 9.4+ jsonb type."
   :depends-on (#:alexandria
                #:postmodern
                #:log4cl
