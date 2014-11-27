@@ -7,7 +7,8 @@ lisp objects from it!
 
 I could wrap the serialization failure condition and send a nice
 message to the user...  Maybe I wrap *all* Postmodern conditions and
-tell them the abstraction has leaked...?  For now, no.
+tell them the abstraction has leaked...?  Given the range of Postmodern
+conditions it may be possible to handle some sensible subset...
 
 unique ids from UUID example
 
@@ -46,7 +47,7 @@ join dog d on (c.jdoc->'name' = d.jdoc->'name');
 
 * Bulk inserts, clearly a need.
 
-* stash-id is expecting a hash table - document
+* stash-id is expecting a hash table - test and document
 
 * Make using Fkeys between tables easy...
 
@@ -55,3 +56,35 @@ etc.  Different libraries, different results.
 
 Would be nice to lisply abstract the JSON select stuff from PG.
 Of course, you can still go to the DB directly if you like.
+
+Compound primary keys shoudn't be too hard. We make it either an ordered
+list or a map.
+
+The model parameters could have a a single reader fn by string and
+then we wouldn't need the entire fleet of specials!
+
+How is our global query functions hash table cache affected by the use
+of multiple threads?  Looks like we just need to add it to
+bt:*default-special-bindings* ...
+
+Could write a macro to find any use of DB query functions (they end
+in $) and insert the approrpiate ensure-model-query calls.  Little bit
+tricky for run time decisions about (say) sequence-nextval$ but that's
+a premature optimization anyway...
+
+We've gone to a single backend schema for simplicity but it should not
+be too hard to support arbitray schemas.  It's just I don't want to
+mess up the interface functions too much:
+
+```
+(insert 'cat (obj ...))
+
+(insert '(animal cat) (obj ...))
+```
+
+In fact, I don't think the users really need it but it would be nice
+to make a schema just for running tests in, for example.  Can bind
+*pgj-schema* to achieve this.
+
+Would be nice to get our public API and docstrings converted to
+Markdown in the simplest possible way.
