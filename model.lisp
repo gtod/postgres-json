@@ -129,6 +129,38 @@ just use a string).  Requires an active DB connection."
 (defun-query delete$ (id))
 (defun-query keys$ ())
 
+;;;; Generate prepared queries on a per model/query basis
+
+(defun ensure-model-query (model &rest operations)
+  (dolist (op operations)
+    (ensure-model-query-op model op)))
+
+(defun ensure-model-query-op (model operation)
+  "If (say) cat:insert$ exists then return that query (a function).
+If not we make the query OPERATION on demand by getting the params for
+MODEL from the meta model.  Of course, we fix the bootstrap problem by
+calling a function to supply the meta model's own parameters."
+  (if (lookup-query model operation)
+      (log:debug "Using prepared query for ~A:~A" model operation)
+      (let ((parameters (if (eq *meta-model* model)
+                            (meta-model-parameters)
+                            (let ((params (get *meta-model* (symbol-name model))))
+                              (maphash-strings-to-symbols params)))))
+        (flet ((param (key)
+                 (gethash key parameters)))
+          (let* ((schema *pgj-schema*)
+                 (base model)
+                 (old (sym t base "-old"))
+                 (*table* (qualified-name base schema))
+                 (*table-old* (qualified-name old schema))
+                 (*sequence* (param "sequence"))
+                 (*id* (param "id"))
+                 (*id-type* (param "id-type"))
+                 (*jdoc* (param "jdoc"))
+                 (*jdoc-type* (param "jdoc-type")))
+            (log:debug "Preparing query for ~A:~A" model operation)
+            (funcall (sym :postgres-json "make-" operation) model))))))
+
 ;;;; Define the model proper
 
 ;;; Need to comment on acceptable type of ID: integer, string, ??
