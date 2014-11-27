@@ -72,25 +72,4 @@ sequence for primary keys, respectively."
 
 ;;;; SEMI PUBLIC
 
-(defun obj (&rest args)
-  "Return an 'equal hash-table consisting of pairs of ARGS."
-  (let ((hash (make-hash-table :test #'equal)))
-    (loop for (key val) on args by #'cddr do
-      (setf (gethash key hash) val))
-    hash))
 
-(defun pp-json (object &key (stream *terminal-io*) (indent 4))
-  "Pretty print lisp OBJECT as JSON to stream with specified indent."
-  (let ((s (yason:make-json-output-stream stream :indent indent)))
-    (yason:encode object s)))
-
-(defun to-json (object)
-  "Convert a lisp OBJECT to a string of JSON, using YASON:ENCODE."
-  (with-output-to-string (s)
-    (yason:encode object s)))
-
-(defun stash-id (id hash)
-  "Add the pair \"id\" => ID to the hash-table HASH."
-  (let ((copy (copy-hash-table hash)))
-    (setf (gethash "id" copy) id)
-    copy))
