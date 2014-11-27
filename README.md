@@ -43,7 +43,7 @@ cluster at port 5433 rather than 5432.  YMMV.
 Make sure you can quickload Postmodern and connect to some database
 with a form like:
 
-`(pomo:connect-toplevel "mydb" "gtod" "" "localhost" :port 5433)`
+`(pomo:connect-toplevel "mydb" "myusername" "" "localhost" :port 5433)`
 
 If you now get a result from `(pomo:query "select 1")` you are ready
 to go.
@@ -65,27 +65,12 @@ Now evaluate these forms at the REPL:
 
 (in-package :pj-test)
 
-;; Creates a new PostgreSQL (PG) schema called *db-schema*
-(create-db-schema)
+;; Once only operation, makes a DB schema for our models
+(create-backend)
 
-;; Creates a new PG sequence called *db-sequence*
-(create-db-sequence)
-
-;; Create the PG tables and indexes for our cat model
-(create-model-backend 'cat)
-
-;; Make a new lisp package with some exported functions for cats
-(bake-model 'cat)
+;; Make a new model to store JSON docs on cats
+(create-model 'cat)
 ```
-
-Each of the preceeding are essentially "one time" operations.  All
-models can certainly share the same PG schema and sequence, although
-they do not have to (TODO).  Certainly we need only create the PG
-backend for our model once. `bake-model` is a little more tricky
-in that is dynamically creates several Postmodern prepared queries and
-stashes them in a hash table where they are looked up when you use the
-interface functions below.  *Need to think about just how often this
-needs to be called...*
 
 In the output below I have elided some of the return values for brevity.
 `obj` is a trivial function to turn a list of pairs into a hash table.
@@ -93,7 +78,7 @@ In the output below I have elided some of the return values for brevity.
 arbitrarily nested lisp object of hash tables and lists as JSON.
 
 ```common-lisp
-PJ-TEST> (insert (obj "name" "joey" "coat" "tabby"))
+PJ-TEST> (insert 'cat (obj "name" "joey" "coat" "tabby"))
 1
 PJ-TEST> (pp-json (get 'cat 1))
 {
@@ -135,10 +120,9 @@ We need a bulk insert, but still it's fun to do something like
 
 ## Documentation
 
-Just about everything has a doc string, but that's more for
-maintainers than users.  The interface you get per model is just five
-functions for now, illustrated above.  All the interface functions
-have comprehensive doc strings.
+The interface you get per model is just five functions for now,
+illustrated above.  All the interface functions have comprehensive doc
+strings.
 
 ### User's guide (under construction)
 
@@ -164,6 +148,18 @@ PJ-TEST> (pp-json (get 'cat 82 :from-json 'yason:parse))
     "name":"clementine"
 }
 ```
+#### PostgreSQL sequences
+
+Now there are some good reasons for using just a single auto
+incrementing sequence across **all** your models (for one thing, it
+means that all your JSON documents have a unique id if you every need
+to merge subsets from different models), but you can also have
+one sequence per model:
+
+```
+(create-db-sequence 'foo)
+(create-model 'dog (make-model-parameters :sequence 'foo))
+```
 
 ## Design
 
@@ -176,9 +172,8 @@ to JSON you can now put it straight into PostgreSQL 9.4+.
 ### I do not want integer keys
 
 This is not too hard.  You can supply a keyword argument `use-id` to
-`insert` or (and this will take a little more effort, see
-`bake-model`) you could make a UUID sequence in PG and get values
-from that.  TODO.
+`insert` or (and this will take a little more effort) you could make a
+UUID sequence in PG and get values from that.  TODO.
 
 ### Backend
 
@@ -244,7 +239,7 @@ See [transactions](transactions.lisp) for how `INSERT` and `UPDATE`
 handle isolation levels using a retry loop.  We are not using the
 default Postgres isolation level but rather `repeatable read`.  Do let
 me know if you think it should be `serializable` and why, I am no
-exprrt.
+expert.
 
 Also see project hermitage at https://github.com/ept/hermitage for
 plenty of gory detail on isolation levels.
