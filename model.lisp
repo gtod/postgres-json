@@ -1,22 +1,66 @@
 (in-package :postgres-json)
 
-;;; These could be exported, but let's wait and see if anyone cares
+;;;; Model backend specials
+
+;;; Thse specials are effectively constants.  You _could_ rebind them
+;;; but you would need to do it for every use of every interface
+;;; function.  If you do need different values you would be better of
+;;; just redefining these in some file in your own project.
+
+(defvar *pgj-schema* 'pgj-model
+  "A symbol being the name of the PostgreSQL schema we create to house
+all database backend objects.")
+
+;; No reason for user to change this, it sits in a fresh schema we made.
+(defvar *pgj-sequence* 'pgj-seq
+  "A symbol being the name of the PostgreSQL sequence we create
+for (at least) the use of of meta model.")
+
+(defvar *meta-model* 'pgj-meta
+  "A symbol being the name of the model in which we store meta data
+relating to user models.")
+
+;;;; Model parameters
+
+;;; These serve two purposes:
+;;; 1. They are the default values, unless the user overrides them
+;;;    when invoking MAKE-MODEL-PARAMETERS, for CREATE-MODEL.
+;;; 2. We rebind them (see ENSURE-MODEL-QUERY-OP) before creating
+;;;    prepared queries to use against backend model tables.
+
+(defvar *sequence* 'pgj-seq
+  "A symbol being the default name of the PostgreSQL sequence to
+provide unique IDs for JSON objects inserted into the PostgreSQL
+backend base table.")
 
 (defvar *id* 'id
-  "A symbol being the default name of the primary key column in
-created PostgreSQL tables.")
+  "A symbol being the name of the primary key column in backend
+tables.")
 
 (defvar *id-type* 'integer
-  "A symbol being the default type of the primary key column in
-created PostgreSQL tables.")
+  "A symbol being the type of the primary key column in backend
+tables.")
 
 (defvar *jdoc* 'jdoc
-  "A symbol being the default name of the JSON column in created
-PostgreSQL tables.")
+  "A symbol being the name of the JSON column in created backend
+tables.")
 
 (defvar *jdoc-type* 'jsonb
-  "A symbol being the default type of the JSON column in created
-PostgreSQL tables.")
+  "A symbol being the type of the JSON column in created backend
+tables.")
+
+;;;; Model derived parameters
+
+;;; We bind these in ENSURE-MODEL-QUERY-OP for use by the various
+;;; make-<query$> functions.  It may be better to stick the above
+;;; specials in some CLOS object and then make these methods but this
+;;; is less verbose while we have just a few...
+
+(defvar *table* nil
+  "Qualified name of the base table in the model backend.")
+
+(defvar *table-old* nil
+  "Qualified name of the old table in the model backend.")
 
 ;;;; Create database backend
 
