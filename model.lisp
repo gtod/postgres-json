@@ -54,7 +54,8 @@ just use a string).  Requires an active DB connection."
 
 ;;;; Postmodern query management
 
-(defparameter *query-functions* (make-hash-table :test #'equal))
+(defparameter *query-functions* (make-hash-table :test #'equal)
+  "Hash of (for example) \"cat:insert$\" => query function.")
 
 (defun query-key (model operation)
   (format nil "~A:~A" (symbol-name model) (symbol-name operation)))
