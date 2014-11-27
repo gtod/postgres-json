@@ -62,7 +62,14 @@ tables.")
 (defvar *table-old* nil
   "Qualified name of the old table in the model backend.")
 
-;;;; Create database backend
+;;;; Meta model
+
+(defun meta-model-parameters ()
+  "Eating our own dog food, we keep user model parameters in a 'meta'
+model, which itself has the following parameters."
+  (make-model-parameters :id 'model :id-type 'text))
+
+;;;; Create database backend using model name, a symbol
 
 (defun create-base-table (name schema)
   "Create a PostgreSQL table called NAME in SCHEMA, both symbols.
