@@ -118,3 +118,8 @@ error."
       (cancel () :report "Leave this model alone." (return-from drop-model! nil))
       (really-do-it () :report "I really want to DROP this model" (drop)))))
 
+(defun flush-prepared-queries ()
+  "If you get a 'Database error 26000: prepared statement ... does not
+exist error' while mucking around at the REPL, call this.  A similar
+error in production code should be investigated."
+  (setf *query-functions* (make-hash-table :test #'equal)))
