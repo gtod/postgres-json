@@ -10,18 +10,6 @@ and executing.")
 ;;; We can get away with these not being prepared statments because (I
 ;;; imagine) they are infrequently used, and usually from the REPL.
 
-(defun create-db-schema (&key (schema *db-schema*))
-  "Create a new PostgreSQL schema call SCHEMA, a symbol.  Requires an
-active DB connection.
-
-If you are using PSQL remember to do something like
-
-  SET search_path TO <your_schema>, public;
-
-to be able to see the tables, indexes, etc. in your new schema."
-  (pomo:create-schema schema)
-  (values))
-
 ;; We could use the pomo:sequence-exists-p but that checks in _all_
 ;; schemas which is not really what we want.  Just let them see the
 ;; error...
