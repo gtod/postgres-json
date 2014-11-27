@@ -132,17 +132,6 @@ just use a string).  Requires an active DB connection."
 
 ;;; Need to comment on acceptable type of ID: integer, string, ??
 
-(defvar *to-json* 'to-json
-  "Function designator for function of one argument to serialize lisp
-objects (submitted to INSERT and UPDATE, for example) to JSON.  Bind it
-at run time for use by the model interface functions.")
-
-(defvar *from-json* 'yason:parse
-  "Function designator for function of one argument to make lisp
-objects from JSON strings retrieved from the DB backend.  Used by GET,
-for example.  Bind it at run time for use by the model interface
-functions.")
-
 (defun insert (model object &key use-id stash-id (to-json *to-json*))
   "Insert lisp object OBJECT into the backend MODEL, a symbol,
 after JSON serialization.  If USE-ID is supplied, use that as the

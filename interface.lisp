@@ -5,11 +5,21 @@
 (defvar *db-schema* 'pgj-schema
   "A symbol being the name of the default PostgreSQL schema to use to
 house database objects.")
+(defvar *to-json* 'to-json
+  "Function designator for function of one argument to serialize lisp
+objects (submitted to INSERT and UPDATE, for example) to JSON.  Bind
+it at run time for use by the model interface functions.  Or redefine
+it globally for use in your own project.")
 
 (defvar *db-sequence* 'pgj-seq
   "A symbol being the name of the default global PostgreSQL sequence
 that will be created to provide unique IDs for all JSON objects
 inserted into PostgreSQL backend model tables by this library.")
+(defvar *from-json* 'yason:parse
+  "Function designator for function of one argument to make lisp
+objects from JSON strings retrieved from the DB backend.  Used by GET,
+for example.  Bind it at run time for use by the model interface
+functions.  Or redefine it globally for use in your own project.")
 
 (defvar *db-handle-serialization-failure-p* t
   "UPDATE and DELETE calls on the model will use the Postgres
