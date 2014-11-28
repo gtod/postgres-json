@@ -65,10 +65,10 @@ Now evaluate these forms at the REPL:
 
 (in-package :pj-test)
 
-;; Once only operation, makes a DB schema for our models
+;; Once only operation, make a DB schema for all our models
 (create-backend)
 
-;; Make a new model to store JSON docs on cats
+;; Once only operation, make a new model to store JSON docs on cats
 (create-model 'cat)
 ```
 
