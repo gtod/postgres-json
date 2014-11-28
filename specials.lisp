@@ -4,18 +4,20 @@
 
 ;;; Thse specials are effectively constants.  You _could_ rebind them
 ;;; but you would need to do it for every use of every interface
-;;; function.  If you do need different values you would be better of
-;;; just redefining these in some file in your own project.
+;;; function.  If you do need different values you would be better off
+;;; just _redefining_ these in some file in your own project.
 
 (defvar *pgj-schema* 'pgj-model
   "A symbol being the name of the PostgreSQL schema we create to house
-all database backend objects.")
+all database backend objects.  If you rebind it said binding must be
+in place for _all_ calls to exported functions of :postgres-json.")
 
 ;; No reason for user to change this, it sits in a fresh schema we made.
 (defvar *pgj-sequence* 'pgj-seq
   "A symbol being the name of the PostgreSQL sequence we create
 for (at least) the use of of meta model.")
 
+;; No reason for user to change this, it sits in a fresh schema we made.
 (defvar *meta-model* 'pgj-meta
   "A symbol being the name of the model in which we store meta data
 relating to user models.")

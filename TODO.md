@@ -65,7 +65,9 @@ then we wouldn't need the entire fleet of specials!
 
 How is our global query functions hash table cache affected by the use
 of multiple threads?  Looks like we just need to add it to
-bt:*default-special-bindings* ...
+bt:*default-special-bindings* ...  Or do we not need to?  Why can't
+multiple threads share the same set of prepared queries?  Will
+Postgres choke?
 
 Could write a macro to find any use of DB query functions (they end
 in $) and insert the approrpiate ensure-model-query calls.  Little bit

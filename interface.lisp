@@ -47,7 +47,7 @@ per model.  Returns MODEL."
   "Drop the backend (that is the PostgreSQL schema *PGJ-SCHEMA*) in
 the database Postmodern is currently connected to.  This will
 irrevocably delete ALL your data in ALL your models so it uses
-a RESTART-CASE toguard against human error."
+a RESTART-CASE to guard against human error."
   (flet ((drop ()
            (drop-db-schema-cascade *pgj-schema*)))
     (let ((attempted-to (format nil "DROP all models' data(!) in schema: ~A" *pgj-schema*)))
