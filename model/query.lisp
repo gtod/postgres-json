@@ -6,7 +6,10 @@
   "Hash of (for example) \"cat:insert$\" => query function.")
 
 (defun query-key (model operation)
-  (format nil "~A:~A" (symbol-name model) (symbol-name operation)))
+  (format nil "~A:~A:~A"
+          (symbol-name *pgj-schema*)
+          (symbol-name model)
+          (symbol-name operation)))
 
 (defun lookup-query (model operation)
   (gethash (query-key model operation) *query-functions*))
