@@ -9,9 +9,12 @@
 after JSON serialization.  If USE-ID is supplied, use that as the
 primary key for this object rather than the automatically generated
 one.  If STASH-ID is a symbol we FUNCALL it with two arguments: the
-value of the id to be used for the DB insert and OBJECT.  TO-JSON must
-be a function designator for a function of one argument to serialize
-lisp objects to JSON strings.  Return the id."
+value of the id to be used for the DB insert and OBJECT.  It should
+return another object which will be inserted in the place of the
+original.  Typically you would use this to 'stash' the fresh primary
+key inside your object.  TO-JSON must be a function designator for a
+function of one argument to serialize lisp objects to JSON strings.
+Return the id."
   (unless use-id
     (ensure-model-query model 'nextval-sequence$))
   (ensure-model-query model 'insert$)

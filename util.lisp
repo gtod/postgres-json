@@ -21,7 +21,9 @@
     (yason:encode object s)))
 
 (defun stash-id (id hash)
-  "Add the pair \"id\" => ID to the hash-table HASH."
+  "Add the pair \"id\" => ID to a copy of the hash-table HASH and
+return it.  (Clearly if you intend to use this when calling INSERT
+your objects must all be hash tables)."
   (let ((copy (copy-hash-table hash)))
     (setf (gethash "id" copy) id)
     copy))
