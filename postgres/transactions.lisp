@@ -1,3 +1,5 @@
+(in-package :postgres-json)
+
 ;;;; Transaction handling
 
 ;;; Guidelines gleaned from PostgreSQL 9.4 doco and our use case of
@@ -15,8 +17,6 @@
 ;;; multiple steps required.  In some sense _not_ using the
 ;;; serializable isolation level is a premature optimization, but for
 ;;; now I am prepared to wear that.  YMMV.
-
-(in-package :postgres-json)
 
 ;;; If you use the repeatable read isolation level you *must* handle
 ;;; the cl-postgres-error:serialization-failure condition: see
