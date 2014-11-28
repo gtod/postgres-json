@@ -58,7 +58,7 @@ Would be nice to lisply abstract the JSON select stuff from PG.
 Of course, you can still go to the DB directly if you like.
 
 Compound primary keys shoudn't be too hard. We make it either an ordered
-list or a map.
+list or a map.  Also change name of ID to KEY to suit.
 
 The model parameters could have a a single reader fn by string and
 then we wouldn't need the entire fleet of specials!
