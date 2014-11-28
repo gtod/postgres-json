@@ -4,6 +4,7 @@
 
   ;; Specials
   (:export
+   :*pgj-schema*
    :*to-json*
    :*from-json*
    :*db-handle-serialization-failure-p*
@@ -11,6 +12,7 @@
 
   ;; Setup a model
   (:export
+   :with-db-schema
    :create-db-sequence
    :create-backend
    :create-model
