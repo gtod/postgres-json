@@ -20,6 +20,8 @@
 
 (defparameter *test-schema* 'gtod-net-postgresql-json-test-schema)
 
+(log:config :debug)
+
 (defmacro with-schema-connection (() &body body)
   `(with-db-schema (*test-schema*)
      (with-connection *connection*
@@ -56,8 +58,9 @@
             (lambda ()
               (with-schema-connection ()
                 (update 'cat id (obj "name" (format nil "name-~A" id) "coat" "scruffy")))))))
-    (loop for id from 4 to 23
-          do (update-cat id))))
+    (with-schema-connection ()
+      (dolist (id (keys 'cat))
+        (update-cat id)))))
 
 ;; In production code you would certainly not expect to see 19
 ;; different users all trying to update a single record at once.  But
@@ -75,8 +78,9 @@
             (lambda ()
               (with-schema-connection ()
                 (update 'cat id (obj "name" (format nil "name-~A" id) "coat" "scruffy")))))))
-    (dotimes (i 19)
-      (update-cat 1))))
+    (with-schema-connection ()
+      (dotimes (i 20)
+        (update-cat (first (keys 'cat)))))))
 
 #+bordeaux-threads
 (defun update-one-allow-failure ()
@@ -86,5 +90,6 @@
               (with-schema-connection ()
                 (let ((*db-handle-serialization-failure-p* nil))
                   (update 'cat id (obj "name" (format nil "name-~A" id) "coat" "scruffy"))))))))
-    (dotimes (i 3)
-      (update-cat 1))))
+    (with-schema-connection ()
+      (dotimes (i 3)
+        (update-cat (first (keys 'cat)))))))
