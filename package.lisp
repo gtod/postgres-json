@@ -1,24 +1,26 @@
 (defpackage :postgres-json
   (:use :cl :alexandria :postmodern :s-sql)
   (:shadow :get :delete)
-  (:export
 
-   ;; Specials
+  ;; Specials
+  (:export
    :*to-json*
    :*from-json*
    :*db-handle-serialization-failure-p*
-   :*serialization-failure-sleep-times*
+   :*serialization-failure-sleep-times*)
 
-   ;; Setup a model
+  ;; Setup a model
+  (:export
    :create-db-sequence
    :create-backend
    :create-model
    :drop-backend!
    :drop-model!
    :flush-prepared-queries
-   :make-model-parameters
+   :make-model-parameters)
 
-   ;; Model user interface
+  ;; Model user interface
+  (:export
    :insert
    :update
    :get

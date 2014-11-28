@@ -9,11 +9,17 @@ Lisp object persistence models using the PostgreSQL 9.4+ jsonb type."
                #:postmodern
                #:log4cl
                #:yason)
+  :serial t
   :components
   ((:file "package")
    (:file "util")
    (:file "errors")
-   (:file "postgres")
-   (:file "transactions")
-   (:file "model")
+   (:file "specials")
+   (:file "postgres/util")
+   (:file "postgres/commands")
+   (:file "postgres/transactions")
+   (:file "model/backend")
+   (:file "model/parameters")
+   (:file "model/query")
+   (:file "model/interface")
    (:file "interface")))
