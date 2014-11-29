@@ -1,6 +1,6 @@
 (defpackage :postgres-json
   (:use :cl :alexandria :postmodern :s-sql)
-  (:shadow :get :delete)
+  (:shadow :get :delete :count)
 
   ;; Specials
   (:export

@@ -65,3 +65,9 @@ symbol, and the length of that list."
   (ensure-model-query model 'keys$)
   (with-transaction-type (read-committed-ro)
     (keys$ model)))
+
+(defun count (model)
+  "Returns the number of entries in MODEL, a symbol."
+  (ensure-model-query model 'count$)
+  (with-transaction-type (read-committed-ro)
+    (nth-value 0 (count$ model))))

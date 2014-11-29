@@ -67,6 +67,10 @@
     ('`(:select ',*id* :from ,*table*)
      :column))
 
+(defun-make-query count$ ()
+    ('`(:select (:count '*) :from ,*table*)
+     :single!))
+
 ;;;; Define a simple interace to disabiguate which query to use, based
 ;;;; on it's model.
 
@@ -81,6 +85,7 @@
 (defun-query get$ (id))
 (defun-query delete$ (id))
 (defun-query keys$ ())
+(defun-query count$ ())
 
 ;;;; Functions in the model interface must ensure the DB queries they
 ;;;; intend to use exist, by calling ENSURE-MODEL-QUERY

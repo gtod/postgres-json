@@ -8,7 +8,7 @@
 
 (defpackage :pj-test
   (:use :cl :postgres-json :postmodern)
-  (:shadowing-import-from :postgres-json :get :delete)
+  (:shadowing-import-from :postgres-json :get :delete :count)
   (:import-from :postgres-json :obj :pp-json))
 
 (in-package :pj-test)

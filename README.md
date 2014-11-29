@@ -93,6 +93,8 @@ PJ-TEST> (delete 'cat 2)
 2
 PJ-TEST> (keys 'cat)
 (1 3)
+PJ-TEST> (count 'cat)
+2
 PJ-TEST> (update 'cat 3 (obj "name" "maud" "coat" "tortoiseshell" "age" 7
                              "likes" '("sunshine" 42)))
 3
