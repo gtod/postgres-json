@@ -25,7 +25,7 @@
 ;;;; themselves.  The convention is to suffix function that actually
 ;;;; go to the backend DB with #\$.
 
-(defmacro defun-make-query (name (&rest args) (query &optional (format :rows)))
+(defmacro make-query (name (&rest args) (query &optional (format :rows)))
   `(progn
      (defun ,(sym t "make-" name) (model)
        (setf (lookup-query model ',name)
@@ -33,15 +33,15 @@
      (defun ,name (model ,@args)
        (funcall (lookup-query model ',name) ,@args))))
 
-(defun-make-query nextval-sequence$ ()
+(make-query nextval-sequence$ ()
     ('`(:select (:nextval ,(qualified-name-string *sequence* *pgj-schema*))) :single!))
 
-(defun-make-query insert$ (id jdoc)
+(make-query insert$ (id jdoc)
     ('`(:insert-into ,*table* :set ',*id* '$1 ',*jdoc* '$2
                      :returning ',*id*)
      :single!))
 
-(defun-make-query insert-old$ (id)
+(make-query insert-old$ (id)
   ('`(:insert-into ,*table-old*
                    ;; Note the dependence on the column ordering of
                    ;; CREATE-OLD-TABLE since :insert-into will not let
@@ -53,26 +53,26 @@
                             :from ,*table*
                             :where (:= ',*id* '$1)))))
 
-(defun-make-query update$ (id jdoc)
+(make-query update$ (id jdoc)
     ('`(:update ,*table*
         :set ',*jdoc* '$2 'valid-from (:transaction-timestamp)
         :where (:= ',*id* '$1)
         :returning ',*id*)
      :single))
 
-(defun-make-query get$ (id)
+(make-query get$ (id)
     ('`(:select ',*jdoc* :from ,*table* :where (:= ',*id* '$1))
      :single!))
 
-(defun-make-query delete$ (id)
+(make-query delete$ (id)
     ('`(:delete-from ,*table* :where (:= ',*id* '$1) :returning ',*id*)
      :single))
 
-(defun-make-query keys$ ()
+(make-query keys$ ()
     ('`(:select ',*id* :from ,*table*)
      :column))
 
-(defun-make-query count$ ()
+(make-query count$ ()
     ('`(:select (:count '*) :from ,*table*)
      :single!))
 
