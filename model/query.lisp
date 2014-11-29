@@ -21,22 +21,27 @@
 (defsetf lookup-query set-lookup-query)
 
 ;;;; Our queries are made on demand for a model/query-name combination
-;;;; This is the factory for make such queries
+;;;; This is the factory for make such queries, and the queries
+;;;; themselves.  The convention is to suffix function that actually
+;;;; go to the backend DB with #\$.
 
 (defmacro defun-make-query (name (&rest args) (query &optional (format :rows)))
-  `(defun ,(sym t "make-" name) (model ,@args)
-     (setf (lookup-query model ',name)
-           (prepare (sql-compile ,@(cdr query)) ,format))))
+  `(progn
+     (defun ,(sym t "make-" name) (model)
+       (setf (lookup-query model ',name)
+             (prepare (sql-compile ,@(cdr query)) ,format)))
+     (defun ,name (model ,@args)
+       (funcall (lookup-query model ',name) ,@args))))
 
 (defun-make-query nextval-sequence$ ()
     ('`(:select (:nextval ,(qualified-name-string *sequence* *pgj-schema*))) :single!))
 
-(defun-make-query insert$ ()
+(defun-make-query insert$ (id jdoc)
     ('`(:insert-into ,*table* :set ',*id* '$1 ',*jdoc* '$2
                      :returning ',*id*)
      :single!))
 
-(defun-make-query insert-old$ ()
+(defun-make-query insert-old$ (id)
   ('`(:insert-into ,*table-old*
                    ;; Note the dependence on the column ordering of
                    ;; CREATE-OLD-TABLE since :insert-into will not let
@@ -48,18 +53,18 @@
                             :from ,*table*
                             :where (:= ',*id* '$1)))))
 
-(defun-make-query update$ ()
+(defun-make-query update$ (id jdoc)
     ('`(:update ,*table*
         :set ',*jdoc* '$2 'valid-from (:transaction-timestamp)
         :where (:= ',*id* '$1)
         :returning ',*id*)
      :single))
 
-(defun-make-query get$ ()
+(defun-make-query get$ (id)
     ('`(:select ',*jdoc* :from ,*table* :where (:= ',*id* '$1))
      :single!))
 
-(defun-make-query delete$ ()
+(defun-make-query delete$ (id)
     ('`(:delete-from ,*table* :where (:= ',*id* '$1) :returning ',*id*)
      :single))
 
@@ -70,22 +75,6 @@
 (defun-make-query count$ ()
     ('`(:select (:count '*) :from ,*table*)
      :single!))
-
-;;;; Define a simple interace to disabiguate which query to use, based
-;;;; on it's model.
-
-(defmacro defun-query (name (&rest args))
-  `(defun ,name (model ,@args)
-     (funcall (lookup-query model ',name) ,@args)))
-
-(defun-query nextval-sequence$ ())
-(defun-query insert$ (id jdoc))
-(defun-query insert-old$ (id))
-(defun-query update$ (id jdoc))
-(defun-query get$ (id))
-(defun-query delete$ (id))
-(defun-query keys$ ())
-(defun-query count$ ())
 
 ;;;; Functions in the model interface must ensure the DB queries they
 ;;;; intend to use exist, by calling ENSURE-MODEL-QUERY
