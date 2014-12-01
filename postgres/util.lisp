@@ -12,7 +12,7 @@ and executing.")
 
 (defun qualified-name-string (name schema)
   "Return a string of the Postgres 'qualified name' of NAME and SCHEMA,
-both strings"
+both symbols."
   (format nil "~A.~A" (to-sql-name schema) (to-sql-name name)))
 
 (defun db-name-string (name)

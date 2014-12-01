@@ -124,7 +124,7 @@ We need a bulk insert, but still it's fun to do something like
 
 The interface you get per model is just five functions for now,
 illustrated above.  All the interface functions have comprehensive doc
-strings.
+strings.  Try `M-x slime-apropos-package` on `postgres-json`.
 
 ### User's guide (under construction)
 
@@ -237,7 +237,7 @@ goodness to go with the new fashioned JSON devil may care hedonism...
 
 #### Transaction isolation levels
 
-See [transactions](transactions.lisp) for how `INSERT` and `UPDATE`
+See [transactions](postgres/transactions.lisp) for how `INSERT` and `UPDATE`
 handle isolation levels using a retry loop.  We are not using the
 default Postgres isolation level but rather `repeatable read`.  Do let
 me know if you think it should be `serializable` and why, I am no

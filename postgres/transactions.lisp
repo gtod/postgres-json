@@ -14,7 +14,7 @@
 ;;; the update and delete operations in our model.  I think using the
 ;;; repeatable read isolation level (rather than serializable) is all
 ;;; that is required (certainly read committed will not do due to the
-;;; multiple steps required.  In some sense _not_ using the
+;;; multiple steps required).  In some sense _not_ using the
 ;;; serializable isolation level is a premature optimization, but for
 ;;; now I am prepared to wear that.  YMMV.
 
