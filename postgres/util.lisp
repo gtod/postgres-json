@@ -15,6 +15,11 @@ and executing.")
 both strings"
   (format nil "~A.~A" (to-sql-name schema) (to-sql-name name)))
 
+(defun db-name-string (name)
+  "Return the 'qualfied name' of Postgres object with name NAME in
+*PGJ-SCHEMA*, both symbols."
+  (qualified-name-string name *pgj-schema*))
+
 ;;;; Utility
 
 (defun run (form)
