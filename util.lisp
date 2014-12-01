@@ -1,5 +1,11 @@
 (in-package :postgres-json)
 
+(defun symbol->json (symbol)
+  (string-downcase (symbol-name symbol)))
+
+(defun json->symbol (string)
+  (ensure-symbol (string-upcase string)))
+
 ;;;; JSON related small functions
 
 (defun obj (&rest args)
@@ -28,6 +34,33 @@ your objects must all be hash tables)."
     (setf (gethash "id" copy) id)
     copy))
 
+;;;; closer-mop helpers
+
+(defun slot-definitions (object)
+  "Return the closer-mop slot-definitions for class of OBJECT."
+  (closer-mop:compute-slots (class-of object)))
+
+(defun slot-name (slot-definition)
+  "Return SLOT-DEFINITION-NAME of SLOT-DEFINITION."
+  (closer-mop:slot-definition-name slot-definition))
+
+(defun slot-type (slot-definition)
+  "Return SLOT-DEFINITION-TYPE of SLOT-DEFINITION."
+  (closer-mop:slot-definition-type slot-definition))
+
+;;;; Utility macros
+
+(defmacro with-readers ((&rest readers) object &body body)
+  "Bind the list of symbols in READERS to the current value of the
+repective reader method, of the same name, invoked on OBJECT.  Then
+evaluate BODY."
+  (if (emptyp readers)
+      `(progn ,@body)
+      (once-only (object)
+        `(let (,@(loop for reader in readers
+                       collect `(,reader (,reader ,object))))
+           ,@body))))
+
 ;;;; True utility functions, waiting for a real home
 
 (defun sym (package-name &rest args)
@@ -48,3 +81,8 @@ ALEXANDRIA:FORMAT-SYMBOL for effect of PACKAGE-NAME."
                (setf (gethash key new) (ensure-symbol value)))
              hash)
     new))
+(defun sym-prefix (prefix symbol)
+  (sym t prefix "-" symbol))
+
+(defun sym-suffix (symbol suffix)
+  (sym t symbol "-" suffix))
