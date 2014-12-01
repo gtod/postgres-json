@@ -118,32 +118,18 @@ single transaction:
 ```common-lisp
 PJ-TEST> (log:config :debug)
 
-PJ-TEST> (dotimes (i 5)
+PJ-TEST> (dotimes (i 3)
            (insert 'cat (obj "name" (format nil "maud-~A" i))))
 
-<DEBUG> [17:59:59] postgres-json interface.lisp (insert) -
-  Starting transaction INSERT
-<DEBUG> [17:59:59] postgres-json interface.lisp (insert) -
-  Completing transaction INSERT
-<DEBUG> [17:59:59] postgres-json interface.lisp (insert) -
-  Starting transaction INSERT
-<DEBUG> [17:59:59] postgres-json interface.lisp (insert) -
-  Completing transaction INSERT
-<DEBUG> [17:59:59] postgres-json interface.lisp (insert) -
-  Starting transaction INSERT
-<DEBUG> [17:59:59] postgres-json interface.lisp (insert) -
-  Completing transaction INSERT
-<DEBUG> [17:59:59] postgres-json interface.lisp (insert) -
-  Starting transaction INSERT
-<DEBUG> [17:59:59] postgres-json interface.lisp (insert) -
-  Completing transaction INSERT
-<DEBUG> [17:59:59] postgres-json interface.lisp (insert) -
-  Starting transaction INSERT
-<DEBUG> [17:59:59] postgres-json interface.lisp (insert) -
-  Completing transaction INSERT
+<DEBUG> [17:59:59] postgres-json  Starting transaction INSERT
+<DEBUG> [17:59:59] postgres-json  Completing transaction INSERT
+<DEBUG> [17:59:59] postgres-json  Starting transaction INSERT
+<DEBUG> [17:59:59] postgres-json  Completing transaction INSERT
+<DEBUG> [17:59:59] postgres-json  Starting transaction INSERT
+<DEBUG> [17:59:59] postgres-json  Completing transaction INSERT
 
 PJ-TEST> (with-model-transaction (some-cats)
-           (dotimes (i 5)
+           (dotimes (i 3)
              (insert 'cat (obj "name" (format nil "maud-~A" i)))))
 
 <DEBUG> [18:00:16] pj-test () - Starting transaction SOME-CATS
@@ -152,9 +138,9 @@ PJ-TEST> (with-model-transaction (some-cats)
 
 ## Documentation
 
-The interface you get per model is just five functions for now,
-illustrated above.  All the interface functions have comprehensive doc
-strings.  Try `M-x slime-apropos-package` on `postgres-json`.
+The interface to a model is just a few functions for now, illustrated
+above.  All the interface functions have comprehensive doc strings.
+Try `M-x slime-apropos-package` on `postgres-json`.
 
 ### User's guide (under construction)
 
