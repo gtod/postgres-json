@@ -34,7 +34,11 @@ your objects must all be hash tables)."
     (setf (gethash "id" copy) id)
     copy))
 
-;;;; closer-mop helpers
+;;;; CLOS and closer-mop helpers
+
+(defclass read-only () ()
+  (:documentation "Inherit from class READ-ONLY to signal your intent
+not to mutate any slots after object initialization."))
 
 (defun slot-definitions (object)
   "Return the closer-mop slot-definitions for class of OBJECT."
