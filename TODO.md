@@ -64,10 +64,12 @@ The model parameters could have a a single reader fn by string and
 then we wouldn't need the entire fleet of specials!
 
 How is our global query functions hash table cache affected by the use
-of multiple threads?  Looks like we just need to add it to
-bt:*default-special-bindings* ...  Or do we not need to?  Why can't
-multiple threads share the same set of prepared queries?  Will
-Postgres choke?
+of multiple threads?  And the model parameters?  Looks like we just
+need to add it to bt:*default-special-bindings* ...  Or do we not need
+to?  Why can't multiple threads share the same set of prepared
+queries?  Will Postgres choke?
+
+Test connection pooling.
 
 Could write a macro to find any use of DB query functions (they end
 in $) and insert the approrpiate ensure-model-query calls.  Little bit
@@ -84,9 +86,35 @@ mess up the interface functions too much:
 (insert '(animal cat) (obj ...))
 ```
 
-In fact, I don't think the users really need it but it would be nice
-to make a schema just for running tests in, for example.  Can bind
-*pgj-schema* to achieve this.
-
 Would be nice to get our public API and docstrings converted to
-Markdown in the simplest possible way.
+Markdown or other github supported markup lang in the simplest
+possible way.
+
+Note so happy with wasting 10 mins updating non existant rows.
+Can we have an option for :single! for the update$ ?
+
+The postmodern layer of query and prepare over cl-postgres is pretty
+straightforward if we need to dig down just one layer.  But focus
+should probably move to the querying user interface
+
+Change the README to have the Quickstart right at the top.  Keep
+focused on ease of use, prove that.  Also change the example to show
+clearly the JSON strings and then the result of parsing them --- in
+the beginning I foundered a little on that point...
+
+Looks like cl-postgres is *not* using named portals (but is using
+named prepared statements).  How does this affect performance?  See:
+http://www.postgresql.org/docs/9.4/static/protocol-overview.html#PROTOCOL-QUERY-CONCEPTS
+specifically paragraph 3.  Can we/need we specialize
+simple-execute-message to only retrieve batches of rows at a time?
+
+Named portal optimized for multiple uses...  But it only lives inside the
+transaction.  Would it make sense to have a 1-1 prepared stmt:named portal
+map?  Ahh, a portal is a cursor, see
+http://www.postgresql.org/docs/9.4/static/plpgsql-cursors.html
+We could have a with-cursor(name) form and let the user
+do what they like with the rows.  All this inside a single RO
+tran?  http://www.pgcon.org/2014/schedule/attachments/330_postgres-for-the-wire.pdf
+
+Change to using logical transactions.  Wrap top level interface
+functions in transactions.
