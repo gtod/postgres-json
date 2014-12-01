@@ -64,3 +64,32 @@ variable."
   "Eating our own dog food, we keep the model parameters for all user
 models in a 'meta' model, which itself has the following parameters."
   (make-model-parameters *meta-model* :id 'model :id-type 'text))
+
+;;;; JSON de/serialization
+
+;; It would be simpler to specialize a yason:encode method on symbol
+;; but that might confuse clients if they have other ideas for such a
+;; method.
+(defmethod yason:encode ((params model-parameters) &optional stream)
+  (yason:with-output (stream)
+    (yason:with-object  ()
+      (dolist (slot (slot-definitions params))
+        (let* ((name (slot-name slot))
+               (type (slot-type slot))
+               (slot-value (slot-value params name)))
+          (let ((value (typecase type
+                         (symbol (symbol->json slot-value))
+                         (t slot-value))))
+            (yason:encode-object-element (symbol->json name) value)))))))
+
+(defun model-parameters-from-json (json)
+  (let ((obj (yason:parse json))
+        (params (make-instance 'model-parameters)))
+    (dolist (slot (slot-definitions params))
+        (let* ((name (slot-name slot))
+               (type (slot-type slot))
+               (value (gethash (symbol->json name) obj)))
+          (setf (slot-value params name) (typecase type
+                                           (symbol (json->symbol value))
+                                           (t value)))))
+    params))

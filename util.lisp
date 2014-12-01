@@ -68,19 +68,6 @@ evaluate BODY."
 ALEXANDRIA:FORMAT-SYMBOL for effect of PACKAGE-NAME."
   (format-symbol package-name "~:@(~{~A~}~)" args))
 
-(defun maphash-symbols-to-strings (hash &key (test #'equal))
-  (let ((new (make-hash-table :test test :size (hash-table-size hash))))
-    (maphash (lambda (key value)
-               (setf (gethash key new) (symbol-name value)))
-             hash)
-    new))
-
-(defun maphash-strings-to-symbols (hash &key (test #'equal))
-  (let ((new (make-hash-table :test test :size (hash-table-size hash))))
-    (maphash (lambda (key value)
-               (setf (gethash key new) (ensure-symbol value)))
-             hash)
-    new))
 (defun sym-prefix (prefix symbol)
   (sym t prefix "-" symbol))
 
