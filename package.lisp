@@ -14,6 +14,7 @@
   (:export
    :database-safety-net
    :really-do-it
+   :with-model-transaction
    :with-db-schema
    :create-db-sequence
    :create-backend

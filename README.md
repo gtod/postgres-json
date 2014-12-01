@@ -110,14 +110,44 @@ PJ-TEST> (pp-json (get 'cat 3))
 }
 ```
 
-We need a bulk insert, but still it's fun to do something like
+Individual calls to a model function such as `insert` which write to
+the DB get their own transaction.  But if you start a model
+transaction yourself all model operations in the body occur within a
+single transaction:
 
 ```common-lisp
-(dotimes (i 100)
-  (insert 'cat (obj "name" (format nil "maud-~A" i) "coat" "tortoiseshell" "age" 7
-                    "likes" '("sunshine" 42))))
+PJ-TEST> (log:config :debug)
 
-(pp-json (get 'cat 77))
+PJ-TEST> (dotimes (i 5)
+           (insert 'cat (obj "name" (format nil "maud-~A" i))))
+
+<DEBUG> [17:59:59] postgres-json interface.lisp (insert) -
+  Starting transaction INSERT
+<DEBUG> [17:59:59] postgres-json interface.lisp (insert) -
+  Completing transaction INSERT
+<DEBUG> [17:59:59] postgres-json interface.lisp (insert) -
+  Starting transaction INSERT
+<DEBUG> [17:59:59] postgres-json interface.lisp (insert) -
+  Completing transaction INSERT
+<DEBUG> [17:59:59] postgres-json interface.lisp (insert) -
+  Starting transaction INSERT
+<DEBUG> [17:59:59] postgres-json interface.lisp (insert) -
+  Completing transaction INSERT
+<DEBUG> [17:59:59] postgres-json interface.lisp (insert) -
+  Starting transaction INSERT
+<DEBUG> [17:59:59] postgres-json interface.lisp (insert) -
+  Completing transaction INSERT
+<DEBUG> [17:59:59] postgres-json interface.lisp (insert) -
+  Starting transaction INSERT
+<DEBUG> [17:59:59] postgres-json interface.lisp (insert) -
+  Completing transaction INSERT
+
+PJ-TEST> (with-model-transaction (some-cats)
+           (dotimes (i 5)
+             (insert 'cat (obj "name" (format nil "maud-~A" i)))))
+
+<DEBUG> [18:00:16] pj-test () - Starting transaction SOME-CATS
+<DEBUG> [18:00:16] pj-test () - Completing transaction SOME-CATS
 ```
 
 ## Documentation

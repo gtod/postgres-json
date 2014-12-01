@@ -76,6 +76,15 @@ are congruent with the original isolation level and RO/RW settings."
                  (multiple-value-prog1 (,body-fn)
                    (log:debug "Completing transaction ~A" ',name)))))))))
 
+(defmacro with-model-transaction ((&optional (name 'user)) &body body)
+  "Evaluate BODY inside a Postgres transaction using the 'repeatable
+read' isolation level.  Nested expansions of this macro or the other
+transaction macros used internally by POSTGRES-JSON are ignored within
+BODY.  So this macro is ideal for bulk inserts or when Atomicity of
+multiple inserts/updates/deletes is required."
+  `(ensure-transaction-type (,name repeatable-read-rw)
+     ,@body))
+
 (defmacro with-retry-serialization-failure ((label) &body body)
   "If *DB-HANDLE-SERIALIZATION-FAILURE-P* is NIL at run time this is a
 no op.  Otherwise we wrap BODY forms in a short loop of increasing

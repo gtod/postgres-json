@@ -46,8 +46,11 @@
 
 (defun insert-some-cats (&optional (number 40))
   (with-conn ()
-    (dotimes (i number)
-      (insert 'pgj-cat (obj "name" (format nil "name-~A" i) "coat" "scruffy")))))
+    ;; Transactions are optional, but for bulk inserts they make just
+    ;; one transaction rather than 40 or whatever...
+    (with-model-transaction (some-cats)
+      (dotimes (i number)
+        (insert 'pgj-cat (obj "name" (format nil "name-~A" i) "coat" "scruffy"))))))
 
 #+bordeaux-threads
 (defun update-some ()
