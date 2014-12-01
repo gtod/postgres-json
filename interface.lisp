@@ -17,31 +17,23 @@ in a given PostgreSQL database."
         (create-model *meta-model* (meta-model-parameters))
         *pgj-schema*)))
 
-(defun create-model (model &optional (parameters (make-model-parameters)))
+(defun create-model (model &optional (parameters (make-model-parameters model)))
   "Create the PostgreSQL tables and indexes for PostgreSQL JSON
-persistence model MODEL, a symbol.  This should only be called once
-per model.  Returns MODEL."
-  (flet ((param (key)
-           (gethash key parameters)))
-    ;; We could, of course, pass the parameters hash around instead...
-    (let ((*id* (param "id"))
-          (*id-type* (param "id-type"))
-          (*jdoc* (param "jdoc"))
-          (*jdoc-type* (param "jdoc-type")))
-      (let* ((schema *pgj-schema*)
-             (name model)
-             (name-old (sym t name "-old"))
-             (index (sym t name "-gin"))
-             (index-old (sym t name "-old-gin")))
-        (create-base-table name schema)
-        (create-old-table name-old schema)
-        (when (eq 'jsonb *jdoc-type*)
-          (create-gin-index index name schema)
-          (create-gin-index index-old name-old schema))
-        (unless (eq *meta-model* model)
-          (insert *meta-model* (maphash-symbols-to-strings parameters)
-                  :use-id (symbol-name model)))
-        model))))
+persistence model MODEL, a symbol.  Uses the various values in the
+PARAMETERS has table to customize the model.  Should only be called
+once per model.  Returns MODEL."
+  (let* ((base model)
+         (base-old (sym-suffix base "old"))
+         (index (sym-suffix base "gin"))
+         (index-old (sym-suffix base "old-gin")))
+    (create-base-table base parameters)
+    (create-old-table base-old parameters)
+    (when (eq 'jsonb (jdoc-type parameters))
+      (create-gin-index index base parameters)
+      (create-gin-index index-old base-old parameters))
+    (unless (eq *meta-model* model)
+      (insert *meta-model* parameters :use-id (symbol->json model)))
+    model))
 
 (defun drop-backend! ()
   "Drop the backend (that is the PostgreSQL schema *PGJ-SCHEMA*) in
@@ -63,7 +55,7 @@ with the model so it uses a RESTART-CASE to guard against human
 error."
   (flet ((drop ()
            ;; Would be nice if these three were in one transaction...
-           (delete *meta-model* (symbol-name model))
+           (delete *meta-model* (symbol->json model))
            (drop-db-table-cascade model *pgj-schema*)
            (drop-db-table-cascade (sym t model "-old") *pgj-schema*)))
     (restart-case (error 'database-safety-net
