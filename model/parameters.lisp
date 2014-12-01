@@ -24,34 +24,43 @@ tables.")
   "A symbol being the type of the JSON column in created backend
 tables.")
 
-;;;; Model derived parameters
+;; I get nervous when I see writers or accessors or any setfing of
+;; slot values.  Objects of this class, once created, are read only.
+(defclass model-parameters ()
+  ((model :initarg :model :type symbol :reader model)
+   (sequence :initarg :sequence :type symbol :reader sequence)
+   (id :initarg :id :type symbol :reader id)
+   (id-type :initarg :id-type :type symbol :reader id-type)
+   (jdoc :initarg :jdoc :type symbol :reader jdoc)
+   (jdoc-type :initarg :jdoc-type :type symbol :reader jdoc-type))
+  (:documentation "A class to facilitation customization of backend
+features of a model.  We need consistency between calls to
+CREATE-MODEL and the functions that make the prepared queries for a
+given model under the covers (say when INSERT is called).  By
+serializing objects of this class to the DB we ensure that
+consistency.  It also provides a simple example of using our JSON
+persistence model. Slot type is used for JSON de/serialization."))
 
-;;; We bind these in ENSURE-MODEL-QUERY-OP for use by the various
-;;; make-<query$> functions.  It may be better to stick the above
-;;; specials in some CLOS object and then make these methods but this
-;;; is less verbose while we have just a few...
+(defmethod table ((params model-parameters))
+  (qualified-name (model params) *pgj-schema*))
 
-(defvar *table* nil
-  "Qualified name of the base table in the model backend.")
+(defmethod table-old ((params model-parameters))
+  (qualified-name (sym-suffix (model params) "old") *pgj-schema*))
 
-(defvar *table-old* nil
-  "Qualified name of the old table in the model backend.")
+(defun make-model-parameters (model &key (sequence *pgj-sequence*)
+                                         (id *id*) (id-type *id-type*)
+                                         (jdoc *jdoc*) (jdoc-type *jdoc-type*))
+  "Create an object of class MODEL-PARAMETERS to specify backend
+features of a PostgreSQL JSON persistence model MODEL (a symbol),
+typically to be supplied to CREATE-MODEL.  For each keyword argument
+which defaults to a special variable see the documentation of that
+variable."
+  (make-instance 'model-parameters :model model :sequence sequence
+                 :id id :id-type id-type :jdoc jdoc :jdoc-type jdoc-type))
 
-(defun make-model-parameters (&key (sequence *pgj-sequence*) (id *id*) (id-type *id-type*)
-                                   (jdoc *jdoc*) (jdoc-type *jdoc-type*))
-  "Create a hash-table of parameters to specify backend features of a
-PostgreSQL JSON persistence model, typically to be supplied to
-CREATE-MODEL.  For each keyword argument see the documentation of the
-special variable that is its default value."
-  (obj "sequence" sequence
-       "id" id
-       "id-type" id-type
-       "jdoc" jdoc
-       "jdoc-type" jdoc-type))
-
-;;;; Meta model parameters
+;;;; The specific parameters for our meta model
 
 (defun meta-model-parameters ()
-  "Eating our own dog food, we keep user model parameters in a 'meta'
-model, which itself has the following parameters."
-  (make-model-parameters :id 'model :id-type 'text))
+  "Eating our own dog food, we keep the model parameters for all user
+models in a 'meta' model, which itself has the following parameters."
+  (make-model-parameters *meta-model* :id 'model :id-type 'text))
