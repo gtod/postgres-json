@@ -12,9 +12,12 @@
 
   ;; Setup a model
   (:export
+   :database-safety-net
+   :really-do-it
    :with-db-schema
    :create-db-sequence
    :create-backend
+   :backend-exists-p
    :create-model
    :drop-backend!
    :drop-model!

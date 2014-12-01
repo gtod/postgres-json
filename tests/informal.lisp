@@ -1,13 +1,7 @@
 ;;;; Some informal tests for the REPL
 
-;;; Note that (in my imagination at least) there is no need for normal
-;;; user code to use a with-db-schema form since all user model tables
-;;; are created in *pgj-schema* which defaults to 'pgj_model and
-;;; everyone is happy.  For these tests I just wanted to make a new
-;;; schema, run the tests and then blow the schema away...
-
 (defpackage :pj-test
-  (:use :cl :postgres-json :postmodern)
+  (:use :cl :postgres-json)
   (:shadowing-import-from :postgres-json :get :delete :count)
   (:import-from :postgres-json :obj :pp-json))
 
@@ -18,48 +12,50 @@
 
 (defparameter *connection* '("cusoon" "gtod" "" "localhost" :port 5433 :pooled-p t))
 
-(defparameter *test-schema* 'gtod-net-postgresql-json-test-schema)
-
-(log:config :debug)
-
-(defmacro with-schema-connection (() &body body)
-  `(with-db-schema (*test-schema*)
-     (with-connection *connection*
-       ,@body)))
+(defmacro with-conn (() &body body)
+  `(pomo:with-connection *connection*
+     ,@body))
 
 ;; Run first
-(defun setup ()
+(defun create-test-models ()
   (log:config :debug)
-  (with-db-schema (*test-schema*)
-    (create-backend)
-    (create-model 'booking)
-    (create-model 'cat)))
+  (with-conn ()
+    (unless (backend-exists-p)
+      (create-backend))
+    (create-model 'pgj-booking)
+    (create-model 'pgj-cat)))
 
 ;; Run last
-(defun drop-test-schema ()
-  (with-db-schema (*test-schema*)
-    (drop-backend!)))
+(defun drop-test-models ()
+  (flet ((extreme-prejudice (c)
+           (declare (ignore c))
+           (invoke-restart 'really-do-it)))
+    (with-conn ()
+      (handler-bind ((database-safety-net #'extreme-prejudice))
+        (drop-model! 'pgj-booking)
+        (drop-model! 'pgj-cat))))
+  (log:config :info))
 
 (defun insert-bookings ()
-  (with-db-schema (*test-schema*)
+  (with-conn ()
     (alexandria:with-input-from-file (stream *bookings-json-file*)
       (dolist (booking (yason:parse stream))
-        (insert 'booking booking)))))
+        (insert 'pgj-booking booking)))))
 
 (defun insert-some-cats (&optional (number 40))
-  (with-db-schema (*test-schema*)
+  (with-conn ()
     (dotimes (i number)
-      (insert 'cat (obj "name" (format nil "name-~A" i) "coat" "scruffy")))))
+      (insert 'pgj-cat (obj "name" (format nil "name-~A" i) "coat" "scruffy")))))
 
 #+bordeaux-threads
 (defun update-some ()
   (flet ((update-cat (id)
            (bt:make-thread
             (lambda ()
-              (with-schema-connection ()
-                (update 'cat id (obj "name" (format nil "name-~A" id) "coat" "scruffy")))))))
-    (with-schema-connection ()
-      (dolist (id (keys 'cat))
+              (with-conn ()
+                (update 'pgj-cat id (obj "name" (format nil "name-~A" id) "coat" "scruffy")))))))
+    (with-conn ()
+      (dolist (id (keys 'pgj-cat))
         (update-cat id)))))
 
 ;; In production code you would certainly not expect to see 19
@@ -76,20 +72,20 @@
   (flet ((update-cat (id)
            (bt:make-thread
             (lambda ()
-              (with-schema-connection ()
-                (update 'cat id (obj "name" (format nil "name-~A" id) "coat" "scruffy")))))))
-    (with-schema-connection ()
+              (with-conn ()
+                (update 'pgj-cat id (obj "name" (format nil "name-~A" id) "coat" "scruffy")))))))
+    (with-conn ()
       (dotimes (i 20)
-        (update-cat (first (keys 'cat)))))))
+        (update-cat (first (keys 'pgj-cat)))))))
 
 #+bordeaux-threads
 (defun update-one-allow-failure ()
   (flet ((update-cat (id)
            (bt:make-thread
             (lambda ()
-              (with-schema-connection ()
+              (with-conn ()
                 (let ((*db-handle-serialization-failure-p* nil))
-                  (update 'cat id (obj "name" (format nil "name-~A" id) "coat" "scruffy"))))))))
-    (with-schema-connection ()
+                  (update 'pgj-cat id (obj "name" (format nil "name-~A" id) "coat" "scruffy"))))))))
+    (with-conn ()
       (dotimes (i 3)
-        (update-cat (first (keys 'cat)))))))
+        (update-cat (first (keys 'pgj-cat)))))))

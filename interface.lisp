@@ -17,6 +17,12 @@ in a given PostgreSQL database."
         (create-model *meta-model* (meta-model-parameters))
         *pgj-schema*)))
 
+;; In fact this is fragile since the schema may exist but not the
+;; sequence and meta model...
+(defun backend-exists-p ()
+  "Does the backend *PGJ-SCHEMA* exist?"
+  (pomo:schema-exist-p *pgj-schema*))
+
 (defun create-model (model &optional (parameters (make-model-parameters model)))
   "Create the PostgreSQL tables and indexes for PostgreSQL JSON
 persistence model MODEL, a symbol.  Uses the various values in the
