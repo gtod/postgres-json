@@ -59,7 +59,6 @@ such as INSERT/UPDATE/DELETE and for ensuring embedded transactions
 are congruent with the original isolation level and RO/RW settings."
   (with-unique-names (body-fn)
     `(flet ((,body-fn () ,@body))
-       (log:debug "Tran: ~A" ',type)
        (if *top-level-transaction-settings*
            (progn
              (unless (congruent-transaction ',type)
@@ -68,11 +67,14 @@ are congruent with the original isolation level and RO/RW settings."
                       :original *top-level-transaction-settings*
                       :current ',type))
              (,body-fn))
-           (with-transaction (,name) ; What is the purpose of this name in pomo?
-             (declare (ignorable ,name))
-             (,type)
-             (let ((*top-level-transaction-settings* ',type))
-               (,body-fn)))))))
+           (progn
+             (log:debug "Starting transaction ~A" ',name)
+             (with-transaction (,name) ; What is the purpose of this name in pomo?
+               (declare (ignorable ,name))
+               (,type)
+               (let ((*top-level-transaction-settings* ',type))
+                 (multiple-value-prog1 (,body-fn)
+                   (log:debug "Completing transaction ~A" ',name)))))))))
 
 (defmacro with-retry-serialization-failure ((label) &body body)
   "If *DB-HANDLE-SERIALIZATION-FAILURE-P* is NIL at run time this is a
