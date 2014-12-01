@@ -30,13 +30,49 @@
 (defprepared read-committed-rw
     (:raw "set transaction isolation level read committed read write"))
 
-(defmacro with-transaction-type ((type) &body body)
-  "Wrap BODY forms in Postmodern WITH-TRANSACTION and then call TYPE,
-a symbol for a function that sets the required isolation level and
-read only/read write options."
-  `(with-transaction ()
-     (,type)
-     ,@body))
+(defvar *top-level-transaction-settings* nil
+  "When we start the first transaction in a nested group, bind this
+to the transaction settings requested.")
+
+;; Thread safety?
+(defvar *transaction-settings-priority*
+  '(read-committed-ro read-committed-rw repeatable-read-rw)
+  "A ist of transaction settings symbols.  Nested transactions must be
+started with settings to the left of, or at the same level as, the top
+level setting in the nested group.")
+
+(defun transaction-settings-level (transaction-setting)
+  (position transaction-setting *transaction-settings-priority*))
+
+(defun congruent-transaction (transaction-setting)
+  (<= (transaction-settings-level transaction-setting)
+      (transaction-settings-level *top-level-transaction-settings*)))
+
+(defmacro ensure-transaction-type ((name type) &body body)
+  "If a transaction is already in progress simply evaluate BODY.
+Otherwise wrap BODY forms in a Postmodern WITH-TRANSACTION form with
+name NAME (a symbol) and then call TYPE, a symbol for a function that
+sets the required isolation level and read only/read write options.
+Clients are responsible for ensuring REPEATEABLE-READ-RW is the
+minimum isolation level set for mutating model interface functions
+such as INSERT/UPDATE/DELETE and for ensuring embedded transactions
+are congruent with the original isolation level and RO/RW settings."
+  (with-unique-names (body-fn)
+    `(flet ((,body-fn () ,@body))
+       (log:debug "Tran: ~A" ',type)
+       (if *top-level-transaction-settings*
+           (progn
+             (unless (congruent-transaction ',type)
+               (error 'incompatible-transaction-setting
+                      :transaction-name ',name
+                      :original *top-level-transaction-settings*
+                      :current ',type))
+             (,body-fn))
+           (with-transaction (,name) ; What is the purpose of this name in pomo?
+             (declare (ignorable ,name))
+             (,type)
+             (let ((*top-level-transaction-settings* ',type))
+               (,body-fn)))))))
 
 (defmacro with-retry-serialization-failure ((label) &body body)
   "If *DB-HANDLE-SERIALIZATION-FAILURE-P* is NIL at run time this is a

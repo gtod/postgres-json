@@ -15,3 +15,13 @@
              (format stream "To save you from yourself I refuse to: ~A.~%May I suggest you: ~A."
                      (attempted-to condition)
                      (suggestion condition)))))
+
+(define-condition incompatible-transaction-setting (postgres-json-database-error)
+  ((transaction-name :initarg :transaction-name :reader transaction-name)
+   (original :initarg :original :reader original)
+   (current :initarg :current :reader current))
+  (:report (lambda (condition stream)
+             (format stream "You cannot embed the transaction for ~A~%of type ~A inside one of ~A."
+                     (transaction-name condition)
+                     (current condition)
+                     (original condition)))))

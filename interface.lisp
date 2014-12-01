@@ -12,9 +12,10 @@ in a given PostgreSQL database."
              :attempted-to (format nil "Create the backend, when a schema called ~A already exists." *pgj-schema*)
              :suggestion (format nil "Check carefully what data is in ~A" *pgj-schema*))
       (progn
-        (pomo:create-schema *pgj-schema*)
-        (create-db-sequence *pgj-sequence* *pgj-schema*)
-        (create-model *meta-model* (meta-model-parameters))
+        (ensure-transaction-type (create-backend repeatable-read-rw)
+          (pomo:create-schema *pgj-schema*)
+          (create-db-sequence *pgj-sequence* *pgj-schema*)
+          (create-model *meta-model* (meta-model-parameters)))
         *pgj-schema*)))
 
 ;; In fact this is fragile since the schema may exist but not the
@@ -32,13 +33,14 @@ once per model.  Returns MODEL."
          (base-old (sym-suffix base "old"))
          (index (sym-suffix base "gin"))
          (index-old (sym-suffix base "old-gin")))
-    (create-base-table base parameters)
-    (create-old-table base-old parameters)
-    (when (eq 'jsonb (jdoc-type parameters))
-      (create-gin-index index base parameters)
-      (create-gin-index index-old base-old parameters))
-    (unless (eq *meta-model* model)
-      (insert *meta-model* parameters :use-id (symbol->json model)))
+    (ensure-transaction-type (create-model repeatable-read-rw)
+      (create-base-table base parameters)
+      (create-old-table base-old parameters)
+      (when (eq 'jsonb (jdoc-type parameters))
+        (create-gin-index index base parameters)
+        (create-gin-index index-old base-old parameters))
+      (unless (eq *meta-model* model)
+        (insert *meta-model* parameters :use-id (symbol->json model))))
     model))
 
 (defun drop-backend! ()
@@ -60,10 +62,10 @@ a RESTART-CASE to guard against human error."
 with the model so it uses a RESTART-CASE to guard against human
 error."
   (flet ((drop ()
-           ;; Would be nice if these three were in one transaction...
-           (delete *meta-model* (symbol->json model))
-           (drop-db-table-cascade model *pgj-schema*)
-           (drop-db-table-cascade (sym t model "-old") *pgj-schema*)))
+           (ensure-transaction-type (drop-model! repeatable-read-rw)
+             (delete *meta-model* (symbol->json model))
+             (drop-db-table-cascade model *pgj-schema*)
+             (drop-db-table-cascade (sym t model "-old") *pgj-schema*))))
     (restart-case (error 'database-safety-net
                          :attempted-to (format nil "DROP model ~A" model)
                          :suggestion "Pick an appropriate restart")

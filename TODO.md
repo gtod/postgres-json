@@ -64,10 +64,11 @@ The model parameters could have a a single reader fn by string and
 then we wouldn't need the entire fleet of specials!
 
 How is our global query functions hash table cache affected by the use
-of multiple threads?  And the model parameters?  Looks like we just
-need to add it to bt:*default-special-bindings* ...  Or do we not need
-to?  Why can't multiple threads share the same set of prepared
-queries?  Will Postgres choke?
+of multiple threads?  And the model parameters?  And current
+transaction settings?  Looks like we just need to add it to
+bt:*default-special-bindings* ...  Or do we not need to?  Why can't
+multiple threads share the same set of prepared queries?  Will
+Postgres choke?
 
 Test connection pooling.
 

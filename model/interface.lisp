@@ -19,7 +19,7 @@ Return the id."
   (unless use-id
     (ensure-model-query model 'nextval-sequence$))
   (ensure-model-query model 'insert$)
-  (with-transaction-type (read-committed-rw)
+  (ensure-transaction-type (insert read-committed-rw)
     (let* ((id (if use-id use-id (nextval-sequence$ model)))
            (object (if stash-id
                        (funcall stash-id id object)
@@ -36,7 +36,7 @@ found."
   (log:debug "Attempt update of ~A in ~A" id model)
   (ensure-model-query model 'insert-old$ 'update$)
   (with-retry-serialization-failure ("update")
-    (with-transaction-type (repeatable-read-rw)
+    (ensure-transaction-type (update repeatable-read-rw)
       (insert-old$ model id)
       (nth-value 0 (update$ model id (funcall to-json object))))))
 
@@ -56,7 +56,7 @@ such ID found."
   (log:debug "Attempt delete of object with key ~A form ~A" id model)
   (ensure-model-query model 'insert-old$ 'delete$)
   (with-retry-serialization-failure ("delete")
-    (with-transaction-type (repeatable-read-rw)
+    (ensure-transaction-type (delete repeatable-read-rw)
       (insert-old$ model id)
       (nth-value 0 (delete$ model id)))))
 
@@ -64,11 +64,11 @@ such ID found."
   "Returns two values: a list of all primary keys for this MODEL, a
 symbol, and the length of that list."
   (ensure-model-query model 'keys$)
-  (with-transaction-type (read-committed-ro)
+  (ensure-transaction-type (keys read-committed-ro)
     (keys$ model)))
 
 (defun count (model)
   "Returns the number of entries in MODEL, a symbol."
   (ensure-model-query model 'count$)
-  (with-transaction-type (read-committed-ro)
+  (ensure-transaction-type (count read-committed-ro)
     (nth-value 0 (count$ model))))
