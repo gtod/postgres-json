@@ -46,7 +46,7 @@ Postgres type *ID-TYPE*) in MODEL, a symbol, and return a parse of the
 JSON string by the the function of one argument designated by
 FROM-JSON.  Make it #'identity to return just the JSON string proper."
   (ensure-model-query model 'get$)
-  (funcall from-json (with-transaction-type (read-committed-ro)
+  (funcall from-json (ensure-transaction-type (get read-committed-ro)
                        (get$ model id))))
 
 (defun delete (model id)
