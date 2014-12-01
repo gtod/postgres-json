@@ -8,6 +8,7 @@ Lisp object persistence models using the PostgreSQL 9.4+ jsonb type."
   :depends-on (#:alexandria
                #:postmodern
                #:log4cl
+               #:closer-mop
                #:yason)
   :serial t
   :components
