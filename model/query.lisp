@@ -1,9 +1,12 @@
 (in-package :postgres-json)
 
-;;;; Cache our queries once we have created them
+;;; Cache our queries/model-parameters once we have created/found them.
 
 (defparameter *query-functions* (make-hash-table :test #'equal)
   "Hash of (for example) \"cat:insert$\" => query function.")
+
+(defparameter *model-parameters* (make-hash-table :test #'equal)
+  "Hash of symbol model => model parameters.")
 
 (defun query-key (model operation)
   (format nil "~A:~A:~A"
@@ -20,92 +23,101 @@
 
 (defsetf lookup-query set-lookup-query)
 
-;;;; Our queries are made on demand for a model/query-name combination
-;;;; This is the factory for make such queries, and the queries
-;;;; themselves.  The convention is to suffix function that actually
-;;;; go to the backend DB with #\$.
+;;;; Our queries are made on demand for a schema/model/query-name
+;;;; combination.  This is the factory for making such queries, and the
+;;;; queries themselves.  The convention is to suffix queries proper
+;;;; with #\$.
 
-(defmacro make-query (name (&rest args) (query &optional (format :rows)))
+(defmacro make-query (name (&rest query-args) (&rest model-params)
+                      (query &optional (format :rows)))
+  "Defun both a function to _make_ a query called NAME and a function
+for the query proper called NAME and accepting a list of symbols,
+QUERY-ARGS, which become the numbered parameters of the query when it
+is called.  MODEL-PARAMS must be a list of symbols, each a
+model-parameter.  These are bound in the make query function to the
+value of said model-parameter, an object that must be passed as the
+second argument to the make function (the first argument being the
+model).  QUERY is a qoted backquoted S-SQL query form optionally
+containing evaluated expressions including the bound model-parameters.
+FORMAT must be a valid Postmodern results format."
   `(progn
-     (defun ,(sym t "make-" name) (model)
-       (setf (lookup-query model ',name)
-             (prepare (sql-compile ,@(cdr query)) ,format)))
-     (defun ,name (model ,@args)
-       (funcall (lookup-query model ',name) ,@args))))
+     (defun ,(sym t "make-" name) (model model-parameters)
+       (declare (ignorable model-parameters))
+       (with-readers (,@(loop for param in model-params collect param)) model-parameters
+         (setf (lookup-query model ',name)
+               (prepare (sql-compile ,@(cdr query)) ,format))))
+     (defun ,name (model ,@query-args)
+       (funcall (lookup-query model ',name) ,@query-args))))
 
-(make-query nextval-sequence$ ()
-    ('`(:select (:nextval ,(qualified-name-string *sequence* *pgj-schema*))) :single!))
+;;; Do not be confused by little forms like (id) and (jdoc) below.
+;;; They are just succiently named functions for accessing the values
+;;; of the *model-parameters* hash.  See parameters.lisp
 
-(make-query insert$ (id jdoc)
-    ('`(:insert-into ,*table* :set ',*id* '$1 ',*jdoc* '$2
-                     :returning ',*id*)
+(make-query nextval-sequence$ () (sequence)
+    ('`(:select (:nextval ,(db-name-string sequence))) :single!))
+
+(make-query insert$ (id jdoc) (table id jdoc)
+    ('`(:insert-into ,table :set ',id '$1 ',jdoc '$2
+                     :returning ',id)
      :single!))
 
-(make-query insert-old$ (id)
-  ('`(:insert-into ,*table-old*
+(make-query insert-old$ (id) (table table-old id jdoc)
+    ('`(:insert-into ,table-old
                    ;; Note the dependence on the column ordering of
                    ;; CREATE-OLD-TABLE since :insert-into will not let
                    ;; me explicitly specify column names...
-                   (:select ',*id*
+                     (:select ',id
                             (:transaction-timestamp)
                             'valid-from
-                            ',*jdoc*
-                            :from ,*table*
-                            :where (:= ',*id* '$1)))))
+                            ',jdoc
+                            :from ,table
+                            :where (:= ',id '$1)))))
 
-(make-query update$ (id jdoc)
-    ('`(:update ,*table*
-        :set ',*jdoc* '$2 'valid-from (:transaction-timestamp)
-        :where (:= ',*id* '$1)
-        :returning ',*id*)
+(make-query update$ (id jdoc) (table id jdoc)
+    ('`(:update ,table
+        :set ',jdoc '$2 'valid-from (:transaction-timestamp)
+        :where (:= ',id '$1)
+        :returning ',id)
      :single))
 
-(make-query get$ (id)
-    ('`(:select ',*jdoc* :from ,*table* :where (:= ',*id* '$1))
+(make-query get$ (id) (table id jdoc)
+    ('`(:select ',jdoc :from ,table :where (:= ',id '$1))
      :single!))
 
-(make-query delete$ (id)
-    ('`(:delete-from ,*table* :where (:= ',*id* '$1) :returning ',*id*)
+(make-query delete$ (id) (table id)
+    ('`(:delete-from ,table :where (:= ',id '$1) :returning ',id)
      :single))
 
-(make-query keys$ ()
-    ('`(:select ',*id* :from ,*table*)
+(make-query keys$ () (table id)
+    ('`(:select ',id :from ,table)
      :column))
 
-(make-query count$ ()
-    ('`(:select (:count '*) :from ,*table*)
+(make-query count$ () (table)
+    ('`(:select (:count '*) :from ,table)
      :single!))
 
 ;;;; Functions in the model interface must ensure the DB queries they
 ;;;; intend to use exist, by calling ENSURE-MODEL-QUERY
 
 (defun ensure-model-query (model &rest operations)
-  (dolist (op operations)
-    (ensure-model-query-op model op)))
+  (let ((model-parameters (if (eq *meta-model* model)
+                              (meta-model-parameters)
+                              (or (gethash model *model-parameters*)
+                                  (setf (gethash model *model-parameters*)
+                                        (get *meta-model* (symbol->json model)
+                                             :from-json 'model-parameters-from-json))))))
+    (dolist (op operations)
+      (ensure-model-query-op model model-parameters op))
+    model-parameters))
 
-(defun ensure-model-query-op (model operation)
+(defun ensure-model-query-op (model model-parameters operation)
   "If (say) cat:insert$ exists then return that query (a function).
 If not we make the query OPERATION on demand after getting the
 required parameters for MODEL from the meta model.  Of course, we fix
 the bootstrap problem by calling a function to supply the meta model's
-own parameters."
+own parameters.  Returns the the model's parameters."
   (if (lookup-query model operation)
-      (log:debug "Using prepared query for ~A:~A" model operation)
-      (let ((parameters (if (eq *meta-model* model)
-                            (meta-model-parameters)
-                            (let ((params (get *meta-model* (symbol-name model))))
-                              (maphash-strings-to-symbols params)))))
-        (flet ((param (key)
-                 (gethash key parameters)))
-          (let* ((schema *pgj-schema*)
-                 (base model)
-                 (old (sym t base "-old"))
-                 (*table* (qualified-name base schema))
-                 (*table-old* (qualified-name old schema))
-                 (*sequence* (param "sequence"))
-                 (*id* (param "id"))
-                 (*id-type* (param "id-type"))
-                 (*jdoc* (param "jdoc"))
-                 (*jdoc-type* (param "jdoc-type")))
-            (log:debug "Preparing query for ~A:~A" model operation)
-            (funcall (sym :postgres-json "make-" operation) model))))))
+      (log:trace "Using prepared query for ~A:~A" model operation)
+      (progn
+        (log:trace "Preparing query for ~A:~A" model operation)
+        (funcall (sym :postgres-json "make-" operation) model model-parameters))))
