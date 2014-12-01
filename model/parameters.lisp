@@ -1,12 +1,7 @@
 (in-package :postgres-json)
 
-;;;; Model parameters
-
-;;; These serve two purposes:
-;;; 1. They are the default values, unless the user overrides them
-;;;    when invoking MAKE-MODEL-PARAMETERS, for CREATE-MODEL.
-;;; 2. We rebind them (see ENSURE-MODEL-QUERY-OP) before creating
-;;;    prepared queries to use against backend model tables.
+;;;; These are the default model parameters, their sole purpose is to
+;;;; prvide the default values for MAKE-MODEL-PARAMETERS.
 
 (defvar *sequence* 'pgj-seq
   "A symbol being the default name of the PostgreSQL sequence to
