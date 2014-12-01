@@ -1,4 +1,6 @@
 ;;;; Some informal tests for the REPL
+;;;; Compile this file and, create-test-moldes, call some functions
+;;;; and finally call drop-test-models to clean up.
 
 (defpackage :pj-test
   (:use :cl :postgres-json)
