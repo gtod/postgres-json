@@ -31,6 +31,7 @@
    :update
    :get
    :delete
+   :count
    :keys))
 
 ;;; Also some convenience functions (not exported) that you may wish to import:
