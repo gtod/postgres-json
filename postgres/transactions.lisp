@@ -53,7 +53,7 @@ the BODY forms is returned."
     `(flet ((,body-fn () ,@body))
        (if *db-handle-serialization-failure-p*
            (dolist (sleep *serialization-failure-sleep-times* (,body-fn))
-             (log:debug "Trying tran loop with sleep: ~A" sleep)
+             (log:trace "Trying tran loop with sleep: ~A" sleep)
              (handler-case
                  (return (,body-fn))
                (cl-postgres-error:serialization-failure ()

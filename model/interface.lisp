@@ -15,6 +15,7 @@ original.  Typically you would use this to 'stash' the fresh primary
 key inside your object.  TO-JSON must be a function designator for a
 function of one argument to serialize lisp objects to JSON strings.
 Return the id."
+  (log:debug "Attempt insert of object into ~A" model)
   (unless use-id
     (ensure-model-query model 'nextval-sequence$))
   (ensure-model-query model 'insert$)
@@ -32,7 +33,7 @@ to be the JSON serialization of OBJECT.  TO-JSON must be a function
 designator for a function of one argument to serialize lisp objects to
 JSON strings.  Returns ID on success, NIL if there was no such ID
 found."
-  (log:debug "Attempt update of ~A" id)
+  (log:debug "Attempt update of ~A in ~A" id model)
   (ensure-model-query model 'insert-old$ 'update$)
   (with-retry-serialization-failure ("update")
     (with-transaction-type (repeatable-read-rw)
@@ -52,7 +53,7 @@ FROM-JSON.  Make it #'identity to return just the JSON string proper."
   "Delete the object with primary key ID (of type compatible with
 Postgres type *ID-TYPE*).  Returns ID on success, NIL if there was no
 such ID found."
-  (log:debug "Attempt delete of ~A" id)
+  (log:debug "Attempt delete of object with key ~A form ~A" id model)
   (ensure-model-query model 'insert-old$ 'delete$)
   (with-retry-serialization-failure ("delete")
     (with-transaction-type (repeatable-read-rw)
