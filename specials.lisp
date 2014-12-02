@@ -1,8 +1,11 @@
+;;;; This file does not contain all the specials in the library.
+;;;; Those closeley tied to implementaion code sit in those files.
+
 (in-package :postgres-json)
 
 ;;;; Model backend specials
 
-;;; Thse specials are effectively constants.  You _could_ rebind them
+;;; These specials are effectively constants.  You _could_ rebind them
 ;;; but you would need to do it for every use of every interface
 ;;; function.  If you do need different values you would be better off
 ;;; just _redefining_ these in some file in your own project.
@@ -22,7 +25,7 @@ for (at least) the use of of meta model.")
   "A symbol being the name of the model in which we store meta data
 relating to user models.")
 
-;;;; Export specials for client rebinding
+;;;; Export specials for client rebinding or redefinition
 
 (defvar *to-json* 'to-json
   "Function designator for function of one argument to serialize lisp
