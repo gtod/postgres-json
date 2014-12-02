@@ -1,12 +1,12 @@
 (in-package :postgres-json)
 
-;;; Cache our queries/model-parameters once we have created/found them.
+;;;; Cache our queries/model-parameters once we have created/found them.
 
-;; Postmodern ensures that our prepared queries are in fact prepared
-;; on demand for the connection that we request in our current thread.
-;; So as long as we (and our clients) ensure the connection itself is
-;; thread local there should be no contention when adding the on
-;; demand prepared query to the connection's meta slot.  See pomo
+;; If we use Postmodern's PREPARE (and kin) to prepare a Postgres
+;; query, Postmodern ensures that the query is prepared on _every_
+;; connection automatically.  So as long as we use a distinct Postgres
+;; connection for every thread we run (it would be hard to do
+;; otherwise) everything should just work...  See pomo
 ;; postmodern/prepare.lisp.
 (defparameter *query-functions* (make-hash-table :test #'equal)
   "Hash of (for example) \"cat:insert$\" => query function.")
@@ -15,31 +15,38 @@
   "Hash of symbol model => model parameters.")
 
 (defun query-key (model operation)
+  "Return a string: *PGJ-SCHEMA*:MODEL:OPERATION to key a prepared
+query.  An operation is the name of a DB query, for example GET$."
   (format nil "~A:~A:~A"
           (symbol-name *pgj-schema*)
           (symbol-name model)
           (symbol-name operation)))
 
 (defun lookup-query (model operation)
+  "Return the prepared query for the triple *PGJ-SCHEMA*,
+MODEL, OPERATION."
   (gethash (query-key model operation) *query-functions*))
 
 (defun set-lookup-query (model operation query)
+  "Set the prepared query for the triple *PGJ-SCHEMA*,
+MODEL, OPERATION."
   (setf (gethash (query-key model operation) *query-functions*)
         query))
 
 (defsetf lookup-query set-lookup-query)
 
 ;;;; Our queries are made on demand for a schema/model/query-name
-;;;; combination.  This is the factory for making such queries, and the
-;;;; queries themselves.  The convention is to suffix queries proper
-;;;; with #\$.
+;;;; combination.  This is the factory for creating such 'make-'
+;;;; queries, and also the lookup function for each query.  The
+;;;; convention is to suffix queries proper (aka 'operations') with
+;;;; #\$.
 
 (defmacro make-query (name (&rest query-args) (&rest model-params)
                       (query &optional (format :rows)))
   "Defun both a function to _make_ a query called NAME and a function
-for the query proper called NAME and accepting a list of symbols,
-QUERY-ARGS, which become the numbered parameters of the query when it
-is called.  MODEL-PARAMS must be a list of symbols, each a
+to lookup and execute the query called NAME accepting a list of
+symbols, QUERY-ARGS, which become the numbered parameters of the query
+when it is called.  MODEL-PARAMS must be a list of symbols, each a
 model-parameter.  These are bound in the make query function to the
 value of said model-parameter, an object that must be passed as the
 second argument to the make function (the first argument being the
