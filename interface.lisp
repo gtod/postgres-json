@@ -40,6 +40,10 @@ once per model.  Returns MODEL."
         (insert *meta-model* parameters :use-id (symbol->json model))))
     model))
 
+(defun model-exists-p (model)
+  "Does MODEL, a symbol, exist in our backend?"
+  (if (get *meta-model* (symbol->json model)) t nil))
+
 (defun drop-backend! ()
   "Drop the backend (that is the PostgreSQL schema *PGJ-SCHEMA*) in
 the database Postmodern is currently connected to.  This will

@@ -20,6 +20,7 @@
    :create-backend
    :backend-exists-p
    :create-model
+   :model-exists-p
    :drop-backend!
    :drop-model!
    :flush-prepared-queries
