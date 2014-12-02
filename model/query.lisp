@@ -11,9 +11,6 @@
 (defparameter *query-functions* (make-hash-table :test #'equal)
   "Hash of (for example) \"cat:insert$\" => query function.")
 
-(defparameter *model-parameters* (make-hash-table :test #'equal)
-  "Hash of symbol model => model parameters.")
-
 (defun query-key (model operation)
   "Return a string: *PGJ-SCHEMA*:MODEL:OPERATION to key a prepared
 query.  An operation is the name of a DB query, for example GET$."
@@ -119,24 +116,22 @@ FORMAT must be a valid Postmodern results format."
 ;;;; intend to use exist, by calling ENSURE-MODEL-QUERY
 
 (defun ensure-model-query (model &rest operations)
-  (let ((model-parameters (if (eq *meta-model* model)
-                              (meta-model-parameters)
-                              (or (gethash model *model-parameters*)
-                                  (setf (gethash model *model-parameters*)
-                                        (get *meta-model* (symbol->json model)
-                                             :from-json 'model-parameters-from-json))))))
-    (dolist (op operations)
-      (ensure-model-query-op model model-parameters op))
-    model-parameters))
+  "Call ENSURE-MODEL-QUERY-OP on each element of the list OPERATIONS,
+using MODEL, a symbol."
+  (dolist (op operations)
+    (ensure-model-query-op model op)))
 
-(defun ensure-model-query-op (model model-parameters operation)
-  "If (say) cat:insert$ exists then return that query (a function).
-If not we make the query OPERATION on demand after getting the
-required parameters for MODEL from the meta model.  Of course, we fix
-the bootstrap problem by calling a function to supply the meta model's
-own parameters.  Returns the the model's parameters."
+(defun ensure-model-query-op (model operation)
+  "If (say) my-schema:cat:insert$ exists then return that query (a
+function).  If not make the query OPERATION on demand after getting
+the required parameters for MODEL from the meta model.  Of course, we
+fix the bootstrap problem by calling a function to supply the meta
+model's own parameters."
   (if (lookup-query model operation)
       (log:trace "Using prepared query for ~A:~A" model operation)
-      (progn
+      (let ((model-parameters (if (eq *meta-model* model)
+                                  (meta-model-parameters)
+                                  (get *meta-model* (symbol->json model)
+                                       :from-json 'model-parameters-from-json))))
         (log:trace "Preparing query for ~A:~A" model operation)
         (funcall (sym :postgres-json "make-" operation) model model-parameters))))
