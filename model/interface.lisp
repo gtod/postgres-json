@@ -41,13 +41,15 @@ found."
 
 (defun get (model id &key (from-json *from-json*))
   "Lookup the object with primary key ID (of type compatible with
-Postgres type *ID-TYPE*) in MODEL, a symbol, and return a parse of the
-JSON string by the the function of one argument designated by
-FROM-JSON.  Make it #'identity to return just the JSON string proper."
+Postgres type *ID-TYPE*) in MODEL, a symbol.  If such an object exists
+return a parse of the JSON string by the the function of one argument
+designated by FROM-JSON (make it #'identity to return just the JSON
+string proper).  If the object does not exist, return nil."
   (log:debu4 "Get object with key ~A from ~A" id model)
   (ensure-model-query model 'get$)
-  (funcall from-json (ensure-transaction-level (get read-committed-ro)
-                       (get$ model id))))
+  (let ((jdoc (ensure-transaction-level (get read-committed-ro)
+                (get$ model id))))
+    (if jdoc (funcall from-json jdoc) nil)))
 
 (defun delete (model id)
   "Delete the object with primary key ID (of type compatible with
