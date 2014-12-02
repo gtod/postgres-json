@@ -35,7 +35,8 @@
 (defprepared read-committed-rw
     (:raw "set transaction isolation level read committed read write"))
 
-;; Thread safety?
+;; This should be thread safe as it it only ever bound local to a
+;; specific thread.
 (defvar *top-isolation-level* nil
   "When we start the first transaction in a nested group, bind this
 to the isolation level requested.")
