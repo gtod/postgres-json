@@ -51,6 +51,15 @@ string proper).  If the object does not exist, return nil."
                 (get$ model id))))
     (if jdoc (funcall from-json jdoc) nil)))
 
+(defun all (model &key (from-json *from-json*))
+  "Return a list of all objects in MODEL, a symbol.
+Each JSON string is parse by the the function of one argument
+designated by FROM-JSON."
+  (log:debu4 "Get all objects from ~A" model)
+  (ensure-model-query model 'all$)
+  (ensure-transaction-level (get read-committed-ro)
+    (mapcar from-json (all$ model))))
+
 (defun delete (model id)
   "Delete the object with primary key ID (of type compatible with
 Postgres type *ID-TYPE*).  Returns ID on success, NIL if there was no

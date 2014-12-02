@@ -86,6 +86,10 @@ FORMAT must be a valid Postmodern results format."
     ('`(:select ',jdoc :from ,table :where (:= ',id '$1))
      :single))
 
+(make-query all$ () (table jdoc)
+    ('`(:select ',jdoc :from ,table)
+     :column))
+
 (make-query delete$ (id) (table id)
     ('`(:delete-from ,table :where (:= ',id '$1) :returning ',id)
      :single))

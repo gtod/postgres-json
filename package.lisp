@@ -31,6 +31,7 @@
    :insert
    :update
    :get
+   :all
    :delete
    :count
    :keys))
