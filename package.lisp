@@ -1,4 +1,5 @@
 (defpackage :postgres-json
+  (:nicknames :pj)
   (:use :cl :alexandria :postmodern :s-sql)
   (:shadow :get :delete :count :sequence)
 
