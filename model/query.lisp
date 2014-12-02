@@ -2,6 +2,12 @@
 
 ;;; Cache our queries/model-parameters once we have created/found them.
 
+;; Postmodern ensures that our prepared queries are in fact prepared
+;; on demand for the connection that we request in our current thread.
+;; So as long as we (and our clients) ensure the connection itself is
+;; thread local there should be no contention when adding the on
+;; demand prepared query to the connection's meta slot.  See pomo
+;; postmodern/prepare.lisp.
 (defparameter *query-functions* (make-hash-table :test #'equal)
   "Hash of (for example) \"cat:insert$\" => query function.")
 
