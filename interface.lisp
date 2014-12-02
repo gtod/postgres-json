@@ -11,15 +11,12 @@ in a given PostgreSQL database."
       (error 'database-safety-net
              :attempted-to (format nil "Create the backend, when a schema called ~A already exists." *pgj-schema*)
              :suggestion (format nil "Check carefully what data is in ~A" *pgj-schema*))
-      (progn
-        (ensure-transaction-type (create-backend repeatable-read-rw)
-          (pomo:create-schema *pgj-schema*)
-          (create-db-sequence *pgj-sequence* *pgj-schema*)
-          (create-model *meta-model* (meta-model-parameters)))
+      (ensure-transaction-level (create-backend repeatable-read-rw)
+        (pomo:create-schema *pgj-schema*)
+        (create-db-sequence *pgj-sequence* *pgj-schema*)
+        (create-model *meta-model* (meta-model-parameters))
         *pgj-schema*)))
 
-;; In fact this is fragile since the schema may exist but not the
-;; sequence and meta model...
 (defun backend-exists-p ()
   "Does the backend *PGJ-SCHEMA* exist?"
   (pomo:schema-exist-p *pgj-schema*))
@@ -33,7 +30,7 @@ once per model.  Returns MODEL."
          (base-old (sym-suffix base "old"))
          (index (sym-suffix base "gin"))
          (index-old (sym-suffix base "old-gin")))
-    (ensure-transaction-type (create-model repeatable-read-rw)
+    (ensure-transaction-level (create-model repeatable-read-rw)
       (create-base-table base parameters)
       (create-old-table base-old parameters)
       (when (eq 'jsonb (jdoc-type parameters))
@@ -62,7 +59,7 @@ a RESTART-CASE to guard against human error."
 with the model so it uses a RESTART-CASE to guard against human
 error."
   (flet ((drop ()
-           (ensure-transaction-type (drop-model! repeatable-read-rw)
+           (ensure-transaction-level (drop-model! repeatable-read-rw)
              (delete *meta-model* (symbol->json model))
              (drop-db-table-cascade model *pgj-schema*)
              (drop-db-table-cascade (sym t model "-old") *pgj-schema*))))

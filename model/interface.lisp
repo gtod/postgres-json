@@ -19,7 +19,7 @@ Return the id."
   (unless use-id
     (ensure-model-query model 'nextval-sequence$))
   (ensure-model-query model 'insert$)
-  (ensure-transaction-type (insert read-committed-rw)
+  (ensure-transaction-level (insert read-committed-rw)
     (let* ((id (if use-id use-id (nextval-sequence$ model)))
            (object (if stash-id
                        (funcall stash-id id object)
@@ -35,10 +35,9 @@ JSON strings.  Returns ID on success, NIL if there was no such ID
 found."
   (log:debu3 "Attempt update of ~A in ~A" id model)
   (ensure-model-query model 'insert-old$ 'update$)
-  (with-retry-serialization-failure ("update")
-    (ensure-transaction-type (update repeatable-read-rw)
-      (insert-old$ model id)
-      (nth-value 0 (update$ model id (funcall to-json object))))))
+  (ensure-transaction-level (update repeatable-read-rw)
+    (insert-old$ model id)
+    (nth-value 0 (update$ model id (funcall to-json object)))))
 
 (defun get (model id &key (from-json *from-json*))
   "Lookup the object with primary key ID (of type compatible with
@@ -47,7 +46,7 @@ JSON string by the the function of one argument designated by
 FROM-JSON.  Make it #'identity to return just the JSON string proper."
   (log:debu4 "Get object with key ~A from ~A" id model)
   (ensure-model-query model 'get$)
-  (funcall from-json (ensure-transaction-type (get read-committed-ro)
+  (funcall from-json (ensure-transaction-level (get read-committed-ro)
                        (get$ model id))))
 
 (defun delete (model id)
@@ -56,22 +55,21 @@ Postgres type *ID-TYPE*).  Returns ID on success, NIL if there was no
 such ID found."
   (log:debu3 "Attempt delete of object with key ~A from ~A" id model)
   (ensure-model-query model 'insert-old$ 'delete$)
-  (with-retry-serialization-failure ("delete")
-    (ensure-transaction-type (delete repeatable-read-rw)
-      (insert-old$ model id)
-      (nth-value 0 (delete$ model id)))))
+  (ensure-transaction-level (delete repeatable-read-rw)
+    (insert-old$ model id)
+    (nth-value 0 (delete$ model id))))
 
 (defun keys (model)
   "Returns two values: a list of all primary keys for this MODEL, a
 symbol, and the length of that list."
   (log:trace "Call keys on ~A" model)
   (ensure-model-query model 'keys$)
-  (ensure-transaction-type (keys read-committed-ro)
+  (ensure-transaction-level (keys read-committed-ro)
     (keys$ model)))
 
 (defun count (model)
   "Returns the number of entries in MODEL, a symbol."
   (log:trace "Call count on ~A" model)
   (ensure-model-query model 'count$)
-  (ensure-transaction-type (count read-committed-ro)
+  (ensure-transaction-level (count read-committed-ro)
     (nth-value 0 (count$ model))))

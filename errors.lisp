@@ -21,7 +21,8 @@
    (original :initarg :original :reader original)
    (current :initarg :current :reader current))
   (:report (lambda (condition stream)
-             (format stream "You cannot embed the transaction for ~A~%of type ~A inside one of ~A."
+             (format stream "You cannot nest the transaction for ~A with isolation level ~A
+inside a transaction with isolation level ~A."
                      (transaction-name condition)
                      (current condition)
                      (original condition)))))
