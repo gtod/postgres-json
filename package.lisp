@@ -33,6 +33,7 @@
    :get
    :all
    :delete
+   :delete-all
    :count
    :keys))
 

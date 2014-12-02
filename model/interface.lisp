@@ -70,6 +70,15 @@ such ID found."
     (insert-old$ model id)
     (nth-value 0 (delete$ model id))))
 
+(defun delete-all (model)
+  "Delete all objects in MODEL, a symbol.  In fact this is a
+recoverable operation in a sense as all deleted rows will still be in
+the <model>-old Postgres relation."
+  (log:debu3 "Attempt delete all from ~A" model)
+  (with-model-transaction ()
+    (dolist (key (keys model))
+      (delete model key))))
+
 (defun keys (model)
   "Returns two values: a list of all primary keys for this MODEL, a
 symbol, and the length of that list."
