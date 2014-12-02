@@ -1,5 +1,5 @@
 ;;;; Some informal tests for the REPL
-;;;; Compile this file and, create-test-moldes, call some functions
+;;;; Compile this file, call create-test-models, call some functions
 ;;;; and finally call drop-test-models to clean up.
 
 (defpackage :pj-test
