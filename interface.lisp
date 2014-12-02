@@ -44,6 +44,10 @@ once per model.  Returns MODEL."
   "Does MODEL, a symbol, exist in our backend?"
   (if (get *meta-model* (symbol->json model)) t nil))
 
+(defun all-models ()
+  "Return a list of all models in the backend."
+  (mapcar #'json->symbol (keys *meta-model*)))
+
 (defun drop-backend! ()
   "Drop the backend (that is the PostgreSQL schema *PGJ-SCHEMA*) in
 the database Postmodern is currently connected to.  This will
