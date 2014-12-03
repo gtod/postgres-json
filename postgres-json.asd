@@ -7,6 +7,7 @@
 Lisp object persistence models using the PostgreSQL 9.4+ jsonb type."
   :depends-on (#:alexandria
                #:postmodern
+               #:bordeaux-threads
                #:log4cl
                #:closer-mop
                #:yason)
@@ -23,4 +24,5 @@ Lisp object persistence models using the PostgreSQL 9.4+ jsonb type."
    (:file "model/parameters")
    (:file "model/query")
    (:file "model/interface")
+   (:file "model/package")
    (:file "interface")))
