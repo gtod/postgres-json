@@ -40,8 +40,16 @@ consistency.  It also provides a simple example of using our JSON
 persistence model. Slot :type should be included and is used for JSON
 de/serialization."))
 
+(defgeneric table (model-parameters)
+  (:documentation "The Postgres S-SQL qualified table name for these
+parameters."))
+
 (defmethod table ((params model-parameters))
   (qualified-name (model params) *pgj-schema*))
+
+(defgeneric table-old (model-parameters)
+  (:documentation "The Postgres S-SQL qualified old table name for
+these parameters."))
 
 (defmethod table-old ((params model-parameters))
   (qualified-name (sym-suffix (model params) "old") *pgj-schema*))
