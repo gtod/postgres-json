@@ -34,7 +34,6 @@
         (mapcar #'symbol->json (alexandria:hash-table-keys (slot-value db meta)))
         nil)))
 
-#+bordeaux-threads
 (defun launch-thread (name)
   (bt:make-thread
    (lambda ()
@@ -48,7 +47,6 @@
          (insert 'thread-test obj :stash-key 'stash-key))))
    :name name))
 
-#+bordeaux-threads
 (defun launch-threads (number)
   (let ((threads '()))
     (dotimes (i number threads)
