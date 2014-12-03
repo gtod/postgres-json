@@ -21,23 +21,24 @@ new primary key."
   (ensure-model-query model 'insert$)
   (ensure-transaction-level (insert read-committed-rw)
     (let* ((key (if use-key use-key (nextval-sequence$ model)))
-           (object (if stash-key
-                       (funcall stash-key key object)
-                       object)))
+           (object (if stash-key (funcall stash-key key object) object)))
       (nth-value 0 (insert$ model key (funcall to-json object))))))
 
-(defun update (model id object &key (to-json *to-json*))
+(defun update (model id object &key (stash-key *stash-key*) (to-json *to-json*))
   "Update the current value of the object with primary key ID (of type
 compatible with Postgres type *ID-TYPE*) in backend MODEL, a symbol,
-to be the JSON serialization of OBJECT.  TO-JSON must be a function
-designator for a function of one argument to serialize lisp objects to
-JSON strings.  Returns ID on success, NIL if there was no such ID
-found."
+to be the JSON serialization of OBJECT.  If STASH-KEY is non null we
+FUNCALL it with two arguments: the value of the key to be used for the
+DB insert and OBJECT.  It should return an object which will be used
+in the place of the original.  TO-JSON must be a function designator
+for a function of one argument to serialize lisp objects to JSON
+strings.  Returns ID on success, NIL if there was no such ID found."
   (log:debu3 "Attempt update of ~A in ~A" id model)
   (ensure-model-query model 'insert-old$ 'update$)
   (ensure-transaction-level (update repeatable-read-rw)
     (insert-old$ model id)
-    (nth-value 0 (update$ model id (funcall to-json object)))))
+    (let ((object (if stash-key (funcall stash-key id object) object)))
+      (nth-value 0 (update$ model id (funcall to-json object))))))
 
 (defun get (model id &key (from-json *from-json*))
   "Lookup the object with primary key ID (of type compatible with
