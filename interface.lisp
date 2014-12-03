@@ -37,7 +37,7 @@ once per model.  Returns MODEL."
         (create-gin-index index base parameters)
         (create-gin-index index-old base-old parameters))
       (unless (eq *meta-model* model)
-        (insert *meta-model* parameters :use-id (symbol->json model))))
+        (insert *meta-model* parameters :use-key (symbol->json model))))
     model))
 
 (defun model-exists-p (model)

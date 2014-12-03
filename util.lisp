@@ -26,13 +26,25 @@
   (let ((s (yason:make-json-output-stream stream :indent indent)))
     (yason:encode object s)))
 
-(defun stash-id (id hash)
-  "Add the pair \"id\" => ID to a copy of the hash-table HASH and
-return it.  (Clearly if you intend to use this when calling INSERT
-your objects must all be hash tables)."
-  (let ((copy (copy-hash-table hash)))
-    (setf (gethash "id" copy) id)
-    copy))
+(defun stash-key (key object)
+  "If OBJECT is a hash-table add the pair \"key\" => KEY to a copy of
+the hash-table and return it.  Otherwise just return OBJECT.  You
+might like to write you own verson which can handle objects besides
+hash tables."
+  (if (hash-table-p object)
+      (let ((copy (copy-hash-table object)))
+        (setf (gethash "key" copy) key)
+        copy)
+      object))
+
+(defun stash-key-destructive (key object)
+  "If OBJECT is a hash-table add the pair \"key\" => KEY to the
+hash-table and return it.  Otherwise just return OBJECT.  You might
+like to write you own verson which can handle objects besides hash
+tables."
+  (when (hash-table-p object)
+    (setf (gethash "key" object) key))
+  object)
 
 ;;;; CLOS and closer-mop helpers
 

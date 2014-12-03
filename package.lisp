@@ -7,6 +7,7 @@
    #:*pgj-schema*
    #:*to-json*
    #:*from-json*
+   #:*stash-key*
    #:*db-handle-serialization-failure-p*
    #:*serialization-failure-sleep-times*)
 
@@ -29,5 +30,7 @@
 
   ;; Trival helper functions
   (:export
+   #:stash-key
+   #:stash-key-destructive
    #:obj
    #:pp-json))

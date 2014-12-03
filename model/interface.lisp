@@ -4,27 +4,27 @@
 
 ;;; Need to comment on acceptable type of ID: integer, string, ??
 
-(defun insert (model object &key use-id stash-id (to-json *to-json*))
+(defun insert (model object &key use-key (stash-key *stash-key*) (to-json *to-json*))
   "Insert lisp object OBJECT into the backend MODEL, a symbol,
-after JSON serialization.  If USE-ID is supplied, use that as the
+after JSON serialization.  If USE-KEY is supplied, use that as the
 primary key for this object rather than the automatically generated
-one.  If STASH-ID is a symbol we FUNCALL it with two arguments: the
-value of the id to be used for the DB insert and OBJECT.  It should
-return another object which will be inserted in the place of the
-original.  Typically you would use this to 'stash' the fresh primary
-key inside your object.  TO-JSON must be a function designator for a
-function of one argument to serialize lisp objects to JSON strings.
-Return the id."
+one.  If STASH-KEY is non null we FUNCALL it with two arguments: the
+value of the key to be used for the DB insert and OBJECT.  It should
+return an object which will be inserted in the place of the original.
+Typically you would use this to 'stash' the fresh primary key inside
+your object.  TO-JSON must be a function designator for a function of
+one argument to serialize lisp objects to JSON strings.  Return the
+new primary key."
   (log:debu3 "Attempt insert of object into ~A" model)
-  (unless use-id
+  (unless use-key
     (ensure-model-query model 'nextval-sequence$))
   (ensure-model-query model 'insert$)
   (ensure-transaction-level (insert read-committed-rw)
-    (let* ((id (if use-id use-id (nextval-sequence$ model)))
-           (object (if stash-id
-                       (funcall stash-id id object)
+    (let* ((key (if use-key use-key (nextval-sequence$ model)))
+           (object (if stash-key
+                       (funcall stash-key key object)
                        object)))
-      (nth-value 0 (insert$ model id (funcall to-json object))))))
+      (nth-value 0 (insert$ model key (funcall to-json object))))))
 
 (defun update (model id object &key (to-json *to-json*))
   "Update the current value of the object with primary key ID (of type

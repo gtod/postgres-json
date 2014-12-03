@@ -27,17 +27,23 @@ relating to user models.")
 
 ;;;; Export specials for client rebinding or redefinition
 
-(defvar *to-json* 'to-json
+(defvar *to-json* #'to-json
   "Function designator for function of one argument to serialize lisp
 objects (submitted to INSERT and UPDATE, for example) to JSON.  Bind
 it at run time for use by the model interface functions.  Or redefine
 it globally for use in your own project.")
 
-(defvar *from-json* 'yason:parse
+(defvar *from-json* #'yason:parse
   "Function designator for function of one argument to make lisp
 objects from JSON strings retrieved from the DB backend.  Used by GET,
 for example.  Bind it at run time for use by the model interface
 functions.  Or redefine it globally for use in your own project.")
+
+(defvar *stash-key* #'stash-key-destructive
+  "Function designator for function of two arguments: the value of the
+unique primary key to be used for the DB insert and the object to be
+inserted itself.  It should return an object which will be inserted in
+the place of the original.")
 
 (defvar *db-handle-serialization-failure-p* t
   "UPDATE and DELETE calls on the model will use the Postgres

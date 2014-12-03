@@ -189,7 +189,7 @@ to JSON you can now put it straight into PostgreSQL 9.4+.
 
 ### I do not want integer keys
 
-This is not too hard.  You can supply a keyword argument `use-id` to
+This is not too hard.  You can supply a keyword argument `use-key` to
 `insert` or (and this will take a little more effort) you could make a
 UUID sequence in PG and get values from that.  TODO.
 
