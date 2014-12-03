@@ -8,7 +8,7 @@
 (in-package :simple-1)
 
 (defun create ()
-  (unless (pomo:connected-p pomo:*database*)
+  (unless (and pomo:*database* (pomo:connected-p pomo:*database*))
     ;; Change this to your Postmodern connect list...
     (pomo:connect-toplevel "cusoon" "gtod" "" "localhost" :port 5433))
   (unless (backend-exists-p)
