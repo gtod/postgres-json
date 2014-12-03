@@ -17,6 +17,7 @@ Lisp object persistence models using the PostgreSQL 9.4+ jsonb type."
    (:file "util")
    (:file "errors")
    (:file "specials")
+   (:file "postgres/s-sql")
    (:file "postgres/util")
    (:file "postgres/commands")
    (:file "postgres/transactions")
