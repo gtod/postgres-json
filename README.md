@@ -50,10 +50,10 @@ to go.
 
 Clone this repo to sit under your `~/quicklisp/local-projects` and do
 
-`(ql:quickload :postgres-json)`.
-
-(Sometimes I need to delete
-`~/quicklisp/local-projects/system-index.txt` for this to work).
+```common-lisp
+(ql:register-local-projects)
+(ql:quickload :postgres-json)
+```
 
 Now evaluate these forms at the REPL:
 
@@ -77,28 +77,28 @@ In the output below I have elided some of the return values for brevity.
 arbitrarily nested lisp object of hash tables and lists as JSON.
 
 ```common-lisp
-PJ-TEST> (insert 'cat (obj "name" "joey" "coat" "tabby"))
+> (insert 'cat (obj "name" "joey" "coat" "tabby"))
 1
-PJ-TEST> (pp-json (get 'cat 1))
+> (pp-json (get 'cat 1))
 {
     "key":1,
     "coat":"tabby",
     "name":"joey"
 }
-PJ-TEST> (insert 'cat (obj "name" "max" "coat" "ginger"))
-PJ-TEST> (insert 'cat (obj "name" "maud" "coat" "tortoiseshell"))
-PJ-TEST> (keys 'cat)
+> (insert 'cat (obj "name" "max" "coat" "ginger"))
+> (insert 'cat (obj "name" "maud" "coat" "tortoiseshell"))
+> (keys 'cat)
 (1 2 3)
-PJ-TEST> (delete 'cat 2)
+> (delete 'cat 2)
 2
-PJ-TEST> (keys 'cat)
+> (keys 'cat)
 (1 3)
-PJ-TEST> (count 'cat)
+> (count 'cat)
 2
-PJ-TEST> (update 'cat 3 (obj "name" "maud" "coat" "tortoiseshell" "age" 7
-                             "likes" '("sunshine" 42)))
+> (update 'cat 3 (obj "name" "maud" "coat" "tortoiseshell" "age" 7
+                      "likes" '("sunshine" 42)))
 3
-PJ-TEST> (pp-json (get 'cat 3))
+> (pp-json (get 'cat 3))
 {
     "age":7,
     "key":3,
@@ -122,10 +122,10 @@ transaction yourself all model operations in the body occur within a
 single transaction:
 
 ```common-lisp
-PJ-TEST> (log:config :debug)
+> (log:config :debug)
 
-PJ-TEST> (dotimes (i 3)
-           (insert 'cat (obj "name" (format nil "maud-~A" i))))
+> (dotimes (i 3)
+    (insert 'cat (obj "name" (format nil "maud-~A" i))))
 
 <DEBUG> [17:59:59] postgres-json  Starting transaction INSERT
 <DEBUG> [17:59:59] postgres-json  Completing transaction INSERT
@@ -134,9 +134,9 @@ PJ-TEST> (dotimes (i 3)
 <DEBUG> [17:59:59] postgres-json  Starting transaction INSERT
 <DEBUG> [17:59:59] postgres-json  Completing transaction INSERT
 
-PJ-TEST> (with-model-transaction (some-cats)
-           (dotimes (i 3)
-             (insert 'cat (obj "name" (format nil "maud-~A" i)))))
+> (with-model-transaction (some-cats)
+    (dotimes (i 3)
+      (insert 'cat (obj "name" (format nil "maud-~A" i)))))
 
 <DEBUG> [18:00:16] pj-test () - Starting transaction SOME-CATS
 <DEBUG> [18:00:16] pj-test () - Completing transaction SOME-CATS
