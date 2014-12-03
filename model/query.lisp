@@ -13,7 +13,7 @@
 
 (defun query-key (model operation)
   "Return a string: *PGJ-SCHEMA*:MODEL:OPERATION to key a prepared
-query.  An operation is the name of a DB query, for example GET$."
+query.  An 'operation' is the name of a DB query, for example GET$."
   (format nil "~A:~A:~A"
           (symbol-name *pgj-schema*)
           (symbol-name model)
@@ -116,17 +116,18 @@ FORMAT must be a valid Postmodern results format."
 ;;;; intend to use exist, by calling ENSURE-MODEL-QUERY
 
 (defun ensure-model-query (model &rest operations)
-  "Call ENSURE-MODEL-QUERY-OP on each element of the list OPERATIONS,
-using MODEL, a symbol."
+  "Call ENSURE-MODEL-QUERY-OP on each element of the list
+(of symbols) OPERATIONS, using MODEL, a symbol."
   (dolist (op operations)
     (ensure-model-query-op model op)))
 
 (defun ensure-model-query-op (model operation)
   "If (say) my-schema:cat:insert$ exists then return that query (a
-function).  If not make the query OPERATION on demand after getting
-the required parameters for MODEL from the meta model.  Of course, we
-fix the bootstrap problem by calling a function to supply the meta
-model's own parameters."
+function).  If not make the query OPERATION (a symbol matching one of
+the MAKE-QUERY forms defined above) on demand after getting the
+required parameters for MODEL from the meta model.  Of course, we fix
+the bootstrap problem by calling a function to supply the meta model's
+own parameters."
   (if (lookup-query model operation)
       (log:trace "Using prepared query for ~A:~A" model operation)
       (let ((model-parameters (if (eq *meta-model* model)
