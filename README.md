@@ -58,12 +58,11 @@ Clone this repo to sit under your `~/quicklisp/local-projects` and do
 Now evaluate these forms at the REPL:
 
 ```common-lisp
-(defpackage :pj-test
-  (:use :cl :postgres-json)
-  (:shadowing-import-from :postgres-json :get :delete :count)
-  (:import-from :postgres-json :obj :pp-json))
+(defpackage :simple-1
+  (:use :cl :postgres-json :postgres-json-model)
+  (:shadowing-import-from :postgres-json-model :get :delete :count))
 
-(in-package :pj-test)
+(in-package :simple-1)
 
 ;; Once only operation, make a DB schema for all our models
 (create-backend)
@@ -82,6 +81,7 @@ PJ-TEST> (insert 'cat (obj "name" "joey" "coat" "tabby"))
 1
 PJ-TEST> (pp-json (get 'cat 1))
 {
+    "key":1,
     "coat":"tabby",
     "name":"joey"
 }
@@ -101,6 +101,7 @@ PJ-TEST> (update 'cat 3 (obj "name" "maud" "coat" "tortoiseshell" "age" 7
 PJ-TEST> (pp-json (get 'cat 3))
 {
     "age":7,
+    "key":3,
     "coat":"tortoiseshell",
     "name":"maud",
     "likes":[
@@ -136,11 +137,15 @@ PJ-TEST> (with-model-transaction (some-cats)
 <DEBUG> [18:00:16] pj-test () - Completing transaction SOME-CATS
 ```
 
+Note that to get rid of the debugging messages from log4cl just do
+`(log:config :info)`.
+
 ## Documentation
 
 The interface to a model is just a few functions for now, illustrated
 above.  All the interface functions have comprehensive doc strings.
-Try `M-x slime-apropos-package` on `postgres-json`.
+I find the easiest way to read them is by bouncing to say `insert`
+with emacs M-. (ie. slime-edit-definition).
 
 ### User's guide (under construction)
 
