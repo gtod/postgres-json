@@ -5,25 +5,25 @@
 Configure table columns names, types etc. using MODEL-PARAMETERS.
 This is the base table for the model.  Requires an active DB
 connection."
-  (with-readers (id id-type jdoc jdoc-type) model-parameters
+  (with-readers (key key-type jdoc jdoc-type) model-parameters
     (run `(:create-table ,(db-name-string name)
-           ((,id   :type ,id-type :primary-key t)
-            (valid-to    :type timestamptz :default (:type "infinity" timestamptz))
-            (valid-from  :type timestamptz :default (:transaction-timestamp))
-            (,jdoc :type ,jdoc-type))))))
+           ((,key       :type ,key-type :primary-key t)
+            (valid-to   :type timestamptz :default (:type "infinity" timestamptz))
+            (valid-from :type timestamptz :default (:transaction-timestamp))
+            (,jdoc      :type ,jdoc-type))))))
 
 (defun create-old-table (name model-parameters)
   "Create a PostgreSQL table called NAME in *PGJ-SCHEMA*, both symbols.
 Configure table columns names, types etc. using MODEL-PARAMETERS.
 This is the 'old' table for the model, which will store non current
 rows.  Requires an active DB connection."
-  (with-readers (id id-type jdoc jdoc-type) model-parameters
+  (with-readers (key key-type jdoc jdoc-type) model-parameters
     (run `(:create-table ,(db-name-string name)
-           ((,id      :type ,id-type )
+           ((,key       :type ,key-type )
             (valid-to   :type timestamptz)
             (valid-from :type timestamptz)
-            (,jdoc    :type ,jdoc-type))
-           (:primary-key ,id valid-to)))))
+            (,jdoc      :type ,jdoc-type))
+           (:primary-key ,key valid-to)))))
 
 (defun create-gin-index (name table model-parameters)
   "Create a PostgreSQL GIN index with NAME on a database table TABLE

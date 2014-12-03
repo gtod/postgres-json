@@ -10,7 +10,7 @@
 
 ;;; set read only on transactions where possible
 
-;;; We use: 1) select by id, 2) insert into -old, 3) update/delete for
+;;; We use: 1) select by key, 2) insert into -old, 3) update/delete for
 ;;; the update and delete operations in our model.  I think using the
 ;;; repeatable read isolation level (rather than serializable) is all
 ;;; that is required (certainly read committed will not do due to the

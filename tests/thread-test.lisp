@@ -32,11 +32,11 @@
      (pomo:with-connection *connection*
        ,@body)))
 
-(defun update-cat (id)
+(defun update-cat (key)
   (bt:make-thread
    (lambda ()
      (with-conn ()
-       (pj:update 'pj-cat id (obj "name" (format nil "name-~A" id) "coat" "scruffy"))))))
+       (pj:update 'pj-cat key (obj "name" (format nil "name-~A" key) "coat" "scruffy"))))))
 
 (defun really-do-it (c)
   (declare (ignore c))

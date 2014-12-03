@@ -1,7 +1,7 @@
 (defpackage :conn-test
-  (:use :cl :postgres-json :alexandria)
+  (:use :cl :postgres-json :postgres-json-model :alexandria)
   (:shadowing-import-from :postgres-json :get :delete :count)
-  (:import-from :postgres-json :obj :pp-json :stash-id :symbol->json))
+  (:import-from :postgres-json :symbol->json))
 
 (in-package :conn-test)
 
@@ -45,7 +45,7 @@
                           "thread" (bt:thread-name (bt:current-thread))
                           "connection" (obj "object" (format nil "~A" db)
                                             "meta" (pomo-meta-slot db))))))
-         (insert 'thread-test obj :stash-id 'stash-id))))
+         (insert 'thread-test obj :stash-key 'stash-key))))
    :name name))
 
 #+bordeaux-threads

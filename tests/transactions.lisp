@@ -3,9 +3,8 @@
 ;;;; doing.
 
 (defpackage :tran-test
-  (:use :cl :postgres-json)
-  (:shadowing-import-from :postgres-json :get :delete :count)
-  (:import-from :postgres-json :obj :pp-json))
+  (:use :cl :postgres-json :postgres-json-model)
+  (:shadowing-import-from :postgres-json :get :delete :count))
 
 (in-package :tran-test)
 
@@ -49,28 +48,28 @@
   (with-conn ()
     (with-model-transaction (foo)
       (create-model 'pgj-tran-3)
-      (let ((id (insert 'pgj-tran-1 1)))
+      (let ((key (insert 'pgj-tran-1 1)))
         (insert 'pgj-tran-2 2)
         (handler-bind ((database-safety-net #'really-do-it))
           (drop-model! 'pgj-tran-3))
-        (delete 'pgj-tran-1 id)))))
+        (delete 'pgj-tran-1 key)))))
 
 (defun test-4 ()
   (with-conn ()
     (with-model-transaction (foo)
-      (let ((bill-id (insert 'pgj-tran-1 "Bill")))
-        (log:info "bill-id ~A" bill-id)
+      (let ((bill-key (insert 'pgj-tran-1 "Bill")))
+        (log:info "bill-key ~A" bill-key)
         (with-model-transaction (bar)
-          (let ((mary-id (insert 'pgj-tran-1 "Mary")))
-            (log:info "mary-id: ~A" mary-id)
-            (update 'pgj-tran-1 mary-id "Maria")
-            (get 'pgj-tran-1 mary-id)))
-        (get 'pgj-tran-1 bill-id)))))
+          (let ((mary-key (insert 'pgj-tran-1 "Mary")))
+            (log:info "mary-key: ~A" mary-key)
+            (update 'pgj-tran-1 mary-key "Maria")
+            (get 'pgj-tran-1 mary-key)))
+        (get 'pgj-tran-1 bill-key)))))
 
 (defun test-5 ()
   (with-conn ()
     (with-model-transaction (foo)
-      (let ((client-id (insert 'pgj-tran-1 "Gormless Guttering")))
-        (let ((invoice-id (insert 'pgj-tran-2 (obj "client-id" client-id
+      (let ((client-key (insert 'pgj-tran-1 "Gormless Guttering")))
+        (let ((invoice-key (insert 'pgj-tran-2 (obj "client-key" client-key
                                                    "number" "123"))))
-          (pp-json (get 'pgj-tran-2 invoice-id)))))))
+          (pp-json (get 'pgj-tran-2 invoice-key)))))))

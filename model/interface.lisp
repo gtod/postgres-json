@@ -2,7 +2,7 @@
 
 ;;;; Define the interface to our PostgreSQL JSON persistence model
 
-;;; Need to comment on acceptable type of ID: integer, string, ??
+;;; Need to comment on acceptable type of KEY: integer, string, ??
 
 (defun insert (model object &key use-key (stash-key *stash-key*) (to-json *to-json*))
   "Insert lisp object OBJECT into the backend MODEL, a symbol,
@@ -24,32 +24,32 @@ new primary key."
            (object (if stash-key (funcall stash-key key object) object)))
       (nth-value 0 (insert$ model key (funcall to-json object))))))
 
-(defun update (model id object &key (stash-key *stash-key*) (to-json *to-json*))
-  "Update the current value of the object with primary key ID (of type
-compatible with Postgres type *ID-TYPE*) in backend MODEL, a symbol,
+(defun update (model key object &key (stash-key *stash-key*) (to-json *to-json*))
+  "Update the current value of the object with primary key KEY (of type
+compatible with Postgres type *KEY-TYPE*) in backend MODEL, a symbol,
 to be the JSON serialization of OBJECT.  If STASH-KEY is non null we
 FUNCALL it with two arguments: the value of the key to be used for the
 DB insert and OBJECT.  It should return an object which will be used
 in the place of the original.  TO-JSON must be a function designator
 for a function of one argument to serialize lisp objects to JSON
-strings.  Returns ID on success, NIL if there was no such ID found."
-  (log:debu3 "Attempt update of ~A in ~A" id model)
+strings.  Returns KEY on success, NIL if there was no such KEY found."
+  (log:debu3 "Attempt update of ~A in ~A" key model)
   (ensure-model-query model 'insert-old$ 'update$)
   (ensure-transaction-level (update repeatable-read-rw)
-    (insert-old$ model id)
-    (let ((object (if stash-key (funcall stash-key id object) object)))
-      (nth-value 0 (update$ model id (funcall to-json object))))))
+    (insert-old$ model key)
+    (let ((object (if stash-key (funcall stash-key key object) object)))
+      (nth-value 0 (update$ model key (funcall to-json object))))))
 
-(defun get (model id &key (from-json *from-json*))
-  "Lookup the object with primary key ID (of type compatible with
-Postgres type *ID-TYPE*) in MODEL, a symbol.  If such an object exists
+(defun get (model key &key (from-json *from-json*))
+  "Lookup the object with primary key KEY (of type compatible with
+Postgres type *KEY-TYPE*) in MODEL, a symbol.  If such an object exists
 return a parse of the JSON string by the the function of one argument
 designated by FROM-JSON (make it #'identity to return just the JSON
 string proper).  If the object does not exist, return nil."
-  (log:debu4 "Get object with key ~A from ~A" id model)
+  (log:debu4 "Get object with key ~A from ~A" key model)
   (ensure-model-query model 'get$)
   (let ((jdoc (ensure-transaction-level (get read-committed-ro)
-                (get$ model id))))
+                (get$ model key))))
     (if jdoc (funcall from-json jdoc) nil)))
 
 (defun all (model &key (from-json *from-json*))
@@ -61,15 +61,15 @@ designated by FROM-JSON."
   (ensure-transaction-level (get read-committed-ro)
     (mapcar from-json (all$ model))))
 
-(defun delete (model id)
-  "Delete the object with primary key ID (of type compatible with
-Postgres type *ID-TYPE*).  Returns ID on success, NIL if there was no
-such ID found."
-  (log:debu3 "Attempt delete of object with key ~A from ~A" id model)
+(defun delete (model key)
+  "Delete the object with primary key KEY (of type compatible with
+Postgres type *KEY-TYPE*).  Returns KEY on success, NIL if there was no
+such KEY found."
+  (log:debu3 "Attempt delete of object with key ~A from ~A" key model)
   (ensure-model-query model 'insert-old$ 'delete$)
   (ensure-transaction-level (delete repeatable-read-rw)
-    (insert-old$ model id)
-    (nth-value 0 (delete$ model id))))
+    (insert-old$ model key)
+    (nth-value 0 (delete$ model key))))
 
 (defun delete-all (model)
   "Delete all objects in MODEL, a symbol.  In fact this is a

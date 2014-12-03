@@ -59,7 +59,7 @@ FORMAT must be a valid Postmodern results format."
      (defun ,name (model ,@query-args)
        (funcall (lookup-query model ',name) ,@query-args))))
 
-;;; In model/interface.lisp we write (say): (get$ model id).  And if
+;;; In model/interface.lisp we write (say): (get$ model key).  And if
 ;;; you macroexpand (make-query $get ...) below you will see this is
 ;;; correct.  But we omit the model arg from the QUERY-ARGS of the
 ;;; MAKE-QUERY macro because it does not end up being a parameter of
@@ -68,44 +68,44 @@ FORMAT must be a valid Postmodern results format."
 (make-query nextval-sequence$ () (sequence)
     ('`(:select (:nextval ,(db-name-string sequence))) :single!))
 
-(make-query insert$ (id jdoc) (table id jdoc)
-    ('`(:insert-into ,table :set ',id '$1 ',jdoc '$2
-                     :returning ',id)
+(make-query insert$ (key jdoc) (table key jdoc)
+    ('`(:insert-into ,table :set ',key '$1 ',jdoc '$2
+                     :returning ',key)
      :single!))
 
-(make-query insert-old$ (id) (table table-old id jdoc)
+(make-query insert-old$ (key) (table table-old key jdoc)
     ('`(:insert-into ,table-old
                    ;; Note the dependence on the column ordering of
                    ;; CREATE-OLD-TABLE since :insert-into will not let
                    ;; me explicitly specify column names...
-                     (:select ',id
+                     (:select ',key
                             (:transaction-timestamp)
                             'valid-from
                             ',jdoc
                             :from ,table
-                            :where (:= ',id '$1)))))
+                            :where (:= ',key '$1)))))
 
-(make-query update$ (id jdoc) (table id jdoc)
+(make-query update$ (key jdoc) (table key jdoc)
     ('`(:update ,table
         :set ',jdoc '$2 'valid-from (:transaction-timestamp)
-        :where (:= ',id '$1)
-        :returning ',id)
+        :where (:= ',key '$1)
+        :returning ',key)
      :single))
 
-(make-query get$ (id) (table id jdoc)
-    ('`(:select ',jdoc :from ,table :where (:= ',id '$1))
+(make-query get$ (key) (table key jdoc)
+    ('`(:select ',jdoc :from ,table :where (:= ',key '$1))
      :single))
 
 (make-query all$ () (table jdoc)
     ('`(:select ',jdoc :from ,table)
      :column))
 
-(make-query delete$ (id) (table id)
-    ('`(:delete-from ,table :where (:= ',id '$1) :returning ',id)
+(make-query delete$ (key) (table key)
+    ('`(:delete-from ,table :where (:= ',key '$1) :returning ',key)
      :single))
 
-(make-query keys$ () (table id)
-    ('`(:select ',id :from ,table)
+(make-query keys$ () (table key)
+    ('`(:select ',key :from ,table)
      :column))
 
 (make-query count$ () (table)

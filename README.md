@@ -175,7 +175,7 @@ PJ-TEST> (pp-json (get 'cat 82 :from-json 'yason:parse))
 
 Now there are some good reasons for using just a single auto
 incrementing sequence across **all** your models (for one thing, it
-means that all your JSON documents have a unique id if you every need
+means that all your JSON documents have a unique key if you every need
 to merge subsets from different models), but you can also have
 one sequence per model:
 
@@ -206,12 +206,12 @@ The backend for a model cat (say) looks like
                                     Table "pgj_schema.cat"
    Column   |           Type           |                       Modifiers
 ------------+--------------------------+-------------------------------------------------------
- id         | integer                  | not null
+ key        | integer                  | not null
  valid_to   | timestamp with time zone | not null default 'infinity'::timestamp with time zone
  valid_from | timestamp with time zone | not null default transaction_timestamp()
  jdoc       | jsonb                    | not null
 Indexes:
-    "cat_pkey" PRIMARY KEY, btree (id)
+    "cat_pkey" PRIMARY KEY, btree (key)
     "cat_gin" gin (jdoc)
 ```
 
@@ -219,12 +219,12 @@ Indexes:
             Table "pgj_schema.cat_old"
    Column   |           Type           | Modifiers
 ------------+--------------------------+-----------
- id         | integer                  | not null
+ key        | integer                  | not null
  valid_to   | timestamp with time zone | not null
  valid_from | timestamp with time zone | not null
  jdoc       | jsonb                    | not null
 Indexes:
-    "cat_old_pkey" PRIMARY KEY, btree (id, valid_to)
+    "cat_old_pkey" PRIMARY KEY, btree (key, valid_to)
     "cat_old_gin" gin (jdoc)
 ```
 
@@ -250,7 +250,7 @@ objects you end up serializing to a specific model table pretty
 consistent in their content...
 
 However, I think it may well be practical to support referential
-integrity, based just on the primary key id column in different
+integrity, based just on the primary key column in different
 models.  So we should be able to support a *CAT owns one or more
 HUMANS* relationship etc.  This is the point of using PostgreSQL for
 JSON: we can choose precisely how much of the old fashioned database

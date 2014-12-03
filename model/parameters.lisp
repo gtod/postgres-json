@@ -8,11 +8,11 @@
 provide unique IDs for JSON objects inserted into the PostgreSQL
 backend base table.")
 
-(defvar *id* 'id
+(defvar *key* 'key
   "A symbol being the name of the primary key column in backend
 tables.")
 
-(defvar *id-type* 'integer
+(defvar *key-type* 'integer
   "A symbol being the type of the primary key column in backend
 tables.")
 
@@ -27,8 +27,8 @@ tables.")
 (defclass model-parameters (read-only)
   ((model :initarg :model :type symbol :reader model)
    (sequence :initarg :sequence :type symbol :reader sequence)
-   (id :initarg :id :type symbol :reader id)
-   (id-type :initarg :id-type :type symbol :reader id-type)
+   (key :initarg :key :type symbol :reader key)
+   (key-type :initarg :key-type :type symbol :reader key-type)
    (jdoc :initarg :jdoc :type symbol :reader jdoc)
    (jdoc-type :initarg :jdoc-type :type symbol :reader jdoc-type))
   (:documentation "A class to facilitate customization of backend
@@ -55,7 +55,7 @@ these parameters."))
   (qualified-name (sym-suffix (model params) "old") *pgj-schema*))
 
 (defun make-model-parameters (model &key (sequence *pgj-sequence*)
-                                         (id *id*) (id-type *id-type*)
+                                         (key *key*) (key-type *key-type*)
                                          (jdoc *jdoc*) (jdoc-type *jdoc-type*))
   "Create an object of class MODEL-PARAMETERS to specify backend
 features of a PostgreSQL JSON persistence model MODEL (a symbol),
@@ -63,14 +63,14 @@ typically to be supplied to CREATE-MODEL.  For each keyword argument
 which defaults to a special variable see the documentation of that
 variable."
   (make-instance 'model-parameters :model model :sequence sequence
-                 :id id :id-type id-type :jdoc jdoc :jdoc-type jdoc-type))
+                 :key key :key-type key-type :jdoc jdoc :jdoc-type jdoc-type))
 
 ;;;; The specific parameters for our meta model
 
 (defun meta-model-parameters ()
   "Eating our own dog food, we keep the model parameters for all user
 models in a 'meta' model, which itself has the following parameters."
-  (make-model-parameters *meta-model* :id 'model :id-type 'text))
+  (make-model-parameters *meta-model* :key 'model :key-type 'text))
 
 ;;;; JSON de/serialization
 
