@@ -111,6 +111,11 @@ PJ-TEST> (pp-json (get 'cat 3))
 }
 ```
 
+See [simple-1](examples/simple-1.lisp) for similar code to the above
+you can compile and run.  [simple-2](examples/simple-2.lisp) is
+similar but it does not shadow the common lisp symbols such as 'get
+and 'delete.
+
 Individual calls to a model function such as `insert` which write to
 the DB get their own transaction.  But if you start a model
 transaction yourself all model operations in the body occur within a
@@ -181,7 +186,7 @@ one sequence per model:
 
 ```
 (create-db-sequence 'foo)
-(create-model 'dog (make-model-parameters :sequence 'foo))
+(create-model 'dog (make-model-parameters 'dog :sequence 'foo))
 ```
 
 ## Design
