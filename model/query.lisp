@@ -152,37 +152,36 @@ own parameters."
     (print tree)
     tree))
 
-;; In fact these queries don't need a model to house
-;; them - what if they are a join for example?
-;; Maybe stick them in some private 'generic' model...
 (defmacro define-query (name (&rest query-params) &body query)
   "You must always return jdoc or use jbuild..."
-  (flush-prepared-queries) ;; Bit hacky.  Maybe put these generic ones in own hash...
-  ;; Or maybe put them in their own package...
-  `(progn
-     (defun ,(sym t "make-" name) ()
-       (let ((form (subst-params-into-query-form ',query-params ',(car query))))
-         (setf (lookup-query 'pgj-queries ',name)
-               (prepare (sql-compile form) :column))))
-     (defun ,name (,@query-params)
-       (funcall (lookup-query 'pgj-queries ',name) ,@query-params))))
+  (let* ((form (subst-params-into-query-form query-params (car query))))
+    `(defprepared-with-args ,name ,form ,query-params :column)))
 
 (define-query ready-bookings$ (filter email-regex)
   (:order-by
-   (:select (:json-build-object "id" (:->> jdoc "id")
-                                "name" (:->> jdoc "name")
-                                "email" (:->> jdoc "email"))
-    :from booking
-    :where (:and (:or (:@> jdoc filter))
-                 (:~ (:->> jdoc "email") email-regex)))
-   (:type (:->> jdoc "price") real)))
+   (:select (:json-build-object "id" (:->> 'jdoc "id")
+                                "name" (:->> 'jdoc "name")
+                                "email" (:->> 'jdoc "email"))
+    :from 'booking
+    :where (:and (:or (:@> 'jdoc filter))
+                 (:~ (:->> 'jdoc "email") email-regex)))
+   (:type (:->> 'jdoc "price") real)))
 
+;; Looks like for building json jocs, -> or ->> will do
 (define-query animals$ ()
-  (:select (:json-build-object "name" (:->> c.jdoc "name")
-                               "coat" (:->> c.jdoc "coat"))
-   :from (:as cat c)
-   :inner-join (:as dog d)
-   :on (:= (:->> c.jdoc "name") (:->> d.jdoc "name"))))
+  (:select (:json-build-object "name" (:-> 'c.jdoc "name")
+                               "coat" (:-> 'c.jdoc "coat"))
+   :from (:as 'cat 'c)
+   :inner-join (:as 'dog 'd)
+   :on (:= (:->> 'c.jdoc "name") (:->> 'd.jdoc "name"))))
+
+;; We can use the -> operator to return JSON, no need to build it,
+;; we can just parse it when we get it!
+;; We need the ->> form for sorting by int (say)
+(define-query cat$ ()
+  (:select (:-> 'jdoc "owns")
+   :from 'cat
+   :where (:= "fred" (:->> 'jdoc "name"))))
 
 (defun ready-bookings (model filter-object email-regex
                        &key (to-json *to-json*) (from-json *from-json*))
@@ -190,10 +189,12 @@ own parameters."
   (ensure-transaction-level (filter read-committed-ro)
     (mapcar from-json (ready-bookings$ (funcall to-json filter-object) email-regex))))
 
-;;; And now maybe a macro to define the intyerface function (which I
-;;; have been doing by hand) because we need to call ensure-model-query
-;;; and we need to and from json options...
-;;; Recompiltion should flush the prepared queries...
+
+;; Helpers should provide some syntactic sugar
+;; and do the automatic to-json for incoming filters
+;; and the from-json from returing JSON
+;; Maybe we specify if it *returns* json (the default)
+;; And maybe we specific incoming params that need to-json
 
 
 ;;; You know, key and jdoc as mode params are just a wast of time.
@@ -201,3 +202,5 @@ own parameters."
 ;;; But what of compound primary keys?
 ;;; Do we need model params at all?  table and old table can be made on demand
 ;;; from the model symbol!!
+;;; Well, we do need key-type (eg. uuid) and (maybe) jdoc-type.  But would
+;;; be simpler if it was just key (compound) and key-type...
