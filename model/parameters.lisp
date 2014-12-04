@@ -65,12 +65,29 @@ variable."
   (make-instance 'model-parameters :model model :sequence sequence
                  :key key :key-type key-type :jdoc jdoc :jdoc-type jdoc-type))
 
+;;; Insert
+
+(defun insert-model-parameters (model-parameters)
+  "Insert the MODEL-PARAMTERS object into the backend."
+  (insert *meta-model* model-parameters :use-key (symbol->json (model model-parameters))))
+
+;;; Get
+
+(defun get-model-parameters (model)
+  "Return the model-parameters object for MODEL, a symbol, by
+retrieving them from the backend."
+  (get *meta-model* (symbol->json model)
+       :from-json 'model-parameters-from-json))
+
 ;;;; The specific parameters for our meta model
 
 (defun meta-model-parameters ()
   "Eating our own dog food, we keep the model parameters for all user
 models in a 'meta' model, which itself has the following parameters."
   (make-model-parameters *meta-model* :key 'model :key-type 'text))
+
+(defun meta-model-p (model)
+  (eq *meta-model* model))
 
 ;;;; JSON de/serialization
 

@@ -130,9 +130,8 @@ the bootstrap problem by calling a function to supply the meta model's
 own parameters."
   (if (lookup-query model operation)
       (log:trace "Using prepared query for ~A:~A" model operation)
-      (let ((model-parameters (if (eq *meta-model* model)
+      (let ((model-parameters (if (meta-model-p model)
                                   (meta-model-parameters)
-                                  (get *meta-model* (symbol->json model)
-                                       :from-json 'model-parameters-from-json))))
+                                  (get-model-parameters model))))
         (log:trace "Preparing query for ~A:~A" model operation)
         (funcall (sym :postgres-json "make-" operation) model model-parameters))))
