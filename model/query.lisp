@@ -112,6 +112,12 @@ FORMAT must be a valid Postmodern results format."
     ('`(:select (:count '*) :from ,table)
      :single!))
 
+(make-query filter$ (json) (jdoc table)
+    ('`( :select ',jdoc
+         :from ,table
+         :where (:@> ',jdoc '$1))
+     :column))
+
 ;;;; Functions in the model interface must ensure the DB queries they
 ;;;; intend to use exist, by calling ENSURE-MODEL-QUERY
 

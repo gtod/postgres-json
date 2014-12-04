@@ -94,3 +94,15 @@ symbol, and the length of that list."
   (ensure-model-query model 'count$)
   (ensure-transaction-level (count read-committed-ro)
     (nth-value 0 (count$ model))))
+
+;; Does filter-object need to be a hash table?
+(defun filter (model filter-object &key (to-json *to-json*) (from-json *from-json*))
+  "Return all objects in model which contain (in the Postgres @>
+sense) the object FILTER-OBJECT, which is JSON serialized by TO-JSON,
+a function designator for a function of one argument.  The returned
+JSON strings are parsed by the function of one argument designated by
+FROM-JSON."
+  (log:trace "Call filter on ~A" model)
+  (ensure-model-query model 'filter$)
+  (ensure-transaction-level (filter read-committed-ro)
+    (mapcar from-json (filter$ model (funcall to-json filter-object)))))
