@@ -169,23 +169,26 @@ own parameters."
 
 (define-query ready-bookings$ (filter email-regex)
   (:order-by
-   (:select (:jbuild b.jdoc "id" "email" "name")
-    :from (:as 'booking 'b)
+   (:select (:json-build-object "id" (:->> jdoc "id")
+                                "name" (:->> jdoc "name")
+                                "email" (:->> jdoc "email"))
+    :from booking
     :where (:and (:or (:@> jdoc filter))
-                 (:~ (:j jdoc "email") email-regex)))
-   (:j jdoc "price" real)))
+                 (:~ (:->> jdoc "email") email-regex)))
+   (:type (:->> jdoc "price") real)))
 
 (define-query animals$ ()
-  (:select (:jbuild c.jdoc "coat")  ;; Need a way to build two jdoc relations together...
-   :from (:as 'cat 'c)              ;; What's quoted, what's not quoted??
-   :inner-join (:as 'dog 'd)
-   :on (:= (:j c.jdoc "name") (:j d.jdoc "name"))))
+  (:select (:json-build-object "name" (:->> c.jdoc "name")
+                               "coat" (:->> c.jdoc "coat"))
+   :from (:as cat c)
+   :inner-join (:as dog d)
+   :on (:= (:->> c.jdoc "name") (:->> d.jdoc "name"))))
 
-(defun ready-bookings (model filter-object min-price
+(defun ready-bookings (model filter-object email-regex
                        &key (to-json *to-json*) (from-json *from-json*))
   (ensure-model-query model 'ready-bookings$)
   (ensure-transaction-level (filter read-committed-ro)
-    (mapcar from-json (ready-bookings$ (funcall to-json filter-object) min-price))))
+    (mapcar from-json (ready-bookings$ (funcall to-json filter-object) email-regex))))
 
 ;;; And now maybe a macro to define the intyerface function (which I
 ;;; have been doing by hand) because we need to call ensure-model-query
