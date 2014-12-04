@@ -101,6 +101,9 @@ join dog d on (c.jdoc->'name' = d.jdoc->'name');
   clearly the JSON strings and then the result of parsing them --- in
   the beginning I foundered a little on that point...
 
+* Unicode handling tests.  UTF-8, 16?  For web deployment investigate
+  quri.
+
 ## Maybe have
 
 * I could wrap the serialization failure condition and send a nice

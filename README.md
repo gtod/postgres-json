@@ -161,7 +161,7 @@ PG *qualified name* is baked into the model.  But you might want
 to set them when playing in PSQL:
 
 ```sql
-SET search_path TO <your_schema>, public;
+SET search_path TO pgj_model, public;
 ```  
 
 You can specify `to-json` for `insert` and `update` and `from-json`
