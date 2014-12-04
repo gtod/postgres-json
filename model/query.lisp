@@ -141,3 +141,35 @@ own parameters."
                                   (get-model-parameters model))))
         (log:trace "Preparing query for ~A:~A" model operation)
         (funcall (sym :postgres-json "make-" operation) model model-parameters))))
+
+;;;; New and improved JSON queries
+
+(defun subst-parms-into-query-form (model-parameters model-params query-form)
+  (let ((tree (copy-tree query-form)))
+    (dolist (param model-params)
+      (nsubst (funcall param model-parameters) param tree))
+    (print tree)
+    tree))
+
+(defmacro define-query (name (&rest query-args) (&rest model-params) &body query+format)
+  (destructuring-bind (query &optional (format :rows)) query+format
+    `(progn
+       (defun ,(sym t "make-" name) (model model-parameters)
+         (let ((form (subst-parms-into-query-form model-parameters ',model-params ',query)))
+           (setf (lookup-query model ',name)
+                 (prepare (sql-compile form) ,format))))
+       (defun ,name (model ,@query-args)
+         (funcall (lookup-query model ',name) ,@query-args)))))
+
+(define-query ready-bookings$ (filter-obj min-price) (jdoc table)
+  (:order-by
+   (:select jdoc ; or (:jbuild jdoc "id "name" "email")
+    :from table
+    :where (:and (:or (:@> jdoc '$1))
+                 (:>= (:j jdoc "price" real) '$2)))
+   (:j jdoc "email"))
+  :column)
+
+;;; And now maybe a macro to define the intyerface function (which I
+;;; have been doing by hand) because we need to call ensure-model-query
+;;; and we need to and from json options...
