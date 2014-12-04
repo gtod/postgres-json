@@ -69,3 +69,19 @@
   (show (cat-obj$ 2))
   (terpri)
   (print (cat-name-where$ (to-json (obj "coat" "tabby")))))
+
+#|
+
+It's sort of broken because (:jdoc) makes no mention of the table
+if we happen to want to select from two tables at once...
+
+And setting search path explicitly rather than schema qualification??
+
+Still, the first is a non issue for simple filtering and the second
+is handle by model/query.lisp.
+
+Updating: Could write a merge function for the server side but just
+pull object back and do it in lisp for now.  Always in danger of
+premature optimization...
+
+|#
