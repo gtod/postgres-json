@@ -144,32 +144,57 @@ own parameters."
 
 ;;;; New and improved JSON queries
 
-(defun subst-parms-into-query-form (model-parameters model-params query-form)
+(defun subst-params-into-query-form (query-params query-form)
   (let ((tree (copy-tree query-form)))
-    (dolist (param model-params)
-      (nsubst (funcall param model-parameters) param tree))
+    (loop for param in query-params
+          for i from 1
+          do (nsubst `(quote ,(sym t "$" i)) param tree))
     (print tree)
     tree))
 
-(defmacro define-query (name (&rest query-args) (&rest model-params) &body query+format)
-  (destructuring-bind (query &optional (format :rows)) query+format
-    `(progn
-       (defun ,(sym t "make-" name) (model model-parameters)
-         (let ((form (subst-parms-into-query-form model-parameters ',model-params ',query)))
-           (setf (lookup-query model ',name)
-                 (prepare (sql-compile form) ,format))))
-       (defun ,name (model ,@query-args)
-         (funcall (lookup-query model ',name) ,@query-args)))))
+;; In fact these queries don't need a model to house
+;; them - what if they are a join for example?
+;; Maybe stick them in some private 'generic' model...
+(defmacro define-query (name (&rest query-params) &body query)
+  "You must always return jdoc or use jbuild..."
+  (flush-prepared-queries) ;; Bit hacky.  Maybe put these generic ones in own hash...
+  ;; Or maybe put them in their own package...
+  `(progn
+     (defun ,(sym t "make-" name) ()
+       (let ((form (subst-params-into-query-form ',query-params ',(car query))))
+         (setf (lookup-query 'pgj-queries ',name)
+               (prepare (sql-compile form) :column))))
+     (defun ,name (,@query-params)
+       (funcall (lookup-query 'pgj-queries ',name) ,@query-params))))
 
-(define-query ready-bookings$ (filter-obj min-price) (jdoc table)
+(define-query ready-bookings$ (filter email-regex)
   (:order-by
-   (:select jdoc ; or (:jbuild jdoc "id "name" "email")
-    :from table
-    :where (:and (:or (:@> jdoc '$1))
-                 (:>= (:j jdoc "price" real) '$2)))
-   (:j jdoc "email"))
-  :column)
+   (:select (:jbuild b.jdoc "id" "email" "name")
+    :from (:as 'booking 'b)
+    :where (:and (:or (:@> jdoc filter))
+                 (:~ (:j jdoc "email") email-regex)))
+   (:j jdoc "price" real)))
+
+(define-query animals$ ()
+  (:select (:jbuild c.jdoc "coat")  ;; Need a way to build two jdoc relations together...
+   :from (:as 'cat 'c)              ;; What's quoted, what's not quoted??
+   :inner-join (:as 'dog 'd)
+   :on (:= (:j c.jdoc "name") (:j d.jdoc "name"))))
+
+(defun ready-bookings (model filter-object min-price
+                       &key (to-json *to-json*) (from-json *from-json*))
+  (ensure-model-query model 'ready-bookings$)
+  (ensure-transaction-level (filter read-committed-ro)
+    (mapcar from-json (ready-bookings$ (funcall to-json filter-object) min-price))))
 
 ;;; And now maybe a macro to define the intyerface function (which I
 ;;; have been doing by hand) because we need to call ensure-model-query
 ;;; and we need to and from json options...
+;;; Recompiltion should flush the prepared queries...
+
+
+;;; You know, key and jdoc as mode params are just a wast of time.
+;;; They should be hard coded, what hope have we got of writing queries?
+;;; But what of compound primary keys?
+;;; Do we need model params at all?  table and old table can be made on demand
+;;; from the model symbol!!
