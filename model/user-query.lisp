@@ -8,6 +8,9 @@
 ;;; list with car 'j-> or 'j->> gets the expansions shown when used
 ;;; to define the query with DEFINE-QUERY.
 
+;;; See the Postgres 9.4 manual for information on JSON operators and
+;;; functions.
+
 ;; (subst-sugar-in-query
 ;;                 '((j-> "id")
 ;;                   (j->> "id")
@@ -28,7 +31,7 @@
 
 ;;; Furthermore, named parameters to the query may be explicity
 ;;; interpolated.  Here we provide the names of explicit parameters
-;;; to the query (filter email-regex) and these are replaed in the
+;;; to the query (filter email-regex) and these are replaced in the
 ;;; query form with '$1, '$2 etc...
 
 ;; (define-query ready-bookings$ (filter email-regex)
@@ -84,21 +87,41 @@ order in QUERY-PARAMS."
           do (nsubst `(quote ,(sym t "$" i)) param tree))
     tree))
 
+(defun decompose-query-params-list (query-params)
+  "Turns (foo (*to-json* bar baz) blot) into two values:
+(FOO BAR BAZ BLOT) and
+((BAR (FUNCALL *TO-JSON* BAR)) (BAZ (FUNCALL *TO-JSON* BAZ)))
+for use in the define-query macro."
+    (let ((params '())
+          (transforms '()))
+      (dolist (form query-params)
+        (if (consp form)
+            (let ((function (first form)))
+              (dolist (param (rest form))
+                (push param params)
+                (push `(,param (funcall ,function ,param)) transforms)))
+            (push form params)))
+      (values (nreverse params) (nreverse transforms))))
+
 (defmacro define-query (name (&rest query-params) &body query)
   "Define a Postmodern S-SQL based QUERY with name NAME, a symbol,
-using both the named parameters syntax for each symbol in the list
-QUERY-PARAMS and the JSON access syntactic sugar."
-  (let* ((form0 (subst-params-in-query query-params (car query)))
-         (form (subst-sugar-in-query form0)))
-    `(defprepared-with-args ,name ,form ,query-params :column)))
+using both the 'named parameters syntax' for each symbol in the list
+QUERY-PARAMS and the 'JSON access syntactic sugar', both documented in
+model/user-query.lisp.  In fact, elements of QUERY-PARAMS may be lists
+of the form (function-designator &rest params) in which case the
+PARAMS are still treated as parameters (in order) but at run time
+FUNCTION-DESIGNATOR is called on each of the actual arguments of the
+PARAMS to transfrom said arguments before use by the underlying query.
+For example: (foo (*to-json* bar baz) blot) is an acceptable
+QUERY-PARAMS list, as long as *to-json* is funcallable."
+  (multiple-value-bind (params transforms) (decompose-query-params-list query-params)
+    (let ((s-sql-query (subst-sugar-in-query (subst-params-in-query params (car query)))))
+      (with-unique-names (query-function)
+        `(let ((,query-function (prepare ,s-sql-query :column)))
+           (defun ,name (,@params &key (from-json *from-json*))
+             (let (,@transforms)
+               (mapcar from-json (funcall ,query-function ,@params)))))))))
 
-(define-query ready-bookings$ (filter email-regex)
-  (:order-by
-   (:select (j->> "id" "name" "email")
-    :from 'booking
-    :where (:and (:or (:@> 'jdoc '$1))
-                 (:~ (j->> "email") email-regex)))
-   (:type (j->> "price") real)))
 
 ;; (define-query ready-bookings$ (filter email-regex)
 ;;   (:order-by

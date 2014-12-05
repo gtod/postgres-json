@@ -23,6 +23,7 @@ Lisp object persistence models using the PostgreSQL 9.4+ jsonb type."
    (:file "postgres/transactions")
    (:file "model/backend")
    (:file "model/parameters")
+   (:file "model/user-query")
    (:file "model/query")
    (:file "model/interface")
    (:file "model/package")
