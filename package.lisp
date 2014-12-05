@@ -25,6 +25,7 @@
    #:all-models
    #:drop-backend!
    #:drop-model!
+   #:define-query
    #:flush-prepared-queries
    #:make-model-parameters)
 

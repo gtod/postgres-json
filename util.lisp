@@ -90,3 +90,7 @@ ALEXANDRIA:FORMAT-SYMBOL for effect of PACKAGE-NAME."
 
 (defun sym-suffix (symbol suffix)
   (sym t symbol "-" suffix))
+
+(defun walk-tree (fun tree)
+  "Walk TREE and call FUN at each node.  Thanks to Lisp Tips."
+  (subst-if t (constantly nil) tree :key fun))
