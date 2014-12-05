@@ -52,14 +52,14 @@ string proper).  If the object does not exist, return nil."
                 (get$ model key))))
     (if jdoc (funcall from-json jdoc) nil)))
 
-(defun all (model &key (from-json *from-json*))
+(defun get-all (model &key (from-json *from-json*))
   "Return a list of all objects in MODEL, a symbol.
 Each JSON string is parse by the the function of one argument
 designated by FROM-JSON."
   (log:debu4 "Get all objects from ~A" model)
-  (ensure-model-query model 'all$)
+  (ensure-model-query model 'get-all$)
   (ensure-transaction-level (get read-committed-ro)
-    (mapcar from-json (all$ model))))
+    (mapcar from-json (get-all$ model))))
 
 (defun delete (model key)
   "Delete the object with primary key KEY (of type compatible with

@@ -9,7 +9,7 @@
   (:import-from #:postgres-json
                 #:insert
                 #:update
-                #:all
+                #:get-all
                 #:delete-all
                 #:keys)
   (:export
@@ -19,6 +19,6 @@
 
    #:insert
    #:update
-   #:all
+   #:get-all
    #:delete-all
    #:keys))

@@ -16,7 +16,6 @@
   (unless (model-exists-p 'cat)
     (create-model 'cat)))
 
-;; Because we are inserting
 (defun insert-some-cats ()
   (insert 'cat (obj "name" "Joey" "coat" "tabby"))
   (insert 'cat (obj "name" "Maud" "coat" "tortoiseshell"))
@@ -38,7 +37,7 @@
     (setf (gethash "age" cat) 7)
     (update 'cat key cat))
 
-  (pp-json (all 'cat))
+  (pp-json (get-all 'cat))
   (terpri))
 
 (defun cleanup ()
