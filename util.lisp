@@ -21,8 +21,9 @@
   (with-output-to-string (s)
     (yason:encode object s)))
 
-(defun pp-json (object &key (stream *terminal-io*) (indent 4))
+(defun pp-json (object &key (stream *standard-output*) (indent 4))
   "Pretty print lisp OBJECT as JSON to stream with specified indent."
+  (fresh-line stream)
   (let ((s (yason:make-json-output-stream stream :indent indent)))
     (yason:encode object s)))
 
