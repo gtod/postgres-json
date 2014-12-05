@@ -57,13 +57,15 @@ the database Postmodern is currently connected to.  This will
 irrevocably delete ALL your data in ALL your models so it uses
 a RESTART-CASE to guard against human error."
   (flet ((drop ()
-           (drop-db-schema-cascade *pgj-schema*)))
-    (let ((attempted-to (format nil "DROP all models' data(!) in schema: ~A" *pgj-schema*)))
-      (restart-case (error 'database-safety-net
-                           :attempted-to attempted-to
-                           :suggestion "Pick an appropriate restart")
-        (cancel () :report "Leave this schema alone." (return-from drop-backend! nil))
-        (really-do-it () :report "I really want to drop ALL data in ALL models(!)" (drop))))))
+           (ensure-transaction-level (drop-backend! read-committed-rw)
+             (drop-db-schema-cascade *pgj-schema*))))
+    (when (backend-exists-p)
+      (let ((attempted-to (format nil "DROP all models' data(!) in schema: ~A" *pgj-schema*)))
+        (restart-case (error 'database-safety-net
+                             :attempted-to attempted-to
+                             :suggestion "Pick an appropriate restart")
+          (cancel () :report "Leave this schema alone." (return-from drop-backend! nil))
+          (really-do-it () :report "I really want to drop ALL data in ALL models(!)" (drop)))))))
 
 (defun drop-model! (model)
   "Drop model MODEL.  This will irrevocably delete all data associated
