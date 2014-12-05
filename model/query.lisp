@@ -52,7 +52,7 @@ containing evaluated expressions including the bound model-parameters.
 FORMAT must be a valid Postmodern results format."
   `(progn
      (defun ,(sym t "make-" name) (model model-parameters)
-       (declare (ignorable model-parameters))
+       ;;(declare (ignorable model-parameters)) WTF?
        (with-readers (,@(loop for param in model-params collect param)) model-parameters
          (setf (lookup-query model ',name)
                (prepare (sql-compile ,@(cdr query)) ,format))))
@@ -68,12 +68,12 @@ FORMAT must be a valid Postmodern results format."
 (make-query nextval-sequence$ () (sequence)
     ('`(:select (:nextval ,(db-name-string sequence))) :single!))
 
-(make-query insert$ (key jdoc) (table key jdoc)
-    ('`(:insert-into ,table :set ',key '$1 ',jdoc '$2
+(make-query insert$ (key jdoc) (table key)
+    ('`(:insert-into ,table :set ',key '$1 'jdoc '$2
                      :returning ',key)
      :single!))
 
-(make-query insert-old$ (key) (table table-old key jdoc)
+(make-query insert-old$ (key) (table table-old key)
     ('`(:insert-into ,table-old
                    ;; Note the dependence on the column ordering of
                    ;; CREATE-OLD-TABLE since :insert-into will not let
@@ -81,19 +81,19 @@ FORMAT must be a valid Postmodern results format."
                      (:select ',key
                             (:transaction-timestamp)
                             'valid-from
-                            ',jdoc
+                            'jdoc
                             :from ,table
                             :where (:= ',key '$1)))))
 
-(make-query update$ (key jdoc) (table key jdoc)
+(make-query update$ (key jdoc) (table key)
     ('`(:update ,table
-        :set ',jdoc '$2 'valid-from (:transaction-timestamp)
+        :set 'jdoc '$2 'valid-from (:transaction-timestamp)
         :where (:= ',key '$1)
         :returning ',key)
      :single))
 
-(make-query get$ (key) (table key jdoc)
-    ('`(:select ',jdoc :from ,table :where (:= ',key '$1))
+(make-query get$ (key) (table key)
+    ('`(:select 'jdoc :from ,table :where (:= ',key '$1))
      :single))
 
 (make-query get-all$ () (table)
@@ -112,16 +112,16 @@ FORMAT must be a valid Postmodern results format."
     ('`(:select (:count '*) :from ,table)
      :single!))
 
-(make-query contains$ (json) (jdoc table)
-    ('`( :select ',jdoc
+(make-query contains$ (json) (table)
+    ('`( :select 'jdoc
          :from ,table
-         :where (:@> ',jdoc '$1))
+         :where (:@> 'jdoc '$1))
      :column))
 
-(make-query exists$ (json) (jdoc table)
-    ('`( :select ',jdoc
+(make-query exists$ (json) (table)
+    ('`( :select 'jdoc
          :from ,table
-         :where (:? ',jdoc '$1))
+         :where (:? 'jdoc '$1))
      :column))
 
 ;;;; Functions in the model interface must ensure the DB queries they

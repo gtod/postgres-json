@@ -16,23 +16,13 @@ tables.")
   "A symbol being the type of the primary key column in backend
 tables.")
 
-(defvar *jdoc* 'jdoc
-  "A symbol being the name of the JSON column in created backend
-tables.")
-
-(defvar *jdoc-type* 'jsonb
-  "A symbol being the type of the JSON column in created backend
-tables.")
-
 ;;;; The class proper and some reader methods
 
 (defclass model-parameters (read-only)
   ((model :initarg :model :type symbol :reader model)
    (sequence :initarg :sequence :type symbol :reader sequence)
    (key :initarg :key :type symbol :reader key)
-   (key-type :initarg :key-type :type symbol :reader key-type)
-   (jdoc :initarg :jdoc :type symbol :reader jdoc)
-   (jdoc-type :initarg :jdoc-type :type symbol :reader jdoc-type))
+   (key-type :initarg :key-type :type symbol :reader key-type))
   (:documentation "A class to facilitate customization of backend
 features of a model.  We need consistency between calls to
 CREATE-MODEL and the functions that make the prepared queries for a
@@ -57,22 +47,21 @@ these parameters."))
   (qualified-name (sym-suffix (model params) "old") *pgj-schema*))
 
 ;; The idea is that we can now write (see util for with-readers):
-;; (with-readers (model jdoc table) (get-model-parameters 'foo)
-;;   ; model, jdoc, table are locally bound here to the result
+;; (with-readers (model table) (get-model-parameters 'foo)
+;;   ; model, table are locally bound here to the result
 ;;   ; of calling their respective reader function.  So we don't
 ;;   ; care if it's a slot or a method.
 ;;   )
 
 (defun make-model-parameters (model &key (sequence *pgj-sequence*)
-                                         (key *key*) (key-type *key-type*)
-                                         (jdoc *jdoc*) (jdoc-type *jdoc-type*))
+                                         (key *key*) (key-type *key-type*))
   "Create an object of class MODEL-PARAMETERS to specify backend
 features of a PostgreSQL JSON persistence model MODEL (a symbol),
 typically to be supplied to CREATE-MODEL.  For each keyword argument
 which defaults to a special variable see the documentation of that
 variable."
   (make-instance 'model-parameters :model model :sequence sequence
-                 :key key :key-type key-type :jdoc jdoc :jdoc-type jdoc-type))
+                 :key key :key-type key-type))
 
 ;;; Insert
 

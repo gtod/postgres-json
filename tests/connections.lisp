@@ -58,7 +58,7 @@
   (flet ((prop (key)
            (lambda (obj)
              (gethash key obj))))
-    ;; (pomo:query "select jdoc from pgj_model.thread_test order by jdoc->'stamp'")
+    ;; (pomo:query "select key from pgj_model.thread_test order by jdoc->'stamp'")
     ;; This above is what we need to support sorting in the DB...
     (with-conn ()
       (pp-json (sort (all 'thread-test) #'< :key (prop "stamp"))))))
