@@ -25,10 +25,12 @@ rows.  Requires an active DB connection."
             (jdoc       :type jsonb))
            (:primary-key ,key valid-to)))))
 
-;;; Indexing the model table
+;;; Indexing the model relations
 
-;; Make jsonb_path_ops the GIN default until needs force otherwise
-;; or we make it an option...
+;; See Postgres manual 9.4, 8.14.4.
+;; Choices for gin-operator-class are jsonb_ops and jsonb_path_ops.
+;; The later is smaller and faster but does not support the existence
+;; operator: ?
 
 ;; In fact we can create a simple BTREE index too:
 ;; CREATE INDEX geodata_index ON
@@ -41,13 +43,13 @@ rows.  Requires an active DB connection."
 ;; drop index booking_gin;
 ;; create index booking_gin on booking using GIN (jdoc jsonb_path_ops);
 ;; etc...
-(defun create-gin-index (name table model-parameters &key jsonb-path-ops-p)
+(defun create-gin-index (name table model-parameters)
   "Create a PostgreSQL GIN index with NAME on a database table TABLE
 in *PGJ-SCHEMA*, all symbols.  Configure table column names, types
 etc. using MODEL-PARAMETERS.  If JSONB-PATH-OPS-P is true, use the
 more restrictive but faster and smaller GIN index form.  See the
 Postgres documentation for more info.  Requires an active DB
 connection."
-  (let ((jsonb-path-ops (if jsonb-path-ops-p "jsonb_path_ops" "")))
+  (with-readers (gin-operator-class) model-parameters
     (run `(:create-index ,name :on ,(db-name-string table)
-           :using gin :fields (:raw ,(format nil "jdoc ~A" jsonb-path-ops))))))
+           :using gin :fields (:raw ,(format nil "jdoc ~A" (to-sql-name gin-operator-class)))))))

@@ -16,11 +16,19 @@ tables.")
   "A symbol being the type of the primary key column in backend
 tables.")
 
+;; jsonb_path_ops is smaller and faster but does not support the
+;; existence operator: ?
+(defparameter *gin-operator-class* 'jsonb-ops
+  "A symbol, which is TO-SQL-NAME converted to a string, being the
+operator class of the GIN index created on the model relations.  See
+Postgres 9.4 manual 8.14.4.")
+
 ;;;; The class proper and some reader methods
 
 (defclass model-parameters (read-only)
   ((model :initarg :model :type symbol :reader model)
    (sequence :initarg :sequence :type symbol :reader sequence)
+   (gin-operator-class :initarg :gin-operator-class :type string :reader gin-operator-class)
    (key :initarg :key :type symbol :reader key)
    (key-type :initarg :key-type :type symbol :reader key-type))
   (:documentation "A class to facilitate customization of backend
@@ -54,6 +62,7 @@ these parameters."))
 ;;   )
 
 (defun make-model-parameters (model &key (sequence *pgj-sequence*)
+                                         (gin-operator-class *gin-operator-class*)
                                          (key *key*) (key-type *key-type*))
   "Create an object of class MODEL-PARAMETERS to specify backend
 features of a PostgreSQL JSON persistence model MODEL (a symbol),
@@ -61,6 +70,7 @@ typically to be supplied to CREATE-MODEL.  For each keyword argument
 which defaults to a special variable see the documentation of that
 variable."
   (make-instance 'model-parameters :model model :sequence sequence
+                 :gin-operator-class gin-operator-class
                  :key key :key-type key-type))
 
 ;;; Insert
