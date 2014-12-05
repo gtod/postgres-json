@@ -20,6 +20,7 @@
    #:create-db-sequence
    #:create-backend
    #:backend-exists-p
+   #:set-default-search-path
    #:create-model
    #:model-exists-p
    #:all-models

@@ -21,6 +21,9 @@ in a given PostgreSQL database."
   "Does the backend *PGJ-SCHEMA* exist?"
   (pomo:schema-exist-p *pgj-schema*))
 
+(defun set-default-search-path ()
+  (pomo:set-search-path (format nil "~A,public" (to-sql-name *pgj-schema*))))
+
 (defun create-model (model &optional (parameters (make-model-parameters model)))
   "Create the PostgreSQL tables and indexes for PostgreSQL JSON
 persistence model MODEL, a symbol.  Uses the various values in the
