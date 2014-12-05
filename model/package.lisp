@@ -11,6 +11,8 @@
                 #:update
                 #:get-all
                 #:delete-all
+                #:contains
+                #:exists
                 #:keys)
   (:export
    #:get
@@ -21,4 +23,6 @@
    #:update
    #:get-all
    #:delete-all
+   #:contains
+   #:exists
    #:keys))

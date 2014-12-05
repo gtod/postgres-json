@@ -95,14 +95,24 @@ symbol, and the length of that list."
   (ensure-transaction-level (count read-committed-ro)
     (nth-value 0 (count$ model))))
 
-;; Does filter-object need to be a hash table?
-(defun filter (model filter-object &key (to-json *to-json*) (from-json *from-json*))
-  "Return all objects in model which contain (in the Postgres @>
-sense) the object FILTER-OBJECT, which is JSON serialized by TO-JSON,
-a function designator for a function of one argument.  The returned
-JSON strings are parsed by the function of one argument designated by
-FROM-JSON."
-  (log:trace "Call filter on ~A" model)
-  (ensure-model-query model 'filter$)
-  (ensure-transaction-level (filter read-committed-ro)
-    (mapcar from-json (filter$ model (funcall to-json filter-object)))))
+(defun contains (model object &key (to-json *to-json*) (from-json *from-json*))
+  "Return all objects in MODEL, a symbol, which contain (in the
+Postgres @> sense) the object OBJECT.  OBJECT will be JSON serialized
+by TO-JSON, a function designator for a function of one argument.  The
+returned JSON strings are parsed by the function of one argument
+designated by FROM-JSON."
+  (log:trace "Call contains on ~A" model)
+  (ensure-model-query model 'contains$)
+  (ensure-transaction-level (contains read-committed-ro)
+    (mapcar from-json (contains$ model (funcall to-json object)))))
+
+(defun exists (model string &key (from-json *from-json*))
+  "Return all objects in MODEL, a symbol, which have a top level
+object key or array element STRING, in the Postgres ? sense.  The
+returned JSON strings are parsed by the function of one argument
+designated by FROM-JSON.  Requires a Potgres GIN index without
+JSONB_PATH_OPS on MODEL."
+  (log:trace "Call exists on ~A" model)
+  (ensure-model-query model 'exists$)
+  (ensure-transaction-level (contains read-committed-ro)
+    (mapcar from-json (exists$ model string))))
