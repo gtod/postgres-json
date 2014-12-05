@@ -31,8 +31,3 @@ is which case just PRINT the FORM."
           (query form)
           (query (sql-compile form)))))
 
-(defmacro with-db-schema ((schema) &body body)
-  "Execute BODY forms with *PGJ-SCHEMA* bound to SCHEMA, a form
-that should evaluate to a symbol."
-  `(let ((*pgj-schema* ,schema))
-     ,@body))
