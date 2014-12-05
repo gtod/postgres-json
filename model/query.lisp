@@ -144,36 +144,20 @@ own parameters."
 
 ;;;; New and improved JSON queries
 
-(defun subst-params-into-query-form (query-params query-form)
-  (let ((tree (copy-tree query-form)))
-    (loop for param in query-params
-          for i from 1
-          do (nsubst `(quote ,(sym t "$" i)) param tree))
-    (print tree)
-    tree))
-
-(defmacro define-query (name (&rest query-params) &body query)
-  "You must always return jdoc or use jbuild..."
-  (let* ((form (subst-params-into-query-form query-params (car query))))
-    `(defprepared-with-args ,name ,form ,query-params :column)))
-
 (define-query ready-bookings$ (filter email-regex)
   (:order-by
-   (:select (:json-build-object "id" (:->> 'jdoc "id")
-                                "name" (:->> 'jdoc "name")
-                                "email" (:->> 'jdoc "email"))
+   (:select (j->> "id" "name" "email")
     :from 'booking
     :where (:and (:or (:@> 'jdoc filter))
-                 (:~ (:->> 'jdoc "email") email-regex)))
-   (:type (:->> 'jdoc "price") real)))
+                 (:~ (j->> "email") email-regex)))
+   (:type (j->> "price") real)))
 
 ;; Looks like for building json jocs, -> or ->> will do
 (define-query animals$ ()
-  (:select (:json-build-object "name" (:-> 'c.jdoc "name")
-                               "coat" (:-> 'c.jdoc "coat"))
+  (:select (j->> 'c.jdoc "name" "coat")
    :from (:as 'cat 'c)
    :inner-join (:as 'dog 'd)
-   :on (:= (:->> 'c.jdoc "name") (:->> 'd.jdoc "name"))))
+   :on (:= (j->> 'c.jdoc "name") (j->> 'd.jdoc "name"))))
 
 ;; We can use the -> operator to return JSON, no need to build it,
 ;; we can just parse it when we get it!
@@ -204,3 +188,64 @@ own parameters."
 ;;; from the model symbol!!
 ;;; Well, we do need key-type (eg. uuid) and (maybe) jdoc-type.  But would
 ;;; be simpler if it was just key (compound) and key-type...
+
+(defun walk-tree (fun tree)
+  (subst-if t
+            (constantly nil)
+            tree
+            :key fun))
+
+(defun subst-params-in-query (query-params query-form)
+  (let ((tree (copy-tree query-form)))
+    (loop for param in query-params
+          for i from 1
+          do (nsubst `(quote ,(sym t "$" i)) param tree))
+    tree))
+
+;; (j->  "id")                        JSON from key "id" in 'jdoc
+;; (j->> "id")                        text from key "id" in 'jdoc
+;; (j->> "id" "name" "email")         a JSON obj with text values of those keys in 'jdoc
+;; (j->  "id" "name" "email")         a JSON obj with JSON values of those keys in 'jdoc
+;; (j->  'jdoc "id")                  JSON from key "id" in 'jdoc
+;; (j->> 'jdoc "id")                  text from key "id" in 'jdoc
+;; (j->> 'c.jdoc "id" "name" "email") a JSON obj with text values of those keys in 'jdoc
+;; (j->  'd.jdoc "id" "name" "email") a JSON obj with JSON value sof those keys in 'jdoc
+(defun nsubst-json-builder (form op tree)
+  (labels ((nsubst-key (column key)
+             (let ((new `(,op ,column ,key)))
+               (nsubst new form tree :test #'equal)))
+           (nsubst-keys (column keys)
+             (let ((pairs '()))
+               (dolist (key keys)
+                 (push key pairs)
+                 (push `(,op ,column ,key) pairs))
+               (let ((new `(:json-build-object ,@(reverse pairs))))
+                 (nsubst new form tree :test #'equal))))
+           (explicit-column-p ()
+             (listp (cadr form)))
+           (single-key-p ()
+             (= (if (explicit-column-p) 3 2) (length form))))
+    (if (explicit-column-p)
+        (if (single-key-p)
+            (nsubst-key (cadr form) (caddr form))
+            (nsubst-keys (cadr form) (cddr form)))
+        (if (single-key-p)
+            (nsubst-key '(quote jdoc) (cadr form))
+            (nsubst-keys '(quote jdoc) (cdr form))))))
+
+(defun subst-sugar-in-query (form)
+  "Replace all POSTGRES-JSON syntactic sugar variants in the S-SQL
+FORM with their true S-SQL representations."
+  (let ((tree (copy-tree form)))
+    (flet ((handle (form)
+             (when (listp form)
+               (cond ((eq 'j-> (car form)) (nsubst-json-builder form :-> tree))
+                     ((eq 'j->> (car form)) (nsubst-json-builder form :->> tree))))))
+      (walk-tree #'handle tree))
+    tree))
+
+(defmacro define-query (name (&rest query-params) &body query)
+  "You must always return jdoc or use jbuild..."
+  (let* ((form0 (subst-params-in-query query-params (car query)))
+         (form (subst-sugar-in-query form0)))
+    `(defprepared-with-args ,name ,form ,query-params :column)))
