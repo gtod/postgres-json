@@ -1,87 +1,67 @@
-(defpackage :filter
+(defpackage :filtering
   (:use :cl :postgres-json :postgres-json-model :postmodern)
   (:shadowing-import-from :postgres-json-model :get :delete :count)
   (:import-from :postgres-json :to-json))
 
-(in-package :filter)
+(in-package :filtering)
+
+(defparameter *models* '(cat dog human prime))
 
 (defun create ()
   (unless (and pomo:*database* (pomo:connected-p pomo:*database*))
     (pomo:connect-toplevel "cusoon" "gtod" "" "localhost" :port 5433))
-  (pomo:set-search-path "pgj_model,public")
+  (set-default-search-path)
   (unless (backend-exists-p)
     (create-backend))
-  (unless (model-exists-p 'cat)
-    (create-model 'cat)))
-
-(defun insert-some-cats ()
-  (insert 'cat (obj "name" "Joey" "coat" "tabby" "age" 7))
-  (insert 'cat (obj "name" "Maud" "coat" "tortoiseshell" "age" 3))
-  (insert 'cat (obj "name" "Max" "coat" "ginger" "age" 2)))
+  (dolist (model *models*)
+    (unless (model-exists-p model)
+      (create-model model))))
 
 (defun cleanup ()
-  (drop-model! 'cat))
+  (dolist (model *models*)
+    (drop-model! model)))
 
-;;; As far as I can tell we need to cast any JSON numeric field to an
-;;; appropriate Postgres type (eg. int) before doing a numeric
-;;; comparison on it...
+(defun insert-some ()
+  (insert 'cat (obj "name" "Joey" "coat" "tabby" "age" 7
+                    "likes" '("sunshine" "rain")
+                    "trips" (obj "Barcelona" '(2014 2012 2009)
+                                 "Kansas City" '(2013))))
+  (insert 'cat (obj "name" "Maud" "coat" "tortoiseshell" "age" 3))
+  (insert 'cat (obj "name" "Manny" "coat" "tortoiseshell" "age" 9))
+  (insert 'cat (obj "name" "Max" "coat" "graphite" "age" 2))
 
-;; This doesn't actually give you JSON strings
-(defprepared cat-fields$
-    (:order-by (:select
-                (:as (:j "name") 'name)
-                (:as (:j "age") 'age)
-                :from 'cat
-                :where (:> (:j "age" int) '$1))
-               (:j "age" int)))
+  (insert 'dog (obj "name" "Rex" "coat" "graphite" "age" 3.5))
 
-;; But this does
-(defprepared cat-jdoc$
-    (:order-by (:select (:jdoc)
-                :from 'cat
-                :where (:> (:j "age" int) '$1))
-               (:j "age" int))
-    :column)
+  (insert 'human (obj "name" "Horace"))
+  (insert 'human (obj "name" "Morris"))
+  (insert 'human (obj "name" "Doris"))
 
-;; And this
-(defprepared cat-obj$
-    (:order-by (:select (:jbuild "name" "age")
-                :from 'cat
-                :where (:> (:j "age" int) '$1))
-               (:j "age" int))
-    :column)
+  (insert 'prime '(7 11 13)))
 
-;; Containment
-(defprepared cat-name-where$
-    (:select (:j "name")
-     :from 'cat
-     :where (:@> (:jdoc) '$1))
-    :column)
+(defmacro show (form)
+  `(progn
+     (print ',form)
+     (pp-json ,form)))
 
-(defmacro show (query-form)
-  `(pp-json (mapcar *from-json* ,query-form)))
 
-(defun run ()
-  (print (cat-fields$ 5))
-  (terpri)
-  (show (cat-jdoc$ 1))
-  (terpri)
-  (show (cat-obj$ 2))
-  (terpri)
-  (print (cat-name-where$ (to-json (obj "coat" "tabby")))))
+;; Any point trying to make these work on subsets of the relation?
+;; What about on the old relation?
 
-#|
+;; Containment operator
+;; See 8.14.3 in Postgres manual 9.4
+(defun containing ()
+  (show (contains 'cat (obj "coat" "tortoiseshell")))
 
-It's sort of broken because (:jdoc) makes no mention of the table
-if we happen to want to select from two tables at once...
+  ;; When using containment it's OK to omit spurious keys, but you must get
+  ;; the nesting right.
+  (show (contains 'cat (obj "Kansas City" '(2013)))) ; No
+  (show (contains 'cat (obj "trips" (obj "Kansas City" '(2013))))) ; Works
+  (show (contains 'cat (obj "trips" (obj "Barcelona" '(2012 2009))))) ; Works!
+  )
 
-And setting search path explicitly rather than schema qualification??
-
-Still, the first is a non issue for simple filtering and the second
-is handle by model/query.lisp.
-
-Updating: Could write a merge function for the server side but just
-pull object back and do it in lisp for now.  Always in danger of
-premature optimization...
-
-|#
+;; Top level key existence operator
+;; Requires the (slower/bigger) jsonb_ops index
+;; See 8.14.3/4 in Postgres manual 9.4
+(defun existence ()
+  (show (length (exists 'cat "name")))
+  (show (exists 'cat "trips")))
