@@ -99,3 +99,42 @@ QUERY-PARAMS and the JSON access syntactic sugar."
     :where (:and (:or (:@> 'jdoc '$1))
                  (:~ (j->> "email") email-regex)))
    (:type (j->> "price") real)))
+
+;; (define-query ready-bookings$ (filter email-regex)
+;;   (:order-by
+;;    (:select (j->> "id" "name" "email" "state")
+;;     :from 'booking
+;;     :where (:and (:or (:@> 'jdoc filter))
+;;                  (:~ (j->> "email") email-regex)))
+;;    (:type (j->> "price") real)))
+
+;; (define-query animals$ ()
+;;   (:select (j->> 'c.jdoc "name" "coat")
+;;    :from (:as 'cat 'c)
+;;    :inner-join (:as 'dog 'd)
+;;    :on (:= (j->> 'c.jdoc "name") (j->> 'd.jdoc "name"))))
+
+;; (defun ready-bookings (model filter-object email-regex
+;;                        &key (to-json *to-json*) (from-json *from-json*))
+;;   (ensure-model-query model 'ready-bookings$)
+;;   (ensure-transaction-level (filter read-committed-ro)
+;;     (mapcar from-json (ready-bookings$ (funcall to-json filter-object) email-regex))))
+
+
+;; Helpers should provide some syntactic sugar
+;; and do the automatic to-json for incoming filters
+;; and the from-json from returing JSON
+;; Maybe we specify if it *returns* json (the default)
+;; And maybe we specific incoming params that need to-json
+
+;;; You know, key and jdoc as mode params are just a wast of time.
+;;; They should be hard coded, what hope have we got of writing queries?
+;;; But what of compound primary keys?
+;;; Do we need model params at all?  table and old table can be made on demand
+;;; from the model symbol!!
+;;; Well, we do need key-type (eg. uuid) and (maybe) jdoc-type.  But would
+;;; be simpler if it was just key (compound) and key-type...
+
+;;; As far as I can tell we need to cast any JSON numeric field to an
+;;; appropriate Postgres type (eg. int) before doing a numeric
+;;; comparison on it...
