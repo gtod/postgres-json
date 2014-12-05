@@ -24,6 +24,8 @@ tables.")
   "A symbol being the type of the JSON column in created backend
 tables.")
 
+;;;; The class proper and some reader methods
+
 (defclass model-parameters (read-only)
   ((model :initarg :model :type symbol :reader model)
    (sequence :initarg :sequence :type symbol :reader sequence)
@@ -53,6 +55,13 @@ these parameters."))
 
 (defmethod table-old ((params model-parameters))
   (qualified-name (sym-suffix (model params) "old") *pgj-schema*))
+
+;; The idea is that we can now write (see util for with-readers):
+;; (with-readers (model jdoc table) (get-model-parameters 'foo)
+;;   ; model, jdoc, table are locally bound here to the result
+;;   ; of calling their respective reader function.  So we don't
+;;   ; care if it's a slot or a method.
+;;   )
 
 (defun make-model-parameters (model &key (sequence *pgj-sequence*)
                                          (key *key*) (key-type *key-type*)
