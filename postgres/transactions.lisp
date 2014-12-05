@@ -23,17 +23,20 @@
 ;;; 'isolation level'.  For calculating congruence of nested
 ;;; transactions, the true isolation level is all that matters...
 
-(defprepared serializable-rw
-    (:raw "set transaction isolation level serializable read write"))
+;; These started out as prepared functions but Postgres was sending
+;; back "SET TRANSACTION ISOLATION LEVEL must be called before any
+;; query" errors so now they are just constants without ears muffs.
+(define-constant serializable-rw
+  "set transaction isolation level serializable read write" :test 'string=)
 
-(defprepared repeatable-read-rw
-    (:raw "set transaction isolation level repeatable read read write"))
+(define-constant repeatable-read-rw
+  "set transaction isolation level repeatable read read write" :test 'string=)
 
-(defprepared read-committed-ro
-    (:raw "set transaction isolation level read committed read only"))
+(define-constant read-committed-ro
+  "set transaction isolation level read committed read only" :test 'string=)
 
-(defprepared read-committed-rw
-    (:raw "set transaction isolation level read committed read write"))
+(define-constant read-committed-rw
+  "set transaction isolation level read committed read write" :test 'string=)
 
 ;; This should be thread safe as it it only ever bound local to a
 ;; specific thread.
@@ -94,7 +97,7 @@ output.  The result of evaluating the BODY forms is returned."
            (flet ((,tran-fn ()
                     (log:debug "Starting transaction ~A" ',label)
                     (with-transaction ()
-                      (,isolation-level)
+                      (query ,isolation-level)
                       (let ((*top-isolation-level* ',isolation-level))
                         (multiple-value-prog1 (,body-fn)
                           (log:debug "Completing transaction ~A" ',label))))))
