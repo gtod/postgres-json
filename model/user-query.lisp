@@ -1,81 +1,113 @@
 (in-package :postgres-json)
 
+;;;; JSON queries syntactic sugar
+
 ;;; S-SQL largely supports the various JSON operators and "does the
-;;; right thing" for function syntax such as (:json-build-object ...)
-;;; below (see the Postgres JSON doc on this and other functions).
-;;; But it's a little verbose (I think) and so some more consise
-;;; forms may be used as shown here.  It's all still S-SQL but any
-;;; list with car 'j-> or 'j->> gets the expansions shown when used
-;;; to define the query with DEFINE-QUERY.
+;;; right thing" for function syntax such as (:json-build-object ...),
+;;; see the Postgres 9.4 JSON doc on this and other functions.
+;;; But it's a little verbose (I think) and so some more consise forms
+;;; are defined here.  Everything else is still S-SQL but any list with
+;;; car 'j-> or 'j->> or 'jbuild gets the expansions shown when
+;;; used with DEFINE-QUERY.
 
-;;; See the Postgres 9.4 manual for information on JSON operators and
-;;; functions.
+;; Of course, we should use the full model name, but :as assignments
+;; will also work!  maybe build only needs -> ?  Let's assume that for
+;; now
 
-;; (subst-sugar-in-query
-;;                 '((j-> "id")
-;;                   (j->> "id")
-;;                   (j-> 'c.jdoc "id")
-;;                   (j->> 'c.jdoc "id")
-;;                   (j-> "id" "name")
-;;                   (j->> "id" "name")
-;;                   (j-> 'd.jdoc "id" "name")
-;;                   (j->> 'd.jdoc "id" "name" "age")))
-;; ((:-> 'JDOC "id")
-;;  (:->> 'JDOC "id")
-;;  (:-> 'C.JDOC "id")
-;;  (:->> 'C.JDOC "id")
-;;  (:JSON-BUILD-OBJECT "id" (:-> 'JDOC "id") "name" (:-> 'JDOC "name"))
-;;  (:JSON-BUILD-OBJECT "id" (:->> 'JDOC "id") "name" (:->> 'JDOC "name"))
-;;  (:JSON-BUILD-OBJECT "id" (:-> 'D.JDOC "id") "name" (:-> 'D.JDOC "name"))
-;;  (:JSON-BUILD-OBJECT "id" (:->> 'D.JDOC "id") "name" (:->> 'D.JDOC "name") "age" (:->> 'D.JDOC "age")))
+#|
+sugar                ; S-SQL
 
-;;; Furthermore, named parameters to the query may be explicity
-;;; interpolated.  Here we provide the names of explicit parameters
-;;; to the query (filter email-regex) and these are replaced in the
-;;; query form with '$1, '$2 etc...
+(j-> "id")           ; (:-> 'jdoc "id")
+(j-> 'cat "id")      ; (:-> 'cat.jdoc "id").
+(j->> 'c "id")       ; (:->> 'c.jdoc "id").
 
-;; (define-query ready-bookings$ (filter email-regex)
-;;   (:order-by
-;;    (:select (j->> "id" "name" "email")
-;;     :from 'booking
-;;     :where (:and (:or (:@> 'jdoc filter))
-;;                  (:~ (j->> "email") email-regex)))
-;;    (:type (j->> "price") real)))
+(jbuild ("id" "name"))      ; (:JSON-BUILD-OBJECT "id" (:-> 'JDOC "id") "name" (:-> 'JDOC "name"))
+(jbuild ('cat "id" "name")) ; (:JSON-BUILD-OBJECT "id" (:-> 'CAT.JDOC "id") "name" (:-> 'CAT.JDOC "name"))
 
-(defun nsubst-json-builder (form op tree)
-  (labels ((nsubst-key (column key)
-             (let ((new `(,op ,column ,key)))
-               (nsubst new form tree :test #'equal)))
-           (nsubst-keys (column keys)
-             (let ((pairs '()))
-               (dolist (key keys)
-                 (push key pairs)
-                 (push `(,op ,column ,key) pairs))
-               (let ((new `(:json-build-object ,@(reverse pairs))))
-                 (nsubst new form tree :test #'equal))))
-           (explicit-column-p ()
-             (listp (cadr form)))
-           (single-key-p ()
-             (= (if (explicit-column-p) 3 2) (length form))))
-    (if (explicit-column-p)
-        (if (single-key-p)
-            (nsubst-key (cadr form) (caddr form))
-            (nsubst-keys (cadr form) (cddr form)))
-        (if (single-key-p)
-            (nsubst-key '(quote jdoc) (cadr form))
-            (nsubst-keys '(quote jdoc) (cdr form))))))
+(jbuild ('cat "id" "name") ('dog "age"))                 ; OK, no duplicated keys
+(jbuild ('cat "id" "name") ('dog ("dog-id" "id") "age")) ; Explicitly label duplicate key
+
+
+j-> and j->> only take one or two args.  Examples above.
+
+jbuild takes 1 or more lists as args:
+
+If the list starts with a symbol (or quoted symbol) then that is used
+to qualify all the jdoc accesses for the following keys.  Keys may be
+strings (double duty as the label and the accessor) or a pair of
+strings in a list, the first being the label and the second the accessor.
+
+|#
+
+(defun model-from-list-head (head)
+  "You can write \(jbuild \('cat \"id\"\)\) or without the quote:
+\(jbuild \(cat \"id\"\)\)."
+  (if (or (symbolp head) (consp head))
+      (if (symbolp head) head (cadr head))
+      nil))
+
+(defun nsubst-json-build (sugar tree)
+  (let ((pairs '()))
+    (flet ((nsubst-keys (column keys)
+             (dolist (key keys)
+               (let ((label (if (consp key) (car key) key))
+                     (key (if (consp key) (cadr key) key)))
+                 (push label pairs)
+                 (push `(:-> ,column ,key) pairs)))))
+      (dolist (form (cdr sugar))
+        (let ((model (model-from-list-head (car form))))
+          (if model
+              (nsubst-keys `(quote ,(sym t model ".jdoc")) (cdr form))
+              (nsubst-keys `(quote ,(sym t 'jdoc)) form))))
+      (let ((new `(:json-build-object ,@(reverse pairs))))
+        (nsubst new sugar tree :test #'equal))
+      (values))))
+
+(defun nsubst-json-op (sugar op tree)
+  "Turn \(j-> \"id\"\) into \(:-> 'jdoc \"id\"\) and
+\(j->> 'cat \"id\"\) into \(:->> 'cat.jdoc \"id\"\).
+SUGAR is the incoming form to be transformed.  OP must be either :->
+or :->> and TREE a tree in which we perform the NSUBST.  Nothing is
+returned, TREE is destructively modifed."
+  (flet ((nsubst-key (column key)
+           (let ((new `(,op ,column ,key)))
+             (nsubst new sugar tree :test #'equal))))
+    (let ((model (model-from-list-head (cadr sugar))))
+      (if model
+          (nsubst-key `(quote ,(sym t model ".jdoc")) (caddr sugar))
+          (nsubst-key `(quote ,(sym t 'jdoc)) (cadr sugar))))
+    (values)))
 
 (defun subst-sugar-in-query (form)
   "Replace all POSTGRES-JSON syntactic sugar variants in the S-SQL
 FORM with their true S-SQL representations."
   (let ((tree (copy-tree form)))
     (flet ((handle (form)
-             (when (and (listp form) (symbolp (car form)))
+             (when (and (consp form) (symbolp (car form)) (not (keywordp (car form))))
                (let ((head (symbol-name (car form))))
-                 (cond ((string-equal "j->" head) (nsubst-json-builder form :-> tree))
-                       ((string-equal "j->>" head) (nsubst-json-builder form :->> tree)))))))
+                 (cond ((string-equal "j->" head) (nsubst-json-op form :-> tree))
+                       ((string-equal "j->>" head) (nsubst-json-op form :->> tree))
+                       ((string-equal "jbuild" head) (nsubst-json-build form tree)))))))
       (walk-tree #'handle tree))
     tree))
+
+;;;; JSON queries named parameter interpolation
+
+;;; Named parameters to the query may be explicity interpolated.  Here
+;;; we provide the names of explicit parameters to the query
+;;; (filter email-regex) and these are replaced in the query form
+;;; with '$1, '$2 etc...  You MUST provide explicit names for each
+;;; parameter as these become the parameters of the ready-bookings$
+;;; function.  You MAY write the params inline as shown below, or still
+;;; write '$1, '$2 explicitly as in S-SQL.
+
+;; (define-query ready-bookings$ (filter email-regex)
+;;   (:order-by
+;;    (:select (jbuild ("id" "name" "email"))
+;;     :from 'booking
+;;     :where (:and (:or (:@> 'jdoc filter))
+;;                  (:~ (j->> "email") email-regex)))
+;;    (:type (j->> "price") real)))
 
 (defun subst-params-in-query (query-params query-form)
   "Walk the QUERY-FORM and substitute and symbol matching a symbol in
@@ -86,6 +118,19 @@ order in QUERY-PARAMS."
           for i from 1
           do (nsubst `(quote ,(sym t "$" i)) param tree))
     tree))
+
+;;;; Define query and support
+
+;;; The 'containment' operator @> checks if some json you send as a
+;;; query argument is contained in the jdoc column of a specifc model.
+;;; Typically you don't have JSON in the lisp program, you have say a
+;;; hash-table which needs to be serialized to JSON for this to work.
+;;; So lifting the syntax idea from cl-ppcre:register-groups-bind you
+;;; can specify in the parameter a function to map the actual argument
+;;; from itself to something else.  So the example above assumes your
+;;; 'filter arg is already JSON.  But we can write the params list as
+;;; ((*to-json* filter) email-regex) to map filter from a hash-table
+;;; to a JSON string when ready-bookings$ is called...
 
 (defun decompose-query-params-list (query-params)
   "Turns (foo (*to-json* bar baz) blot) into two values:
@@ -121,43 +166,3 @@ QUERY-PARAMS list, as long as *to-json* is funcallable."
            (defun ,name (,@params &key (from-json *from-json*))
              (let (,@transforms)
                (mapcar from-json (funcall ,query-function ,@params)))))))))
-
-
-;; (define-query ready-bookings$ (filter email-regex)
-;;   (:order-by
-;;    (:select (j->> "id" "name" "email" "state")
-;;     :from 'booking
-;;     :where (:and (:or (:@> 'jdoc filter))
-;;                  (:~ (j->> "email") email-regex)))
-;;    (:type (j->> "price") real)))
-
-;; (define-query animals$ ()
-;;   (:select (j->> 'c.jdoc "name" "coat")
-;;    :from (:as 'cat 'c)
-;;    :inner-join (:as 'dog 'd)
-;;    :on (:= (j->> 'c.jdoc "name") (j->> 'd.jdoc "name"))))
-
-;; (defun ready-bookings (model filter-object email-regex
-;;                        &key (to-json *to-json*) (from-json *from-json*))
-;;   (ensure-model-query model 'ready-bookings$)
-;;   (ensure-transaction-level (filter read-committed-ro)
-;;     (mapcar from-json (ready-bookings$ (funcall to-json filter-object) email-regex))))
-
-
-;; Helpers should provide some syntactic sugar
-;; and do the automatic to-json for incoming filters
-;; and the from-json from returing JSON
-;; Maybe we specify if it *returns* json (the default)
-;; And maybe we specific incoming params that need to-json
-
-;;; You know, key and jdoc as mode params are just a wast of time.
-;;; They should be hard coded, what hope have we got of writing queries?
-;;; But what of compound primary keys?
-;;; Do we need model params at all?  table and old table can be made on demand
-;;; from the model symbol!!
-;;; Well, we do need key-type (eg. uuid) and (maybe) jdoc-type.  But would
-;;; be simpler if it was just key (compound) and key-type...
-
-;;; As far as I can tell we need to cast any JSON numeric field to an
-;;; appropriate Postgres type (eg. int) before doing a numeric
-;;; comparison on it...
