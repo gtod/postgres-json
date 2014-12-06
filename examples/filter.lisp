@@ -4,7 +4,7 @@
 
 (in-package :filtering)
 
-(defparameter *models* '(cat dog human prime))
+(defparameter *models* '(cat dog prime))
 
 (defun create ()
   (unless (and pomo:*database* (pomo:connected-p pomo:*database*))
@@ -29,10 +29,6 @@
   (insert 'cat (obj "name" "Max" "coat" "graphite" "age" 2))
 
   (insert 'dog (obj "name" "Rex" "coat" "graphite" "age" 3.5))
-
-  (insert 'human (obj "name" "Horace"))
-  (insert 'human (obj "name" "Morris"))
-  (insert 'human (obj "name" "Doris"))
 
   (insert 'prime '(7 11 13)))
 

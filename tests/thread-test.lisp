@@ -12,9 +12,6 @@
 
 (log:config :debug)
 
-(defparameter *bookings-json-file*
-  (merge-pathnames "tests/bookings.json" (asdf:system-source-directory :postgres-json)))
-
 (defparameter *connection* '("cusoon" "gtod" "" "localhost" :port 5433 :pooled-p t))
 
 ;;;; Implementation
