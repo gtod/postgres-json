@@ -160,7 +160,7 @@ documented in model/user-query.lisp.  In fact, elements of
 QUERY-PARAMS may be lists of the form (function-designator &rest
 params) in which case the PARAMS are still treated as parameters (in
 order) but at run time FUNCTION-DESIGNATOR is called on each of the
-actual arguments of the PARAMS to transfrom said arguments before use
+actual arguments of the PARAMS to transform said arguments before use
 by the underlying query.  For example: (foo (*to-json* bar baz) blot)
 is an acceptable QUERY-PARAMS list, as long as *to-json* is
 funcallable."
