@@ -65,3 +65,33 @@
 (defun existence ()
   (show (length (exists 'cat "name")))
   (show (exists 'cat "trips")))
+
+(define-json-query ready-bookings$ ((*to-json* filter) email-regex)
+  (:order-by
+   (:select (jbuild ("id" "name" "email"))
+    :from 'booking
+    :where (:and (:or (:@> 'jdoc filter))
+                 (:~ (j->> "email") email-regex)))
+   (:type (j->> "price") real)))
+
+(define-json-query some-bookings$ ()
+  (:limit
+   (:select (jbuild ("id" "name" "email"))
+    :from 'booking)
+   5))
+
+(define-json-query animals$ ()
+  (:select (jbuild (cat "name") (dog "age"))
+   :from 'cat
+   :inner-join 'dog
+   :on (:= (j->> cat "coat") (j->> dog "coat"))))
+
+;;; As far as I can tell we need to cast any JSON numeric field to an
+;;; appropriate Postgres type (eg. int) before doing a numeric
+;;; comparison on it...
+
+;;; You want jbuild or a single j-> in the :select clause otherwise
+;;; it's not JSON you will be getting back from the DB!
+
+;;; Is j-> and jbuild always dealing with just top level keys?
+

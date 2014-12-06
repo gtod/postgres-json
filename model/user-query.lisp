@@ -119,7 +119,11 @@ order in QUERY-PARAMS."
           do (nsubst `(quote ,(sym t "$" i)) param tree))
     tree))
 
-;;;; Define query and support
+(defun json-query-to-s-sql (query-form &optional params)
+  "Transfrom our JSON QUERY-FORM into S-SQL, interpolating PARAMS."
+  (subst-sugar-in-query (subst-params-in-query params query-form)))
+
+;;;; Define json query and support
 
 ;;; The 'containment' operator @> checks if some json you send as a
 ;;; query argument is contained in the jdoc column of a specifc model.
@@ -148,19 +152,20 @@ for use in the define-query macro."
             (push form params)))
       (values (nreverse params) (nreverse transforms))))
 
-(defmacro define-query (name (&rest query-params) &body query)
+(defmacro define-json-query (name (&rest query-params) &body query)
   "Define a Postmodern S-SQL based QUERY with name NAME, a symbol,
-using both the 'named parameters syntax' for each symbol in the list
-QUERY-PARAMS and the 'JSON access syntactic sugar', both documented in
-model/user-query.lisp.  In fact, elements of QUERY-PARAMS may be lists
-of the form (function-designator &rest params) in which case the
-PARAMS are still treated as parameters (in order) but at run time
-FUNCTION-DESIGNATOR is called on each of the actual arguments of the
-PARAMS to transfrom said arguments before use by the underlying query.
-For example: (foo (*to-json* bar baz) blot) is an acceptable
-QUERY-PARAMS list, as long as *to-json* is funcallable."
+using both the 'named parameters interpolation' for each symbol in the
+list QUERY-PARAMS and the 'JSON queries syntactic sugar', both
+documented in model/user-query.lisp.  In fact, elements of
+QUERY-PARAMS may be lists of the form (function-designator &rest
+params) in which case the PARAMS are still treated as parameters (in
+order) but at run time FUNCTION-DESIGNATOR is called on each of the
+actual arguments of the PARAMS to transfrom said arguments before use
+by the underlying query.  For example: (foo (*to-json* bar baz) blot)
+is an acceptable QUERY-PARAMS list, as long as *to-json* is
+funcallable."
   (multiple-value-bind (params transforms) (decompose-query-params-list query-params)
-    (let ((s-sql-query (subst-sugar-in-query (subst-params-in-query params (car query)))))
+    (let ((s-sql-query (json-query-to-s-sql (car query) params)))
       (with-unique-names (query-function)
         `(let ((,query-function (prepare ,s-sql-query :column)))
            (defun ,name (,@params &key (from-json *from-json*))
