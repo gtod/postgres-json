@@ -131,6 +131,10 @@ join dog d on (c.jdoc->'name' = d.jdoc->'name');
   ordered list or a map.  And stashing the key in your JSON obj would
   be the same.
 
+* There are some fascinating Postgres functions for the jsonb type:
+  `select distinct jsonb_object_keys(jdoc) from cat;`.  What use
+  might we put the to?
+
 * We've gone to a single backend schema for simplicity but it should not
   be too hard to support arbitrary schemata.  It's just I don't want to
   mess up the interface functions too much:
