@@ -13,6 +13,7 @@
                 #:delete-all
                 #:filter
                 #:exists
+                #:history
                 #:keys)
   (:export
    #:get
@@ -25,4 +26,5 @@
    #:delete-all
    #:filter
    #:exists
+   #:history
    #:keys))

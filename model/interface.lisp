@@ -134,3 +134,16 @@ JSONB_PATH_OPS on MODEL."
   (ensure-model-query model 'exists$)
   (ensure-transaction-level (contains read-committed-ro)
     (mapcar from-json (exists$ model string))))
+
+(defun history (model key &key (from-json *from-json*))
+  "Returns a list, in chronological order, of all previous values of
+the object with primary key KEY, of type compatible with Postgres type
+KEY-TYPE in the model's parameters, in MODEL, a symbol.  If such
+objects exist return a parse of each JSON string by the the function
+of one argument designated by FROM-JSON.  If the object has no
+history, return nil."
+  (log:debu4 "List history of object with key ~A from ~A" key model)
+  (ensure-model-query model 'history$)
+  (let ((column (ensure-transaction-level (get read-committed-ro)
+                  (history$ model key))))
+    (mapcar from-json column)))

@@ -118,6 +118,12 @@ FORMAT must be a valid Postmodern results format."
          :where (:? 'jdoc '$1))
      :column))
 
+(make-query history$ (key) (table-old key)
+    ('`(:order-by
+        (:select 'jdoc :from ,table-old :where (:= ',key '$1))
+        'valid-to)
+     :column))
+
 ;;;; Functions in the model interface must ensure the DB queries they
 ;;;; intend to use exist, by calling ENSURE-MODEL-QUERY
 
