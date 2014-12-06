@@ -25,14 +25,15 @@ new primary key."
       (nth-value 0 (insert$ model key (funcall to-json object))))))
 
 (defun update (model key object &key (stash-key *stash-key*) (to-json *to-json*))
-  "Update the current value of the object with primary key KEY (of type
-compatible with Postgres type *KEY-TYPE*) in backend MODEL, a symbol,
-to be the JSON serialization of OBJECT.  If STASH-KEY is non null we
-FUNCALL it with two arguments: the value of the key to be used for the
-DB insert and OBJECT.  It should return an object which will be used
-in the place of the original.  TO-JSON must be a function designator
-for a function of one argument to serialize lisp objects to JSON
-strings.  Returns KEY on success, NIL if there was no such KEY found."
+  "Update the current value of the object with primary key KEY, of
+type compatible with Postgres type KEY-TYPE in the model's parameters,
+in backend MODEL, a symbol, to be the JSON serialization of OBJECT.
+If STASH-KEY is non null we FUNCALL it with two arguments: the value
+of the key to be used for the DB insert and OBJECT.  It should return
+an object which will be used in the place of the original.  TO-JSON
+must be a function designator for a function of one argument to
+serialize lisp objects to JSON strings.  Returns KEY on success, NIL
+if there was no such KEY found."
   (log:debu3 "Attempt update of ~A in ~A" key model)
   (ensure-model-query model 'insert-old$ 'update$)
   (ensure-transaction-level (update repeatable-read-rw)
@@ -42,10 +43,11 @@ strings.  Returns KEY on success, NIL if there was no such KEY found."
 
 (defun get (model key &key (from-json *from-json*))
   "Lookup the object with primary key KEY (of type compatible with
-Postgres type *KEY-TYPE*) in MODEL, a symbol.  If such an object exists
-return a parse of the JSON string by the the function of one argument
-designated by FROM-JSON (make it #'identity to return just the JSON
-string proper).  If the object does not exist, return nil."
+Postgres type KEY-TYPE in the model's parameters, in MODEL, a symbol.
+If such an object exists return a parse of the JSON string by the the
+function of one argument designated by FROM-JSON (make it #'identity
+to return just the JSON string proper).  If the object does not exist,
+return nil."
   (log:debu4 "Get object with key ~A from ~A" key model)
   (ensure-model-query model 'get$)
   (let ((jdoc (ensure-transaction-level (get read-committed-ro)
@@ -62,9 +64,9 @@ designated by FROM-JSON."
     (mapcar from-json (get-all$ model))))
 
 (defun delete (model key)
-  "Delete the object with primary key KEY (of type compatible with
-Postgres type *KEY-TYPE*).  Returns KEY on success, NIL if there was no
-such KEY found."
+  "Delete the object with primary key KEY, of type compatible with
+Postgres type KEY-TYPE in the model's parameters.  Returns KEY on
+success, NIL if there was no such KEY found."
   (log:debu3 "Attempt delete of object with key ~A from ~A" key model)
   (ensure-model-query model 'insert-old$ 'delete$)
   (ensure-transaction-level (delete repeatable-read-rw)
