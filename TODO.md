@@ -51,6 +51,12 @@ join dog d on (c.jdoc->'name' = d.jdoc->'name');
 * Test behaviour of nil, false, empty array etc on to-json, from-json
   etc.  Different libraries, different results.
 
+* Do we even need model-parameters serialized to the DB?  I suppose
+  for a compound primary key (if we support one) we would need to know
+  the names of the columns in the key...  And certainly if we want a
+  single sequence per table.  Having built them it's a premature op to
+  kill them off without proving they are useuless.
+
 ### Interface
 
 * Can the user user keywords instead of symbols when creating/accessing
