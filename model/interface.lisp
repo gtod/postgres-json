@@ -95,16 +95,32 @@ symbol, and the length of that list."
   (ensure-transaction-level (count read-committed-ro)
     (nth-value 0 (count$ model))))
 
-(defun contains (model object &key (to-json *to-json*) (from-json *from-json*))
-  "Return all objects in MODEL, a symbol, which contain (in the
-Postgres @> sense) the object OBJECT.  OBJECT will be JSON serialized
-by TO-JSON, a function designator for a function of one argument.  The
-returned JSON strings are parsed by the function of one argument
-designated by FROM-JSON."
-  (log:trace "Call contains on ~A" model)
-  (ensure-model-query model 'contains$)
-  (ensure-transaction-level (contains read-committed-ro)
-    (mapcar from-json (contains$ model (funcall to-json object)))))
+;; Implicit (or even explicit) assumption here that you are storing
+;; objects in your model, rather than arrays...
+(defun filter (model &key filter keys limit
+                          (to-json *to-json*) (from-json *from-json*))
+  "Return all objects in MODEL, a symbol, which 'contain' in the
+Postgres @> operator sense the object FILTER, which must serialize to
+a JSON object.  If FILTER is nil, apply no containment restriction.
+KEYS may be a list of strings being top level keys in the objects of
+model and only the values of said keys will be returned, bundled
+together in a JSON object.  If keys is nil the entire object will be
+returned.  LIMIT, if supplied, must be an integer that represents the
+maximum number of objects that will be returned.  FILTER will be JSON
+serialized by TO-JSON, a function designator for a function of one
+argument.  The returned JSON strings are parsed by the function of one
+argument designated by FROM-JSON.  This is _not_ a prepared query so
+extra care must be taken if KEYS or FILTER derive from unsanitized
+user input."
+  (let ((filter (if filter (funcall to-json filter) nil)))
+    (let ((select `(:select ,(if keys `(jbuild ,keys) 'jdoc)
+                    :from ',model
+                    :where ,(if filter `(:@> 'jdoc ,filter) "t"))))
+      (let ((query (if (integerp limit) `(:limit ,select ,limit) select)))
+        (ensure-transaction-level (filter read-committed-ro)
+          (mapcar from-json
+                  (query (sql-compile (json-query-to-s-sql query))
+                         :column)))))))
 
 (defun exists (model string &key (from-json *from-json*))
   "Return all objects in MODEL, a symbol, which have a top level

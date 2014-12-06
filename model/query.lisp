@@ -112,12 +112,6 @@ FORMAT must be a valid Postmodern results format."
     ('`(:select (:count '*) :from ,table)
      :single!))
 
-(make-query contains$ (json) (table)
-    ('`( :select 'jdoc
-         :from ,table
-         :where (:@> 'jdoc '$1))
-     :column))
-
 (make-query exists$ (json) (table)
     ('`( :select 'jdoc
          :from ,table
