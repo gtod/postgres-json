@@ -5,6 +5,7 @@
   ;; Specials
   (:export
    #:*pgj-schema*
+   #:*default-search-path*
    #:*to-json*
    #:*from-json*
    #:*stash-key*
@@ -19,7 +20,7 @@
    #:create-db-sequence
    #:create-backend
    #:backend-exists-p
-   #:set-default-search-path
+   #:alter-role-set-search-path
    #:create-model
    #:model-exists-p
    #:all-models

@@ -21,8 +21,27 @@ in a given PostgreSQL database."
   "Does the backend *PGJ-SCHEMA* exist?"
   (pomo:schema-exist-p *pgj-schema*))
 
-(defun set-default-search-path ()
-  (pomo:set-search-path (format nil "~A,public" (to-sql-name *pgj-schema*))))
+;; I _hate_ this search_path nonsense and have largely avoided it by
+;; using fully qualified relation names.  But DEFINE-MODEL-QUERY
+;; presents a challege I have not yet surmounted (we want to write
+;; 'cat not 'pgj_model.cat).  In the mean time we have this...  If
+;; you don't know anything about search paths this should do the job,
+;; and if you do you can look after yourself.
+(defparameter *default-search-path* (format nil "~A,public" (to-sql-name *pgj-schema*))
+  "The default value used by ALTER-ROLE-SET-SEARCH-PATH.")
+
+(defun alter-role-set-search-path (user &optional (search-path *default-search-path*))
+  "Alter the role of Postgres user USER, a string, to set the
+'search_path' setting to the string SEARCH-PATH.  In most cases this
+is what you want so than when defining your own queries with
+DEFINE-MODEL-QUERY unqualified relation names can be found in our
+default schema (which is not the PUBLIC schema).  This setting does
+_not_ effect the normal model interface functions such as GET and
+FILTER as they use fully qualified relation names at all times.  Will
+only take effect upon your next connection.  Beware, may be overridden
+by settings in your ~/.psqlrc file.  See also the Postgres
+documentation on search paths and settings."
+  (query (format nil "ALTER ROLE ~A SET search_path TO ~A" user search-path)))
 
 (defun create-model (model &optional (parameters (make-model-parameters model)))
   "Create the PostgreSQL tables and indexes for PostgreSQL JSON
