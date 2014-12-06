@@ -97,11 +97,11 @@ symbol, and the length of that list."
 
 ;; Implicit (or even explicit) assumption here that you are storing
 ;; objects in your model, rather than arrays...
-(defun filter (model &key filter keys limit
+(defun filter (model &key contain keys limit
                           (to-json *to-json*) (from-json *from-json*))
   "Return all objects in MODEL, a symbol, which 'contain' in the
-Postgres @> operator sense the object FILTER, which must serialize to
-a JSON object.  If FILTER is nil, apply no containment restriction.
+Postgres @> operator sense the object CONTAIN, which must serialize to
+a JSON object.  If CONTAIN is nil, apply no containment restriction.
 KEYS may be a list of strings being top level keys in the objects of
 model and only the values of said keys will be returned, bundled
 together in a JSON object.  If keys is nil the entire object will be
@@ -110,9 +110,9 @@ maximum number of objects that will be returned.  FILTER will be JSON
 serialized by TO-JSON, a function designator for a function of one
 argument.  The returned JSON strings are parsed by the function of one
 argument designated by FROM-JSON.  This is _not_ a prepared query so
-extra care must be taken if KEYS or FILTER derive from unsanitized
+extra care must be taken if KEYS or CONTAIN derive from unsanitized
 user input."
-  (let ((filter (if filter (funcall to-json filter) nil)))
+  (let ((filter (if contain (funcall to-json contain) nil)))
     (let ((select `(:select ,(if keys `(jbuild ,keys) 'jdoc)
                     :from ',model
                     :where ,(if filter `(:@> 'jdoc ,filter) "t"))))
