@@ -10,9 +10,11 @@
 ;;; car 'j-> or 'j->> or 'jbuild gets the expansions shown when
 ;;; used with DEFINE-QUERY.
 
-;; Of course, we should use the full model name, but :as assignments
-;; will also work!  maybe build only needs -> ?  Let's assume that for
-;; now
+;; You can use the full model name such as 'cat but :as assignments
+;; will also work.  The quote on 'cat or 'c is optional when using any
+;; of these j operators...
+
+;; Maybe jbuild only needs -> ?  Let's assume that for now.
 
 #|
 sugar                ; S-SQL
@@ -30,7 +32,7 @@ sugar                ; S-SQL
 
 j-> and j->> only take one or two args.  Examples above.
 
-jbuild takes 1 or more lists as args:
+JBUILD takes 1 or more lists as args:
 
 If the list starts with a symbol (or quoted symbol) then that is used
 to qualify all the jdoc accesses for the following keys.  Keys may be
@@ -47,6 +49,9 @@ strings in a list, the first being the label and the second the accessor.
       nil))
 
 (defun nsubst-json-build (sugar tree)
+  "Turn SUGAR forms like \(jbuild (\"id\" \"name\"\)\) into the full
+S-SQL :json-build-object function call form inside TREE destructively.
+Acceptable JBUILD syntax is documented in model/user-query.lisp."
   (let ((pairs '()))
     (flet ((nsubst-keys (column keys)
              (dolist (key keys)
