@@ -147,6 +147,23 @@ join dog d on (c.jdoc->'name' = d.jdoc->'name');
 
 ## Postmodern/Postgres maybe have
 
+### Prepared queries data types
+
+Would be nice to cast `min-balance` to Postgres `jsonb` here (instead
+of converting every balance to text and then to real) but Postmodern
+prepared queries do not support types, so when we do (to-json
+min-balance) the parser doesn't know what type min-balance is...
+
+```common-lisp
+(define-json-query rich-humans$ (min-balance gender)
+  (:order-by
+   (:select (jbuild ("key" "guid" "gender" "name" "balance"))
+    :from 'human
+    :where (:and (:>= (:type (j->> "balance") real) min-balance)
+                 (:= (j->> "gender") gender)))
+   (:type (j->> "balance") real)))
+```
+
 ###  Batched Postgres row fetching
 
 The postmodern layer of query and prepare over cl-postgres is pretty
