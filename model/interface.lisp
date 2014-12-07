@@ -135,6 +135,21 @@ without JSONB_PATH_OPS on MODEL."
   (ensure-transaction-level (contains read-committed-ro)
     (mapcar from-json (exists$ model key))))
 
+(defun distinct (model key &key (from-json *from-json*))
+  "Return all distinct values of the top level KEY, a string, in
+MODEL, a symbol.  Every object must have a top level key KEY.  The
+returned JSON object strings are parsed by the function of one
+argument designated by FROM-JSON.  This query is _not_ prepared so
+care must be taken that KEY is sanitized if derives from arbitrary
+user input."
+  (let ((query `(:select (j-> ,key)
+                 :distinct
+                 :from ',model)))
+    (ensure-transaction-level (filter read-committed-ro)
+      (mapcar from-json
+              (query (sql-compile (json-query-to-s-sql query))
+                     :column)))))
+
 (defun history (model key &key (from-json *from-json*))
   "Returns a list, in chronological order, of all previous values of
 the object with primary key KEY, of type compatible with Postgres type
