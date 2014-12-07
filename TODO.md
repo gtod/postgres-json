@@ -110,6 +110,9 @@ join dog d on (c.jdoc->'name' = d.jdoc->'name');
 * Unicode handling tests.  UTF-8, 16?  For web deployment investigate
   quri.
 
+* Clear up to what extent we are assuming the contents of 'jdoc are
+  objects rather than arrays (or even scalars)...
+
 ## Maybe have
 
 * I could wrap the serialization failure condition and send a nice
