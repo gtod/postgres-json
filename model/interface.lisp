@@ -124,16 +124,16 @@ user input."
                   (query (sql-compile (json-query-to-s-sql query))
                          :column)))))))
 
-(defun exists (model string &key (from-json *from-json*))
+(defun exists (model key &key (from-json *from-json*))
   "Return all objects in MODEL, a symbol, which have a top level
-object key or array element STRING, in the Postgres ? sense.  The
-returned JSON strings are parsed by the function of one argument
-designated by FROM-JSON.  Requires a Potgres GIN index without
-JSONB_PATH_OPS on MODEL."
+object key or array element KEY, a string, in the Postgres ? sense.
+The returned JSON object strings are parsed by the function of one
+argument designated by FROM-JSON.  Requires a Potgres GIN index
+without JSONB_PATH_OPS on MODEL."
   (log:trace "Call exists on ~A" model)
   (ensure-model-query model 'exists$)
   (ensure-transaction-level (contains read-committed-ro)
-    (mapcar from-json (exists$ model string))))
+    (mapcar from-json (exists$ model key))))
 
 (defun history (model key &key (from-json *from-json*))
   "Returns a list, in chronological order, of all previous values of
