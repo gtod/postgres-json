@@ -68,6 +68,11 @@ Acceptable JBUILD syntax is documented in model/user-query.lisp."
         (nsubst new sugar tree :test #'equal))
       (values))))
 
+;; (to-json foo) becomes (:type (:to-json foo) jsonb)
+(defun nsubst-to-json (sugar tree)
+  (let ((form (cadr sugar)))
+    (nsubst `(:type (:to-json ,form) jsonb) sugar tree :test #'equal)))
+
 (defun nsubst-json-op (sugar op tree)
   "Turn \(j-> \"id\"\) into \(:-> 'jdoc \"id\"\) and
 \(j->> 'cat \"id\"\) into \(:->> 'cat.jdoc \"id\"\).
@@ -92,7 +97,8 @@ FORM with their true S-SQL representations."
                (let ((head (symbol-name (car form))))
                  (cond ((string-equal "j->" head) (nsubst-json-op form :-> tree))
                        ((string-equal "j->>" head) (nsubst-json-op form :->> tree))
-                       ((string-equal "jbuild" head) (nsubst-json-build form tree)))))))
+                       ((string-equal "jbuild" head) (nsubst-json-build form tree))
+                       ((string-equal "to-json" head) (nsubst-to-json form tree)))))))
       (walk-tree #'handle tree))
     tree))
 
