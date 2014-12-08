@@ -1,13 +1,7 @@
-;;;; Qualified access to the Postgres JSON model interface.
-
-;;;; We still use the top level interface functions from
-;;;; :postgres-json as none of these clash with common lisp exported
-;;;; symbols...
-
-(defpackage :simple-2
+(defpackage :simple
   (:use :cl :postgres-json))
 
-(in-package :simple-2)
+(in-package :simple)
 
 (defun create ()
   (unless (and pomo:*database* (pomo:connected-p pomo:*database*))
@@ -19,27 +13,27 @@
     (create-model 'cat)))
 
 (defun insert-some-cats ()
-  (pj:insert 'cat (obj "name" "Joey" "coat" "tabby"))
-  (pj:insert 'cat (obj "name" "Maud" "coat" "tortoiseshell"))
-  (pj:insert 'cat (obj "name" "Max" "coat" "ginger"))
+  (insert 'cat (obj "name" "Joey" "coat" "tabby"))
+  (insert 'cat (obj "name" "Maud" "coat" "tortoiseshell"))
+  (insert 'cat (obj "name" "Max" "coat" "ginger"))
 
-  (format t "Cat keys: ~A~%" (pj:keys 'cat))
+  (format t "Cat keys: ~A~%" (keys 'cat))
 
-  (pj:delete 'cat (first (pj:keys 'cat)))
+  (erase 'cat (first (keys 'cat)))
 
-  (format t "Cat keys: ~A~%" (pj:keys 'cat))
+  (format t "Cat keys: ~A~%" (keys 'cat))
 
-  (pp-json (pj:get 'cat (second (pj:keys 'cat))))
+  (pp-json (fetch 'cat (second (keys 'cat))))
 
-  (format t "~%Total cats: ~A~%" (pj:count 'cat))
+  (format t "~%Total cats: ~A~%" (tally 'cat))
 
-  (let* ((key (first (pj:keys 'cat)))
-         (cat (pj:get 'cat key)))
+  (let* ((key (first (keys 'cat)))
+         (cat (fetch 'cat key)))
     (setf (gethash "age" cat) 7)
     (setf (gethash "likes" cat) '("rain" "sunflowers"))
-    (pj:update 'cat key cat))
+    (update 'cat key cat))
 
-  (pp-json (pj:get-all 'cat)))
+  (pp-json (fetch-all 'cat)))
 
 (defun drop ()
   (drop-model! 'cat))
