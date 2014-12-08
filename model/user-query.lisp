@@ -101,21 +101,19 @@ accessor.
 
 (defparameter *json-sugar-list-heads* '("j->" "j->>" "jbuild" "to-jsonb"))
 
-(defun subst-json-sugar (sugary-form)
-  "Replace all POSTGRES-JSON syntactic sugar variants in the
-SUGARY-FORM with their true S-SQL representations.  Any JSON syntactic
-sugar form must be an element, rather than the root node, of
-SUGARY-FORM."
-  (let ((transform '()))
-    (flet ((handle (form)
-             (when (and (consp form) (symbolp (car form)) (not (keywordp (car form))))
-               (let ((head (symbol-name (car form))))
-                 (when (member head *json-sugar-list-heads* :test #'string-equal)
-                   (push form transform))))))
-      (walk-tree #'handle sugary-form)
-      (let ((tree (copy-tree sugary-form)))
-        (dolist (form transform tree)
-          (nsubst (macroexpand-1 form) form tree :test #'equal))))))
+;; Based on Graham's On Lisp 5.6
+(defun subst-json-sugar (tree)
+  "Replace all POSTGRES-JSON syntactic sugar variants in TREE with
+their S-SQL representations."
+  (if (atom tree)
+      tree
+      (let ((car (car tree)))
+        (when (and (symbolp car) (not (keywordp car)))
+          (let ((head (symbol-name car)))
+            (when (member head *json-sugar-list-heads* :test #'string-equal)
+              (setf tree (macroexpand-1 tree)))))
+        (cons (subst-json-sugar (car tree))
+              (if (cdr tree) (subst-json-sugar (cdr tree)))))))
 
 ;;;; JSON queries named parameter interpolation
 
