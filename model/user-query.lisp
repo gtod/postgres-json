@@ -4,11 +4,11 @@
 
 ;;; S-SQL largely supports the various JSON operators and "does the
 ;;; right thing" for function syntax such as (:json-build-object ...),
-;;; see the Postgres 9.4 JSON doc on this and other functions.
-;;; But it's a little verbose (I think) and so some more consise forms
-;;; are defined here.  Everything else is still S-SQL but any list with
-;;; car 'j-> or 'j->> or 'jbuild gets the expansions shown when
-;;; used with DEFINE-QUERY.
+;;; see the Postgres 9.4 JSON doc on this and other functions.  But
+;;; it's a little verbose (I think) and so some more consise forms are
+;;; defined here.  Everything else is still S-SQL but any list with
+;;; car 'j-> or 'j->> or 'jbuild or 'to-json gets the expansions shown
+;;; when used with DEFINE-QUERY.
 
 ;; You can use the full model name such as 'cat but :as assignments
 ;; will also work.  The quote on 'cat or 'c is optional when using any
@@ -17,27 +17,45 @@
 ;; Maybe jbuild only needs -> ?  Let's assume that for now.
 
 #|
+
+You can simply macroexpand the LHS form to get the RHS...
+
 sugar                ; S-SQL
 
 (j-> "id")           ; (:-> 'jdoc "id")
 (j-> 'cat "id")      ; (:-> 'cat.jdoc "id").
 (j->> 'c "id")       ; (:->> 'c.jdoc "id").
 
+(to-jsonb 1)         ; (:TYPE (:TO-JSON 1) JSONB)
+
 (jbuild ("id" "name"))      ; (:JSON-BUILD-OBJECT "id" (:-> 'JDOC "id") "name" (:-> 'JDOC "name"))
 (jbuild ('cat "id" "name")) ; (:JSON-BUILD-OBJECT "id" (:-> 'CAT.JDOC "id") "name" (:-> 'CAT.JDOC "name"))
 
-(jbuild ('cat "id" "name") ('dog "age"))                 ; OK, no duplicated keys
-(jbuild ('cat "id" "name") ('dog ("dog-id" "id") "age")) ; Explicitly label duplicate key
+;; OK, no duplicated keys
+(jbuild ('cat "id" "name") ('dog "age")) ->
+(:JSON-BUILD-OBJECT "id"  (:-> 'CAT.JDOC "id") "name" (:-> 'CAT.JDOC "name")
+                    "age" (:-> 'DOG.JDOC "age"))
 
+;; Explicitly label duplicate key
+(jbuild ('cat "id" "name") ('dog ("dog-id" "id") "age"))
+(:JSON-BUILD-OBJECT "id"     (:-> 'CAT.JDOC "id") "name" (:-> 'CAT.JDOC "name")
+                    "dog-id" (:-> 'DOG.JDOC "id") "age"  (:-> 'DOG.JDOC "age"))
 
-j-> and j->> only take one or two args.  Examples above.
+j-> and j->> only take one or two args. As shown above the relation
+name is optional, unless of course this would lead to ambiguity.
+The realtion name need not be quoted.  So 'cat or cat are both fine.
 
-JBUILD takes 1 or more lists as args:
+to-jsonb takes a single form as an argument, which will be converted
+by the Postgres TO-JSON function and then cast to the Postgres jsonb
+type.
+
+jbuild takes 1 or more lists as args:
 
 If the list starts with a symbol (or quoted symbol) then that is used
 to qualify all the jdoc accesses for the following keys.  Keys may be
 strings (double duty as the label and the accessor) or a pair of
-strings in a list, the first being the label and the second the accessor.
+strings in a list, the first being the label and the second the
+accessor.
 
 |#
 
@@ -48,10 +66,25 @@ strings in a list, the first being the label and the second the accessor.
       (if (symbolp head) head (cadr head))
       nil))
 
-(defun nsubst-json-build (sugar tree)
-  "Turn SUGAR forms like \(jbuild (\"id\" \"name\"\)\) into the full
-S-SQL :json-build-object function call form inside TREE destructively.
-Acceptable JBUILD syntax is documented in model/user-query.lisp."
+;;; We (and you can) macroexpand these macros to see what they
+;;; transform into, but they must not be evaluated, they are not lisp.
+
+(defmacro j-> (form1 &optional form2)
+  (if form2
+      (let ((model (model-from-list-head form1)))
+        `(:-> ',(sym t model ".jdoc") ,form2))
+      `(:-> ',(sym t 'jdoc) ,form1)))
+
+(defmacro j->> (form1 &optional form2)
+  (if form2
+      (let ((model (model-from-list-head form1)))
+        `(:->> ',(sym t model ".jdoc") ,form2))
+      `(:->> ',(sym t 'jdoc) ,form1)))
+
+(defmacro to-jsonb (form)
+  `(:type (:to-json ,form) jsonb))
+
+(defmacro jbuild (&rest key-forms)
   (let ((pairs '()))
     (flet ((nsubst-keys (column keys)
              (dolist (key keys)
@@ -59,48 +92,30 @@ Acceptable JBUILD syntax is documented in model/user-query.lisp."
                      (key (if (consp key) (cadr key) key)))
                  (push label pairs)
                  (push `(:-> ,column ,key) pairs)))))
-      (dolist (form (cdr sugar))
+      (dolist (form key-forms)
         (let ((model (model-from-list-head (car form))))
           (if model
               (nsubst-keys `(quote ,(sym t model ".jdoc")) (cdr form))
               (nsubst-keys `(quote ,(sym t 'jdoc)) form))))
-      (let ((new `(:json-build-object ,@(reverse pairs))))
-        (nsubst new sugar tree :test #'equal))
-      (values))))
+      `(:json-build-object ,@(reverse pairs)))))
 
-;; (to-json foo) becomes (:type (:to-json foo) jsonb)
-(defun nsubst-to-json (sugar tree)
-  (let ((form (cadr sugar)))
-    (nsubst `(:type (:to-json ,form) jsonb) sugar tree :test #'equal)))
+(defparameter *json-sugar-list-heads* '("j->" "j->>" "jbuild" "to-jsonb"))
 
-(defun nsubst-json-op (sugar op tree)
-  "Turn \(j-> \"id\"\) into \(:-> 'jdoc \"id\"\) and
-\(j->> 'cat \"id\"\) into \(:->> 'cat.jdoc \"id\"\).
-SUGAR is the incoming form to be transformed.  OP must be either :->
-or :->> and TREE a tree in which we perform the NSUBST.  Nothing is
-returned, TREE is destructively modifed."
-  (flet ((nsubst-key (column key)
-           (let ((new `(,op ,column ,key)))
-             (nsubst new sugar tree :test #'equal))))
-    (let ((model (model-from-list-head (cadr sugar))))
-      (if model
-          (nsubst-key `(quote ,(sym t model ".jdoc")) (caddr sugar))
-          (nsubst-key `(quote ,(sym t 'jdoc)) (cadr sugar))))
-    (values)))
-
-(defun subst-sugar-in-query (form)
-  "Replace all POSTGRES-JSON syntactic sugar variants in the S-SQL
-FORM with their true S-SQL representations."
-  (let ((tree (copy-tree form)))
+(defun subst-json-sugar (sugary-form)
+  "Replace all POSTGRES-JSON syntactic sugar variants in the
+SUGARY-FORM with their true S-SQL representations.  Any JSON syntactic
+sugar form must be an element, rather than the root node, of
+SUGARY-FORM."
+  (let ((transform '()))
     (flet ((handle (form)
              (when (and (consp form) (symbolp (car form)) (not (keywordp (car form))))
                (let ((head (symbol-name (car form))))
-                 (cond ((string-equal "j->" head) (nsubst-json-op form :-> tree))
-                       ((string-equal "j->>" head) (nsubst-json-op form :->> tree))
-                       ((string-equal "jbuild" head) (nsubst-json-build form tree))
-                       ((string-equal "to-json" head) (nsubst-to-json form tree)))))))
-      (walk-tree #'handle tree))
-    tree))
+                 (when (member head *json-sugar-list-heads* :test #'string-equal)
+                   (push form transform))))))
+      (walk-tree #'handle sugary-form)
+      (let ((tree (copy-tree sugary-form)))
+        (dolist (form transform tree)
+          (nsubst (macroexpand-1 form) form tree :test #'equal))))))
 
 ;;;; JSON queries named parameter interpolation
 
@@ -131,8 +146,9 @@ order in QUERY-PARAMS."
     tree))
 
 (defun json-query-to-s-sql (query-form &optional params)
-  "Transfrom our JSON QUERY-FORM into S-SQL, interpolating PARAMS."
-  (subst-sugar-in-query (subst-params-in-query params query-form)))
+  "Transform our JSON QUERY-FORM into S-SQL, interpolating the list of
+PARAMS, if any."
+  (subst-json-sugar (subst-params-in-query params query-form)))
 
 ;;;; Define json query and support
 
@@ -175,9 +191,9 @@ actual arguments of the PARAMS to transform said arguments before use
 by the underlying query.  For example: (foo (*to-json* bar baz) blot)
 is an acceptable QUERY-PARAMS list, as long as *to-json* is
 funcallable."
-  (multiple-value-bind (params transforms) (decompose-query-params-list query-params)
-    (let ((s-sql-query (json-query-to-s-sql (car query) params)))
-      (with-unique-names (query-function)
+  (with-unique-names (query-function)
+    (multiple-value-bind (params transforms) (decompose-query-params-list query-params)
+      (let ((s-sql-query (json-query-to-s-sql (car query) params)))
         `(let ((,query-function (prepare ,s-sql-query :column)))
            (defun ,name (,@params &key (from-json *from-json*))
              (let (,@transforms)

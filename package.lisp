@@ -30,6 +30,13 @@
    #:flush-prepared-queries
    #:make-model-parameters)
 
+  ;; JSON syntactic sugar for S-SQL queries
+  (:export
+   #:j->
+   #:j->>
+   #:to-jsonb
+   #:jbuild)
+
   ;; Trival helper functions
   (:export
    #:stash-key
