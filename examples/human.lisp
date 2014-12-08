@@ -31,8 +31,9 @@
 
 (defmacro with-pj-conn (() &body body)
   `(pomo:with-connection *connection*
-     ;; There is a small overhead for this, see (alter-role-set-search-path)
-     ;; for a more permanent solution.
+     ;; We only need to set the search path for DEFINE-JSON-QUERY,
+     ;; see below.  There is a small overhead for this, see
+     ;; (alter-role-set-search-path) for a more permanent solution.
      (pomo:set-search-path *default-search-path*)
      ,@body))
 
@@ -81,7 +82,7 @@
 
   (with-input-from-file (stream *human-file*)
     (with-model-transaction ()
-      ;; We need empty arrays to go in as empty arrays, not empty
+      ;; We need empty JSON arrays to go to Postgres as such, not empty
       ;; lists (ie. nil) so that :jsonb-array-length can work (see below).
       (loop for human across (yason:parse stream :json-arrays-as-vectors t)
             do (pj:insert 'human human)
@@ -118,27 +119,31 @@
     (show (pj:distinct 'human "favoriteFruit")))
   (values))
 
-;;;; User defined SQL queries for when FILTER does not cut it.
+;;;; User defined SQL queries for when FILTER and the other interface
+;;;; functions are not sufficient.
 
 ;;; These must return JSON objects only.
 ;;; Macroexpand away to see the generated SQL.
 
 ;;; Try slime-edit-definition (M-.) on DEFINE-JSON-QUERY to read
-;;; details on the syntactic sugar of j->, j->>, jbuild, to-json and
-;;; also named parameter interpolation.
+;;; details on the syntactic sugar of j->, j->>, jbuild, to-jsonb and
+;;; also the named parameter interpolation.
 
 (define-json-query rich-humans$ (min-balance gender)
   (:order-by
 
-   ;; jbuild makes a new JSON object with just the listed top level keys
+   ;; jbuild makes a new JSON object which consists of just the
+   ;; key/values pairs in the JSON document with the specified keys.
    (:select (jbuild ("key" "guid" "gender" "name" "balance"))
 
     :from 'human ;; this is why we need to set the search path above
                  ;; otherwise it would need to be 'pgj_model.history
 
-    ;; j->> is a little syntactic sugar to get at the top level keys in 'jdoc
-    ;; j->> returns text, so we must cast to Postgres number type for comparisons
+    ;; j->> is a little syntactic sugar to get at the top level keys
+    ;; in 'jdoc using the Postgres operator :->> which returns text.
+    ;; So we must cast to a Postgres number type for comparisons.
     :where (:and (:>= (:type (j->> "balance") real) min-balance)
+
                  (:= (j->> "gender") gender))) ;; can also do this using 'containment', see below
 
    (:type (j->> "balance") real)))
@@ -148,8 +153,10 @@
   (:select 'jdoc ;; 'jdoc is the generic name for the JSON column in all models
    :from 'human
 
-   ;; Our 'jdoc column is Postgres type jsonb so j-> returns
-   ;; Postgres jsonb, thus we apply jsonb functions to it...
+   ;; Our 'jdoc column is Postgres type jsonb.
+   ;; j-> is sugar for Postgres operator -> which returns a top level
+   ;; key in jdoc as Postgres type jsonb.  Thus we apply jsonb
+   ;; functions to it...
    :where (:and (:or (:@> 'jdoc filter))                     ;; Postgres json 'containment' op
                 (:= (:jsonb-array-length (j-> "friends")) 1) ;; Postgres jsonb function
                 (:~ (j->> "email") email-regex))))           ;; Postgres regex function
@@ -174,7 +181,7 @@
    ;; comparing it with key "quantity".  Postgres operator -> gives
    ;; the raw jsonb of the key while Postgres operator ->>
    ;; converts it to text.  This library only uses Postgres type
-   ;; jsonb. See also the Postgres docs at
+   ;; jsonb. See the Postgres docs at
    ;; http://www.postgresql.org/docs/9.4/static/functions-json.html
    ))
 
@@ -190,9 +197,10 @@
 
 ;; Make connection and set search path immediatley after
 ;; Foreign keys?  Promote to foreign key?  Yep, can't do in JSON...
-;; Domain consolidation? (distinct 'human "eyeColor")
 ;; Is the nsubst as we walk tree buggy?  Can we not save
 ;; up all desired subs and do them all together?
+;; Add valid-from and valid-to to returned history??
+;; maybe use default key names for these, but they can over-ride them...
 
 ;; We could promote to foreign key:
 ;; What key and Postgres type in your child model?  What master table?
