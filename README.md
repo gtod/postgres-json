@@ -114,7 +114,8 @@ arbitrarily nested lisp object of hash tables and lists as JSON.
 See [simple-1](examples/simple-1.lisp) for similar code to the above
 you can compile and run.  [simple-2](examples/simple-2.lisp) is
 similar but it does not shadow the common lisp symbols such as 'get
-and 'delete.
+and 'delete.  There is also an extended example and much commentary
+in [human](examples/human.lisp).
 
 Individual calls to a model function such as `insert` which write to
 the DB get their own transaction.  But if you start a model
@@ -157,8 +158,9 @@ with emacs M-. (ie. slime-edit-definition).
 #### Schema search paths
 
 We don't have to worry too much about schema search paths because the
-PG *qualified name* is baked into the model.  But you might want
-to set them when playing in PSQL:
+Postgres *qualified name* is harcoded into model based queries.  But
+they are important if you use the `define-json-query` macro and you
+might want to set them when playing in PSQL:
 
 ```sql
 SET search_path TO pgj_model, public;
@@ -255,18 +257,18 @@ objects you end up serializing to a specific model table pretty
 consistent in their content...
 
 However, I think it may well be practical to support referential
-integrity, based just on the primary key column in different
-models.  So we should be able to support a *CAT owns one or more
-HUMANS* relationship etc.  This is the point of using PostgreSQL for
-JSON: we can choose precisely how much of the old fashioned database
-goodness to go with the new fashioned JSON devil may care hedonism...
+integrity, based just on the primary key column in different models.
+So we should be able to support a *CAT owns one or more HUMANS*
+relationship etc.  This is the point of using PostgreSQL for JSON: we
+can choose precisely how much of the old fashioned database goodness
+to go with the new fashioned JSON devil may care hedonism...
 
 #### Transaction isolation levels
 
-See [transactions](postgres/transactions.lisp) for how `INSERT` and `UPDATE`
-handle isolation levels using a retry loop.  We are not using the
-default Postgres isolation level but rather `repeatable read`.  Do let
-me know if you think it should be `serializable` and why, I am no
+See [transactions](postgres/transactions.lisp) for how `INSERT` and
+`UPDATE` handle isolation levels using a retry loop.  We are not using
+the default Postgres isolation level but rather `repeatable read`.  Do
+let me know if you think it should be `serializable` and why, I am no
 expert.
 
 Also see project hermitage at https://github.com/ept/hermitage for

@@ -28,17 +28,15 @@
   (format t "Cat keys: ~A~%" (keys 'cat))
 
   (pp-json (get 'cat (second (keys 'cat))))
-  (terpri)
 
-  (format t "Total cats: ~A~%" (count 'cat))
+  (format t "~%Total cats: ~A~%" (count 'cat))
 
   (let* ((key (first (keys 'cat)))
          (cat (get 'cat key)))
     (setf (gethash "age" cat) 7)
     (update 'cat key cat))
 
-  (pp-json (get-all 'cat))
-  (terpri))
+  (pp-json (get-all 'cat)))
 
-(defun cleanup ()
+(defun drop ()
   (drop-model! 'cat))

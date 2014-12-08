@@ -69,10 +69,11 @@
 ;;;; Interface
 
 (defun create ()
-  (unless (model-exists-p 'human)
-    (with-model-transaction ()
-      (create-model 'human)
-      (create-model 'gift))))
+  (with-pj-conn ()
+    (unless (model-exists-p 'human)
+      (with-model-transaction ()
+        (create-model 'human)
+        (create-model 'gift)))))
 
 (defun load-humans ()
   (write-line "Loading humans...")
@@ -81,21 +82,24 @@
     (ql-http:fetch *human-url* *human-file*))
 
   (with-input-from-file (stream *human-file*)
-    (with-model-transaction ()
-      ;; We need empty JSON arrays to go to Postgres as such, not empty
-      ;; lists (ie. nil) so that :jsonb-array-length can work (see below).
-      (loop for human across (yason:parse stream :json-arrays-as-vectors t)
-            do (pj:insert 'human human)
-            finally (return (pj:count 'human))))))
+    (with-pj-conn ()
+      (with-model-transaction ()
+        ;; We need empty JSON arrays to go to Postgres as such, not empty
+        ;; lists (ie. nil) so that :jsonb-array-length can work (see below).
+        (loop for human across (yason:parse stream :json-arrays-as-vectors t)
+              do (pj:insert 'human human)
+              finally (return (pj:count 'human)))))))
 
 (defun cleanup ()
-  (with-model-transaction ()
-    (pj:delete-all 'human)
-    (pj:delete-all 'gift)))
+  (with-pj-conn ()
+    (with-model-transaction ()
+      (pj:delete-all 'human)
+      (pj:delete-all 'gift))))
 
 (defun drop ()
-  (drop-model! 'human)
-  (drop-model! 'gift))
+  (with-pj-conn ()
+    (drop-model! 'human)
+    (drop-model! 'gift)))
 
 ;;; Model functions that lightly wrap the SQL
 

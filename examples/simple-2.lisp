@@ -30,9 +30,8 @@
   (format t "Cat keys: ~A~%" (pj:keys 'cat))
 
   (pp-json (pj:get 'cat (second (pj:keys 'cat))))
-  (terpri)
 
-  (format t "Total cats: ~A~%" (pj:count 'cat))
+  (format t "~%Total cats: ~A~%" (pj:count 'cat))
 
   (let* ((key (first (pj:keys 'cat)))
          (cat (pj:get 'cat key)))
@@ -40,8 +39,7 @@
     (setf (gethash "likes" cat) '("rain" "sunflowers"))
     (pj:update 'cat key cat))
 
-  (pp-json (pj:get-all 'cat))
-  (terpri))
+  (pp-json (pj:get-all 'cat)))
 
-(defun cleanup ()
+(defun drop ()
   (drop-model! 'cat))
