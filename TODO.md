@@ -3,13 +3,6 @@ TODO
 
 ## Must have
 
-* Support querying of jsonb columns through Postmodern:
-
-```sql
-select c.jdoc->'name', c.jdoc->'coat', d.jdoc->'coat'
-from cat c
-join dog d on (c.jdoc->'name' = d.jdoc->'name');
-```
 * Investigate new lateral type in Postgres.
   https://news.ycombinator.com/item?id=8689159 and
   http://www.postgresql.org/docs/9.4/static/queries-table-expressions.html#QUERIES-LATERAL
@@ -19,6 +12,12 @@ join dog d on (c.jdoc->'name' = d.jdoc->'name');
   may have been related to dodgy transaction handling at the time...
 
 * Does it make sense to do two updates to same row in one tran?
+
+* Not happy with tran handling (still).  They user should be able to
+  do their own tran handling using Postmodern tran facilities without
+  our stuff getting in the way.  And they should be able to choose to
+  use the serialization failure retry macro with it as well.  Could we
+  redo the macro handling use Pomo logical trans?
 
 * Investigate making all integer keys bigints.  Seems like a premature
   optimization not too.  How hard would a manual migration be for the
@@ -55,19 +54,17 @@ join dog d on (c.jdoc->'name' = d.jdoc->'name');
   for a compound primary key (if we support one) we would need to know
   the names of the columns in the key...  And certainly if we want a
   single sequence per table.  Having built them it's a premature op to
-  kill them off without proving they are useuless.
+  kill them off without proving they are useuless.  In fact, they may
+  well be essential for "Foreign Key promotion".
 
 ### Interface
 
 * Can the user user keywords instead of symbols when creating/accessing
   models?  Where else are symbols used, are they keyword safe?
 
-* Filtering.  Simple filtering may not need full panoply of select
-  support mentioned above.
-
 * Get history of a specific object in a model.  With/without valid
-  stamps...?  Document why this is useful --- clashing updates form two
-  users are OK as either can see the full history and amend
+  stamps...?  Document why this is useful --- clashing updates from
+  two users are OK as either can see the full history and amend
   accordingly.
 
 * Timestamps in a JSON document: Either in the document or do we add
@@ -94,9 +91,7 @@ join dog d on (c.jdoc->'name' = d.jdoc->'name');
 
 * Stash valid_to, valid_from in objects from get-all?
 
-* Would be nice to lisply abstract the JSON select stuff from PG.  Of
-  course, you can still go to the DB directly if you like.
-* Make using Fkeys between tables easy...
+* Make using Fkeys between tables easy...  "Promote" to Fkey.
 
 * Would be nice to get our public API and docstrings converted to
   Markdown or other github supported markup lang in the simplest
@@ -125,18 +120,13 @@ join dog d on (c.jdoc->'name' = d.jdoc->'name');
 
 ## Nice to have
 
-* Could write a macro to find any use of DB query functions (they end
-  in $) and insert the appropriate ensure-model-query calls.  Little
-  bit tricky for run time decisions about (say) sequence-nextval$ but
-  that's a premature optimization anyway...
-
 * Compound primary keys shouldn't be too hard. We make it either an
   ordered list or a map.  And stashing the key in your JSON obj would
   be the same.
 
 * There are some fascinating Postgres functions for the jsonb type:
   `select distinct jsonb_object_keys(jdoc) from cat;`.  What use
-  might we put the to?
+  might we put them to?
 
 * We've gone to a single backend schema for simplicity but it should not
   be too hard to support arbitrary schemata.  It's just I don't want to
@@ -154,8 +144,8 @@ join dog d on (c.jdoc->'name' = d.jdoc->'name');
 
 Would be nice to cast `min-balance` to Postgres `jsonb` here (instead
 of converting every balance to text and then to real) but Postmodern
-prepared queries do not support types, so when we do (to-json
-min-balance) the parser doesn't know what type min-balance is...
+prepared queries do not support types, so when we do `(to-json
+min-balance)` the parser doesn't know what type min-balance is...
 
 ```common-lisp
 (define-json-query rich-humans$ (min-balance gender)
