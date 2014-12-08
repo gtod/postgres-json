@@ -32,6 +32,7 @@
 
   ;; JSON syntactic sugar for S-SQL queries
   (:export
+   #:jdoc
    #:j->
    #:j->>
    #:to-jsonb

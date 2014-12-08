@@ -67,22 +67,23 @@ accessor.
       nil))
 
 ;;; We (and you can) macroexpand these macros to see what they
-;;; transform into, but they must not be evaluated, they are not lisp.
+;;; transform into, but they must not be evaluated, the code is not
+;;; lisp.
 
 (defmacro j-> (form1 &optional form2)
   (if form2
       (let ((model (model-from-list-head form1)))
         `(:-> ',(sym t model ".jdoc") ,form2))
-      `(:-> ',(sym t 'jdoc) ,form1)))
+      `(:-> 'jdoc ,form1)))
 
 (defmacro j->> (form1 &optional form2)
   (if form2
       (let ((model (model-from-list-head form1)))
         `(:->> ',(sym t model ".jdoc") ,form2))
-      `(:->> ',(sym t 'jdoc) ,form1)))
+      `(:->> 'jdoc ,form1)))
 
 (defmacro to-jsonb (form)
-  `(:type (:to-json ,form) jsonb))
+  `(:type (:to-json ,form) ,(sym t 'jsonb)))
 
 (defmacro jbuild (&rest key-forms)
   (let ((pairs '()))
@@ -96,7 +97,7 @@ accessor.
         (let ((model (model-from-list-head (car form))))
           (if model
               (nsubst-keys `(quote ,(sym t model ".jdoc")) (cdr form))
-              (nsubst-keys `(quote ,(sym t 'jdoc)) form))))
+              (nsubst-keys `(quote jdoc) form))))
       `(:json-build-object ,@(reverse pairs)))))
 
 (defparameter *json-sugar-list-heads* '("j->" "j->>" "jbuild" "to-jsonb"))
