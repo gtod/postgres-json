@@ -160,7 +160,7 @@
    :from 'human
    :inner-join 'gift
    :on (:= (j-> human "key") (j-> gift "human-key"))
-   :where (:= (j-> gift "quantity") (to-json 1))
+   :where (:= (j-> gift "quantity") (to-jsonb 1))
 
    ;; We could also write the above :where clause as
    ;; :where (:= (:type (j->> gift "quantity") int4) 1)
