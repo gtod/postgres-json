@@ -60,23 +60,23 @@ parsing by the the function of one argument designated by FROM-JSON."
   (ensure-transaction-level (fetch-all read-committed-ro)
     (mapcar from-json (fetch-all$ model))))
 
-(defun erase (model key)
+(defun excise (model key)
   "Delete the JSON document with primary key KEY from MODEL, a symbol.
 Return KEY on success, NIL if there was no such KEY found."
-  (log:debu3 "Attempt erasure of object with key ~A from ~A" key model)
-  (ensure-model-query model 'insert-old$ 'erase$)
-  (ensure-transaction-level (erase repeatable-read-rw)
+  (log:debu3 "Call excise of object with key ~A from ~A" key model)
+  (ensure-model-query model 'insert-old$ 'excise$)
+  (ensure-transaction-level (excise repeatable-read-rw)
     (insert-old$ model key)
-    (nth-value 0 (erase$ model key))))
+    (nth-value 0 (excise$ model key))))
 
-(defun erase-all (model)
+(defun excise-all (model)
   "Delete all JSON documents in MODEL, a symbol.  In fact this is a
 recoverable operation in a sense as all deleted rows will still be in
 the <model>-old Postgres relation."
-  (log:debu3 "Attempt erase all from ~A" model)
+  (log:debu3 "Call excise-all from ~A" model)
   (with-model-transaction ()
     (dolist (key (keys model))
-      (erase model key))))
+      (excise model key))))
 
 (defun keys (model)
   "Returns two values: a list of all primary keys for this MODEL, a

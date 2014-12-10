@@ -100,7 +100,7 @@ FORMAT must be a valid Postmodern results format."
     ('`(:select 'jdoc :from ,table)
      :column))
 
-(make-query erase$ (key) (table key)
+(make-query excise$ (key) (table key)
     ('`(:delete-from ,table :where (:= ',key '$1) :returning ',key)
      :single))
 
