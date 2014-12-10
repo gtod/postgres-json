@@ -14,5 +14,6 @@
     :components ((:file "package")
                  (:file "util")
                  (:file "simple")
+                 (:file "filter")
                  (:file "human-1")
                  (:file "human-2")))))

@@ -16,7 +16,7 @@
 
 (defun cleanup ()
   (dolist (model *models*)
-    (drop-model! model)))
+    (drop-model model)))
 
 (defun insert-some ()
   (insert 'cat (obj "name" "Joey" "coat" "tabby" "age" 7

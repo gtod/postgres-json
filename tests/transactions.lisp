@@ -28,8 +28,8 @@
 (defun drop-tran-test ()
   (with-conn ()
     (handler-bind ((database-safety-net #'really-do-it))
-      (drop-model! 'pgj-tran-1)
-      (drop-model! 'pgj-tran-2)))
+      (drop-model 'pgj-tran-1)
+      (drop-model 'pgj-tran-2)))
   (log:config :info))
 
 (defun test-1 ()
@@ -50,7 +50,7 @@
       (let ((key (insert 'pgj-tran-1 1)))
         (insert 'pgj-tran-2 2)
         (handler-bind ((database-safety-net #'really-do-it))
-          (drop-model! 'pgj-tran-3))
+          (drop-model 'pgj-tran-3))
         (delete 'pgj-tran-1 key)))))
 
 (defun test-4 ()

@@ -20,7 +20,7 @@
    #:create-backend
    #:backend-exists-p
    #:ensure-backend
-   #:drop-backend!
+   #:drop-backend
    #:alter-role-set-search-path
    #:flush-prepared-queries)
 
@@ -30,7 +30,7 @@
    #:model-exists-p
    #:ensure-model
    #:all-models
-   #:drop-model!
+   #:drop-model
    #:with-model-transaction
    #:make-model-parameters)
 

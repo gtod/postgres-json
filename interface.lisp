@@ -80,35 +80,35 @@ already exists."
   "Return a list of all models in the backend."
   (mapcar #'json->symbol (keys *meta-model*)))
 
-(defun drop-backend! ()
+(defun drop-backend ()
   "Drop the backend (that is the PostgreSQL schema *PGJ-SCHEMA*) in
 the database Postmodern is currently connected to.  This will
 irrevocably delete ALL your data in ALL your models so it uses
 a RESTART-CASE to guard against human error."
   (flet ((drop ()
-           (ensure-transaction-level (drop-backend! read-committed-rw)
+           (ensure-transaction-level (drop-backend read-committed-rw)
              (drop-db-schema-cascade *pgj-schema*))))
     (when (backend-exists-p)
       (let ((attempted-to (format nil "DROP all models' data(!) in schema: ~A" *pgj-schema*)))
         (restart-case (error 'database-safety-net
                              :attempted-to attempted-to
                              :suggestion "Pick an appropriate restart")
-          (cancel () :report "Leave this schema alone." (return-from drop-backend! nil))
+          (cancel () :report "Leave this schema alone." (return-from drop-backend nil))
           (really-do-it () :report "I really want to drop ALL data in ALL models(!)" (drop)))))))
 
-(defun drop-model! (model)
+(defun drop-model (model)
   "Drop model MODEL.  This will irrevocably delete all data associated
 with the model so it uses a RESTART-CASE to guard against human
 error."
   (flet ((drop ()
-           (ensure-transaction-level (drop-model! repeatable-read-rw)
+           (ensure-transaction-level (drop-model repeatable-read-rw)
              (delete *meta-model* (symbol->json model))
              (drop-db-table-cascade model *pgj-schema*)
              (drop-db-table-cascade (sym t model "-old") *pgj-schema*))))
     (restart-case (error 'database-safety-net
                          :attempted-to (format nil "DROP model ~A" model)
                          :suggestion "Pick an appropriate restart")
-      (cancel () :report "Leave this model alone." (return-from drop-model! nil))
+      (cancel () :report "Leave this model alone." (return-from drop-model nil))
       (really-do-it () :report "I really want to DROP this model" (drop)))))
 
 (defun flush-prepared-queries ()

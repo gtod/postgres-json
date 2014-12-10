@@ -27,8 +27,8 @@
 
 (defun drop ()
   (with-pj-connection ()
-    (drop-model! 'human)
-    (drop-model! 'gift)))
+    (drop-model 'human)
+    (drop-model 'gift)))
 
 ;;;; Human model
 

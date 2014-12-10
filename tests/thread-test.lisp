@@ -86,5 +86,5 @@
 (defun drop-test-model ()
   (with-conn ()
     (handler-bind ((database-safety-net #'really-do-it))
-      (drop-model! 'pj-cat)))
+      (drop-model 'pj-cat)))
   (log:config :info))

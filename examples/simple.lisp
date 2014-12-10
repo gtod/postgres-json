@@ -19,7 +19,7 @@
 
   (format t "Cat keys: ~A~%" (keys 'cat))
 
-  (erase 'cat (first (keys 'cat)))
+  (excise 'cat (first (keys 'cat)))
 
   (format t "Cat keys: ~A~%" (keys 'cat))
 
@@ -36,4 +36,4 @@
   (pp-json (fetch-all 'cat)))
 
 (defun drop ()
-  (drop-model! 'cat))
+  (drop-model 'cat))
