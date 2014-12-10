@@ -1,4 +1,4 @@
-(in-package :pj-examples)
+(in-package :pj-human)
 
 ;;;; This is the second part of the human JSON example.  You need to
 ;;;; have setup your Postgres connection and run (create) and
@@ -16,12 +16,12 @@
 (defun distribute-gifts ()
   (format t "~%Loading gifts...~%")
   (with-model-transaction ()
-    (dotimes (i (pj:count 'human) (pj:count 'gift))
+    (dotimes (i (tally 'human) (tally 'gift))
       (let ((human (random-human)))
         (let ((gift (obj "human-key" (gethash "key" human)
                          "type" (random-gift-type)
                          "quantity" (1+ (random 30)))))
-          (pj:insert 'gift gift))))))
+          (insert 'gift gift))))))
 
 ;;;; User defined S-SQL queries
 
@@ -64,7 +64,7 @@
     
     (show (one-friend-humans$ (obj "gender" "female") "^c"))
 
-    (when (zerop (pj:count 'gift))
+    (when (zerop (tally 'gift))
       (distribute-gifts))
     
     (show (uncharitable-humans$)))

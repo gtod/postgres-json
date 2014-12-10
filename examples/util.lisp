@@ -1,4 +1,4 @@
-(in-package :pj-examples)
+(in-package :pj-human)
 
 (defmacro with-pj-connection (() &body body)
   `(pomo:with-connection *connection*

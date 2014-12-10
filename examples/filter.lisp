@@ -1,6 +1,5 @@
 (defpackage :filtering
-  (:use :cl :postgres-json :postgres-json-model)
-  (:shadowing-import-from :postgres-json-model :get :delete :count))
+  (:use :cl :postgres-json))
 
 (in-package :filtering)
 

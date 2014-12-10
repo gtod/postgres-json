@@ -1,5 +1,4 @@
 ;;;; Model user interface
 
-(defpackage :postgres-json-examples
-  (:nicknames :pj-examples)
+(defpackage :pj-human
   (:use :cl :postgres-json :alexandria))

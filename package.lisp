@@ -1,6 +1,6 @@
 (defpackage :postgres-json
   (:use #:cl #:alexandria #:postmodern #:s-sql)
-  (:shadow #:get #:delete #:count #:sequence)
+  (:shadow #:sequence)
 
   ;; Specials
   (:export
@@ -29,6 +29,21 @@
    #:define-json-query
    #:flush-prepared-queries
    #:make-model-parameters)
+
+  ;; Model interface
+  (:export
+   #:insert
+   #:update
+   #:fetch
+   #:fetch-all
+   #:excise
+   #:excise-all
+   #:keys
+   #:tally
+   #:filter
+   #:exists
+   #:distinct
+   #:history)
 
   ;; JSON syntactic sugar for S-SQL queries
   (:export

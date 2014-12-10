@@ -1,4 +1,4 @@
-(in-package :pj-examples)
+(in-package :pj-human)
 
 ;;; Set the *connections* form below for your Postgres 9.4 DB and
 ;;; evaluate it. Then do (create), (load-humans) and (model-test)
@@ -22,8 +22,8 @@
 
 (defun cleanup ()
   (with-pj-connection()
-    (pj:delete-all 'human)
-    (pj:delete-all 'gift)))
+    (excise-all 'human)
+    (excise-all 'gift)))
 
 (defun drop ()
   (with-pj-connection ()
@@ -33,7 +33,7 @@
 ;;;; Human model
 
 (defun random-human ()
-  (pj:get 'human (elt (pj:keys 'human) (random (pj:count 'human)))))
+  (fetch 'human (elt (keys 'human) (random (tally 'human)))))
 
 (defun load-humans ()
   (unless (probe-file *human-file*)
@@ -45,27 +45,27 @@
       (with-model-transaction ()
         (write-line "Loading humans...")
         (loop for human across (yason:parse stream :json-arrays-as-vectors t)
-              do (pj:insert 'human human)
-              finally (return (pj:count 'human)))))))
+              do (insert 'human human)
+              finally (return (tally 'human)))))))
 
 ;;;; Interface
 
 (defun model-test ()
   (with-pj-connection ()
-    (show (length (pj:filter 'human :contain (obj "gender" "female"))))
+    (show (length (filter 'human :contain (obj "gender" "female"))))
 
     (show (gethash "name" (random-human)))
 
-    (let ((human (show (first (pj:filter 'human :contain (obj "name" "Marcella Marquez"))))))
+    (let ((human (show (first (filter 'human :contain (obj "name" "Marcella Marquez"))))))
       (with-keys ((key "key") (friends "friends")) human
         (push (obj "name" "Horace Morris" "id" (length friends)) friends)
-        (show (pj:update 'human key human))
-        (show (gethash "friends" (pj:get 'human key)))
-        (show (pj:history 'human key))))
+        (show (update 'human key human))
+        (show (gethash "friends" (fetch 'human key)))
+        (show (history 'human key))))
 
-    (show (pj:filter 'human :keys '("age" "tags") :contain (obj "tags" '("ut" "labore"))))
-    (show (length (pj:filter 'human :contain (obj "isActive" t "age" 21))))
+    (show (filter 'human :properties '("age" "tags") :contain (obj "tags" '("ut" "labore"))))
+    (show (length (filter 'human :contain (obj "isActive" t "age" 21))))
 
-    (show (length (pj:exists 'human "eyeColor")))
-    (show (pj:distinct 'human "favoriteFruit")))
+    (show (length (exists 'human "eyeColor")))
+    (show (distinct 'human "favoriteFruit")))
   (values))
