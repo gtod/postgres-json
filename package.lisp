@@ -12,24 +12,26 @@
    #:*db-handle-serialization-failure-p*
    #:*serialization-failure-sleep-times*)
 
-  ;; Setup a model
+  ;; Postgres backend
   (:export
    #:database-safety-net
    #:really-do-it
-   #:with-model-transaction
    #:create-db-sequence
    #:create-backend
    #:backend-exists-p
    #:ensure-backend
+   #:drop-backend!
    #:alter-role-set-search-path
+   #:flush-prepared-queries)
+
+  ;; Model creation and management
+  (:export
    #:create-model
    #:model-exists-p
    #:ensure-model
    #:all-models
-   #:drop-backend!
    #:drop-model!
-   #:define-json-query
-   #:flush-prepared-queries
+   #:with-model-transaction
    #:make-model-parameters)
 
   ;; Model interface
@@ -47,8 +49,9 @@
    #:distinct
    #:history)
 
-  ;; JSON syntactic sugar for S-SQL queries
+  ;; Queries and JSON syntactic sugar for S-SQL
   (:export
+   #:define-json-query
    #:jdoc
    #:j->
    #:j->>
