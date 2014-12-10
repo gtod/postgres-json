@@ -15,21 +15,34 @@
 ;;; lisp.
 
 (defmacro j-> (form1 &optional form2)
+    "S-SQL syntactic sugar to turn a single string FORM1 into a
+Postgres -> operation using the default JSON column 'jdoc and the
+property FORM1; or to turn a symbol FORM1 and string FORM2 into a ->
+operation using the specified JSON column FORM1 and the property
+FORM2."
   (if form2
       (let ((model (model-from-list-head form1)))
         `(:-> ',(sym t model ".jdoc") ,form2))
       `(:-> 'jdoc ,form1)))
 
 (defmacro j->> (form1 &optional form2)
+  "S-SQL syntactic sugar to turn a single string FORM1 into a Postgres
+->> operation using the default JSON column 'jdoc and the property
+FORM1; or to turn a symbol FORM1 and string FORM2 into a ->> operation
+using the specified JSON column FORM1 and the property FORM2."
   (if form2
       (let ((model (model-from-list-head form1)))
         `(:->> ',(sym t model ".jdoc") ,form2))
       `(:->> 'jdoc ,form1)))
 
 (defmacro to-jsonb (form)
+  "S-SQL syntactic sugar to cast FORM to the Postgres jsonb type."
   `(:type (:to-json ,form) ,(sym t 'jsonb)))
 
 (defmacro jbuild (&rest key-forms)
+  "S-SQL syntactic sugar to create a new Postgres JSON object from the
+KEY-FORMS, the structure of which are documented in the Postgres-JSON
+User Guide."
   (let ((pairs '()))
     (flet ((nsubst-keys (column keys)
              (dolist (key keys)
