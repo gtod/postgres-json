@@ -323,6 +323,94 @@ hard to upgrade to bigints live?*
 
 
 
+;;; S-SQL largely supports the various JSON operators and "does the
+;;; right thing" for function syntax such as (:json-build-object ...),
+;;; see the Postgres 9.4 JSON doc on this and other functions.  But
+;;; it's a little verbose (I think) and so some more consise forms are
+;;; defined here.  Everything else is still S-SQL but any list with
+;;; car 'j-> or 'j->> or 'jbuild or 'to-json gets the expansions shown
+;;; when used with DEFINE-QUERY.
+
+;; You can use the full model name such as 'cat but :as assignments
+;; will also work.  The quote on 'cat or 'c is optional when using any
+;; of these j operators...
+
+;; Maybe jbuild only needs -> ?  Let's assume that for now.
+
+#|
+
+You can simply macroexpand the LHS form to get the RHS...
+
+sugar                ; S-SQL
+
+(j-> "id")           ; (:-> 'jdoc "id")
+(j-> 'cat "id")      ; (:-> 'cat.jdoc "id").
+(j->> 'c "id")       ; (:->> 'c.jdoc "id").
+
+(to-jsonb 1)         ; (:TYPE (:TO-JSON 1) JSONB)
+
+(jbuild ("id" "name"))      ; (:JSON-BUILD-OBJECT "id" (:-> 'JDOC "id") "name" (:-> 'JDOC "name"))
+(jbuild ('cat "id" "name")) ; (:JSON-BUILD-OBJECT "id" (:-> 'CAT.JDOC "id") "name" (:-> 'CAT.JDOC "name"))
+
+;; OK, no duplicated keys
+(jbuild ('cat "id" "name") ('dog "age")) ->
+(:JSON-BUILD-OBJECT "id"  (:-> 'CAT.JDOC "id") "name" (:-> 'CAT.JDOC "name")
+                    "age" (:-> 'DOG.JDOC "age"))
+
+;; Explicitly label duplicate key
+(jbuild ('cat "id" "name") ('dog ("dog-id" "id") "age"))
+(:JSON-BUILD-OBJECT "id"     (:-> 'CAT.JDOC "id") "name" (:-> 'CAT.JDOC "name")
+                    "dog-id" (:-> 'DOG.JDOC "id") "age"  (:-> 'DOG.JDOC "age"))
+
+j-> and j->> only take one or two args. As shown above the relation
+name is optional, unless of course this would lead to ambiguity.
+The realtion name need not be quoted.  So 'cat or cat are both fine.
+
+to-jsonb takes a single form as an argument, which will be converted
+by the Postgres TO-JSON function and then cast to the Postgres jsonb
+type.
+
+jbuild takes 1 or more lists as args:
+
+If the list starts with a symbol (or quoted symbol) then that is used
+to qualify all the jdoc accesses for the following keys.  Keys may be
+strings (double duty as the label and the accessor) or a pair of
+strings in a list, the first being the label and the second the
+accessor.
+
+|#
+
+;;;; JSON query named parameter interpolation
+
+;;; Named parameters to the query may be explicity interpolated.  Here
+;;; we provide the names of explicit parameters to the query
+;;; (filter email-regex) and these are replaced in the query form
+;;; with '$1, '$2 etc...  You MUST provide explicit names for each
+;;; parameter as these become the parameters of the ready-bookings$
+;;; function.  You MAY write the params inline as shown below, or still
+;;; write '$1, '$2 explicitly as in S-SQL.
+
+;; (define-query ready-bookings$ (filter email-regex)
+;;   (:order-by
+;;    (:select (jbuild ("id" "name" "email"))
+;;     :from 'booking
+;;     :where (:and (:or (:@> 'jdoc filter))
+;;                  (:~ (j->> "email") email-regex)))
+;;    (:type (j->> "price") real)))
+
+;;; The 'containment' operator @> checks if some json you send as a
+;;; query argument is contained in the jdoc column of a specifc model.
+;;; Typically you don't have JSON in the lisp program, you have say a
+;;; hash-table which needs to be serialized to JSON for this to work.
+;;; So lifting the syntax idea from cl-ppcre:register-groups-bind you
+;;; can specify function to map the actual argument from itself to
+;;; something else: for example ((*to-json* filter) email-regex)
+;;; funcalls *to-json* to map filter from a hash-table to a JSON
+;;; string when ready-bookings$ is called...
+
+
+
+
 ;;; Try slime-edit-definition (M-.) on DEFINE-JSON-QUERY to read
 ;;; details on the syntactic sugar of j->, j->>, jbuild, to-jsonb and
 ;;; also the named parameter interpolation.
