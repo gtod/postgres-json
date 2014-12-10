@@ -7,14 +7,14 @@
 (defun insert (model object &key use-key (stash-key *stash-key*) (to-json *to-json*))
   "Insert lisp object OBJECT into the backend MODEL, a symbol,
 after JSON serialization.  If USE-KEY is supplied, use that as the
-primary key for this object rather than the automatically generated
-one.  If STASH-KEY is non null we FUNCALL it with two arguments: the
-value of the key to be used for the DB insert and OBJECT.  It should
-return an object which will be inserted in the place of the original.
-Typically you would use this to 'stash' the fresh primary key inside
-your object.  TO-JSON must be a function designator for a function of
-one argument to serialize lisp objects to JSON strings.  Return the
-new primary key."
+primary key for the JSON document rather than the automatically
+generated one.  If STASH-KEY is non null we FUNCALL it with two
+arguments: the value of the key to be used for the DB insert and
+OBJECT.  It should return an object which will be inserted in the
+place of the original.  Typically you would use this to 'stash' the
+fresh primary key inside your object before serialization.  TO-JSON
+must be a function designator for a function of one argument to
+serialize lisp objects to JSON strings.  Return the new primary key."
   (log:debu3 "Attempt insert of object into ~A" model)
   (unless use-key
     (ensure-model-query model 'nextval-sequence$))
@@ -25,15 +25,14 @@ new primary key."
       (nth-value 0 (insert$ model key (funcall to-json object))))))
 
 (defun update (model key object &key (stash-key *stash-key*) (to-json *to-json*))
-  "Update the current value of the object with primary key KEY, of
-type compatible with Postgres type KEY-TYPE in the model's parameters,
-in backend MODEL, a symbol, to be the JSON serialization of OBJECT.
-If STASH-KEY is non null we FUNCALL it with two arguments: the value
-of the key to be used for the DB insert and OBJECT.  It should return
-an object which will be used in the place of the original.  TO-JSON
-must be a function designator for a function of one argument to
-serialize lisp objects to JSON strings.  Returns KEY on success, NIL
-if there was no such KEY found."
+  "Update the current value of the JSON document with primary key KEY,
+in backend MODEL, a symbol, to be the JSON serialization of lisp
+object OBJECT.  If STASH-KEY is non null we FUNCALL it with two
+arguments: the value of the key to be used for the DB insert and
+OBJECT.  It should return an object which will be used in the place of
+the original.  TO-JSON must be a function designator for a function of
+one argument to serialize lisp objects to JSON strings.  Return KEY
+on success, NIL if there was no such KEY found."
   (log:debu3 "Attempt update of ~A in ~A" key model)
   (ensure-model-query model 'insert-old$ 'update$)
   (ensure-transaction-level (update repeatable-read-rw)
@@ -42,12 +41,11 @@ if there was no such KEY found."
       (nth-value 0 (update$ model key (funcall to-json object))))))
 
 (defun fetch (model key &key (from-json *from-json*))
-  "Lookup the object with primary key KEY (of type compatible with
-Postgres type KEY-TYPE in the model's parameters, in MODEL, a symbol.
-If such an object exists return a parse of the JSON string by the the
-function of one argument designated by FROM-JSON (make it #'identity
-to return just the JSON string proper).  If the object does not exist,
-return nil."
+  "Lookup the JSON document with primary key KEY in MODEL, a symbol.
+If such a document exists return a parse of it by the function of one
+argument designated by FROM-JSON (make it #'IDENTITY to return just
+the JSON string proper).  If the JSON document does not exist, return
+NIL."
   (log:debu4 "Fetch object with key ~A from ~A" key model)
   (ensure-model-query model 'fetch$)
   (let ((jdoc (ensure-transaction-level (fetch read-committed-ro)
@@ -55,18 +53,16 @@ return nil."
     (if jdoc (funcall from-json jdoc) nil)))
 
 (defun fetch-all (model &key (from-json *from-json*))
-  "Return a list of all objects in MODEL, a symbol.
-Each JSON string is parse by the the function of one argument
-designated by FROM-JSON."
+  "Return a list of all JSON documents in MODEL, a symbol, after
+parsing by the the function of one argument designated by FROM-JSON."
   (log:debu4 "Fetch all objects from ~A" model)
   (ensure-model-query model 'fetch-all$)
   (ensure-transaction-level (fetch-all read-committed-ro)
     (mapcar from-json (fetch-all$ model))))
 
 (defun erase (model key)
-  "Delete the object with primary key KEY, of type compatible with
-Postgres type KEY-TYPE in the model's parameters, from MODEL, a
-symbol.  Returns KEY on success, NIL if there was no such KEY found."
+  "Delete the JSON document with primary key KEY from MODEL, a symbol.
+Return KEY on success, NIL if there was no such KEY found."
   (log:debu3 "Attempt erasure of object with key ~A from ~A" key model)
   (ensure-model-query model 'insert-old$ 'erase$)
   (ensure-transaction-level (erase repeatable-read-rw)
@@ -74,7 +70,7 @@ symbol.  Returns KEY on success, NIL if there was no such KEY found."
     (nth-value 0 (erase$ model key))))
 
 (defun erase-all (model)
-  "Delete all objects in MODEL, a symbol.  In fact this is a
+  "Delete all JSON documents in MODEL, a symbol.  In fact this is a
 recoverable operation in a sense as all deleted rows will still be in
 the <model>-old Postgres relation."
   (log:debu3 "Attempt erase all from ~A" model)
@@ -91,7 +87,7 @@ symbol, and the length of that list."
     (keys$ model)))
 
 (defun tally (model)
-  "Returns the number of entries in MODEL, a symbol."
+  "Return a count of JSON documents in MODEL, a symbol."
   (log:trace "Call tally on ~A" model)
   (ensure-model-query model 'tally$)
   (ensure-transaction-level (count read-committed-ro)
@@ -99,23 +95,25 @@ symbol, and the length of that list."
 
 ;; Implicit (or even explicit) assumption here that you are storing
 ;; objects in your model, rather than arrays...
-(defun filter (model &key contain keys limit
+(defun filter (model &key contain properties limit
                           (to-json *to-json*) (from-json *from-json*))
-  "Return all objects in MODEL, a symbol, which 'contain' in the
-Postgres @> operator sense the object CONTAIN, which must serialize to
-a JSON object.  If CONTAIN is nil, apply no containment restriction.
-KEYS may be a list of strings being top level keys in the objects of
-model and only the values of said keys will be returned, bundled
-together in a JSON object.  If keys is nil the entire object will be
-returned.  LIMIT, if supplied, must be an integer that represents the
-maximum number of objects that will be returned.  FILTER will be JSON
-serialized by TO-JSON, a function designator for a function of one
-argument.  The returned JSON strings are parsed by the function of one
-argument designated by FROM-JSON.  This is _not_ a prepared query so
-extra care must be taken if KEYS or CONTAIN derive from unsanitized
-user input."
+  "Filter all JSON documents in MODEL, a symbol as follows.  Each
+document must 'contain', in the Postgres @> operator sense, the object
+CONTAIN which itself must serialize to a JSON document.  If CONTAIN is
+NIL, apply no containment restriction.  PROPERTIES may be a list of
+strings being top properties in the top level objects of the JSON
+documents in MODEL and only the values of said properties will be
+returned, bundled together in a JSON document.  If PROPERTIES is NIL
+the entire JSON document will be returned.  LIMIT, if supplied, must
+be an integer that represents the maximum number of objects that will
+be returned.  CONTAIN will be JSON serialized by TO-JSON, a function
+designator for a function of one argument.  The returned JSON
+documents will be parsed by the function of one argument designated by
+FROM-JSON.  Note that this is _not_ a prepared query so extra care
+must be taken if PROPERTIES or CONTAIN derive from unsanitized user
+input."
   (let ((filter (if contain (funcall to-json contain) nil)))
-    (let ((select `(:select ,(if keys `(jbuild ,keys) 'jdoc)
+    (let ((select `(:select ,(if properties `(jbuild ,properties) 'jdoc)
                     :from ',model
                     :where ,(if filter `(:@> 'jdoc ,filter) "t"))))
       (let ((query (if (integerp limit) `(:limit ,select ,limit) select)))
@@ -124,25 +122,28 @@ user input."
                   (query (sql-compile (json-query-to-s-sql query))
                          :column)))))))
 
-(defun exists (model key &key (from-json *from-json*))
-  "Return all objects in MODEL, a symbol, which have a top level
-object key or array element KEY, a string, in the Postgres ? sense.
-The returned JSON object strings are parsed by the function of one
-argument designated by FROM-JSON.  Requires a Potgres GIN index
-without JSONB_PATH_OPS on MODEL."
+(defun exists (model property &key (from-json *from-json*))
+  "Return all JSON documents in MODEL, a symbol, which have a top
+level object property PROPERTY, a string, or if said string appears as
+an element of a top level array.  This is in the Postgres operator ?
+sense.  The returned JSON documents will be parsed by the function of
+one argument designated by FROM-JSON.  Requires a Postgres GIN index
+without JSONB_PATH_OPS defined on MODEL."
   (log:trace "Call exists on ~A" model)
   (ensure-model-query model 'exists$)
   (ensure-transaction-level (contains read-committed-ro)
-    (mapcar from-json (exists$ model key))))
+    (mapcar from-json (exists$ model property))))
 
-(defun distinct (model key &key (from-json *from-json*))
-  "Return all distinct values of the top level KEY, a string, in
-MODEL, a symbol.  Every object must have a top level key KEY.  The
-returned JSON object strings are parsed by the function of one
-argument designated by FROM-JSON.  This query is _not_ prepared so
-care must be taken that KEY is sanitized if derives from arbitrary
-user input."
-  (let ((query `(:select (j-> ,key)
+(defun distinct (model property &key (from-json *from-json*))
+  "Return all distinct values of the top level PROPERTY, a string, in
+all of the JSON documents of MODEL, a symbol.  Every JSON document
+must be a JSON object, with property PROPERTY defined.  So this
+DISTINCT does not make sense if your JSON documents are arrays.  The
+returned JSON documents wil parsed by the function of one argument
+designated by FROM-JSON.  Note that this is _not_ a prepared query so
+care must be taken that PROPERTY is sanitized if it derives from
+arbitrary user input."
+  (let ((query `(:select (j-> ,property)
                  :distinct
                  :from ',model)))
     (ensure-transaction-level (filter read-committed-ro)
