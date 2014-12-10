@@ -21,6 +21,11 @@ in a given PostgreSQL database."
   "Does the backend *PGJ-SCHEMA* exist?"
   (pomo:schema-exist-p *pgj-schema*))
 
+(defun ensure-backend ()
+  "Call CREATE-BACKEND unless the Postgres backend already exists."
+  (unless (backend-exists-p)
+    (create-backend)))
+
 ;; I _hate_ this search_path nonsense and have largely avoided it by
 ;; using fully qualified relation names.  But DEFINE-MODEL-QUERY
 ;; presents a challege I have not yet surmounted (we want to write
@@ -29,11 +34,6 @@ in a given PostgreSQL database."
 ;; and if you do you can look after yourself.
 (defparameter *default-search-path* (format nil "~A,public" (to-sql-name *pgj-schema*))
   "The default value used by ALTER-ROLE-SET-SEARCH-PATH.")
-
-(defun ensure-backend ()
-  "Call CREATE-BACKEND unless the Postgres backend already exists."
-  (unless (backend-exists-p)
-    (create-backend)))
 
 (defun alter-role-set-search-path (user &optional (search-path *default-search-path*))
   "Alter the role of Postgres user USER, a string, to set the
