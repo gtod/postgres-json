@@ -1,39 +1,52 @@
-POSTGRES-JSON
+Postgres-JSON
 ===============
 
-## Overview
+## What is it?
 
-A simple interface for immutable persistence of Common Lisp objects
-(that can be JSON serialized) to a PostgreSQL 9.4+ relation using the
-jsonb type.
+A Common Lisp library that provides a user friendly layer over the new
+[jsonb type](http://www.postgresql.org/docs/9.4/static/datatype-json.html)
+of PostgreSQL 9.4, allowing trivial storage and retrieval of
+JSON documents.  Thanks to the excellent JSON libraries for Common
+Lisp, Postgres-JSON thus facilitates easy serialization of your lisp data
+structures to and from a proper database.
 
-PostgreSQL 9.4 (in Beta as at late November 2014) is a rock solid
-RDBMS which now also supports
-[JSON types](http://www.postgresql.org/docs/9.4/static/datatype-json.html).
-For many years Marijn Haverbeke's [Postmodern](http://marijnhaverbeke.nl/postmodern/)
-has provided an excellent Common Lisp interface to PostgreSQL.
+## Why would you use it?
 
-Common Lisp also has some good JSON libraries as compared by Sabra On
-The Hill: [JSON libraries
-comparison](https://sites.google.com/site/sabraonthehill/home/json-libraries).
-[Yason](http://common-lisp.net/project/yason/) is a dependency of this project
-but in fact you can use whatever Common Lisp JSON library you like.
+1. You have some existing JSON documents you would like to manipulate
+in Common Lisp and also store persistently.
 
-Having spent some time working with the full blown NoSQL database
-RethinkDB, thanks to the wonderful
-[cl-rethinkdb](https://github.com/orthecreedence/cl-rethinkdb), I began
-to wonder just how far one might get with the new JSON types in
-Postgres.  This library represents a few steps in that direction.
+2. You want to easily serialize arbitrarily nested Common Lisp hash
+tables, lists, vectors, strings and numbers to a database.
+
+3. You like the [ACID](http://en.wikipedia.org/wiki/ACID) qualities of
+PostgreSQL but rigid data schema requirements are not suitable for your
+project.
+
+In some sense Postgres-JSON is a primitive *NoSQL document database*
+but don't tell anyone I said that.
+
+## Built on
+
+* [PostgreSQL 9.4](http://www.postgresql.org/docs/9.4/static/), a
+release candidate as at 20 November 2014.
+
+* Marijn Haverbeke's wonderful [Postmodern](http://marijnhaverbeke.nl/postmodern/).
+
+* Any Common Lisp JSON library.
+[Yason](http://common-lisp.net/project/yason/) is a dependency of this
+project but you can use whatever library you like:
+see the comparison by Sabra On The Hill [JSON libraries]
+(https://sites.google.com/site/sabraonthehill/home/json-libraries).
 
 ## Status
 
-This library is **under development**. The very simple interface of
-the persistence model is probably stable and it compiles and seems to
-work, but there is still much to do before an Alpha release.
+This library is **under development**. The interface is relatively
+stable which is the positive way of saying it might still change.
+There are a few other things to complete before an Alpha release.
 
 ## Quickstart
 
-You will need a working PostgreSQL 9.4 beta install.  On Debian I
+You will need a working PostgreSQL 9.4 RC1 install.  On Debian I
 followed the instructions at
 https://wiki.postgresql.org/wiki/Apt.  There is a FAQ on
 getting the 9.4 beta which you should read to get the apt source line.
@@ -48,14 +61,17 @@ with a form like:
 If you now get a result from `(pomo:query "select 1")` you are ready
 to go.
 
-Clone this repo to sit under your `~/quicklisp/local-projects` and do
+Navigate to your `~/quicklisp/local-projects` directory and do
+
+`git clone https://github.com/gtod/postgres-json.git`.  Then at your
+REPL evaluate:
 
 ```common-lisp
 (ql:register-local-projects)
 (ql:quickload :postgres-json)
 ```
 
-Now evaluate these forms at the REPL:
+Followed by:
 
 ```common-lisp
 (defpackage :simple-1
@@ -164,7 +180,7 @@ might want to set them when playing in PSQL:
 
 ```sql
 SET search_path TO pgj_model, public;
-```  
+```
 
 You can specify `to-json` for `insert` and `update` and `from-json`
 for `get` at run time:

@@ -17,7 +17,8 @@ TODO
   do their own tran handling using Postmodern tran facilities without
   our stuff getting in the way.  And they should be able to choose to
   use the serialization failure retry macro with it as well.  Could we
-  redo the macro handling use Pomo logical trans?
+  redo the macro handling use Pomo logical trans?  But then maybe we
+  are coupled to Pomo more tightly than we need to be?
 
 * Investigate making all integer keys bigints.  Seems like a premature
   optimization not too.  How hard would a manual migration be for the
@@ -57,15 +58,13 @@ TODO
   kill them off without proving they are useuless.  In fact, they may
   well be essential for "Foreign Key promotion".
 
+* Need to reconvince myself that *query-functions* is threads safe.
+  And if it is not, fix it.
+
 ### Interface
 
-* Can the user user keywords instead of symbols when creating/accessing
+* Can the user use keywords instead of symbols when creating/accessing
   models?  Where else are symbols used, are they keyword safe?
-
-* Get history of a specific object in a model.  With/without valid
-  stamps...?  Document why this is useful --- clashing updates from
-  two users are OK as either can see the full history and amend
-  accordingly.
 
 * Timestamps in a JSON document: Either in the document or do we add
   extra columns to the model table?  First see just how far we can get
@@ -91,7 +90,12 @@ TODO
 
 * Stash valid_to, valid_from in objects from get-all?
 
-* Make using Fkeys between tables easy...  "Promote" to Fkey.
+* Make using Fkeys between tables easy...  "Promote" to Fkey as you
+  can't do in JSON...  We could promote to foreign key: What key and
+  Postgres type in your child model?  What master table?  We make a
+  column, populate it, add the index For every insert, we grab that
+  named key and stuff it into the FKey col Something similar for
+  timestamps?
 
 * Would be nice to get our public API and docstrings converted to
   Markdown or other github supported markup lang in the simplest
@@ -127,6 +131,8 @@ TODO
 * There are some fascinating Postgres functions for the jsonb type:
   `select distinct jsonb_object_keys(jdoc) from cat;`.  What use
   might we put them to?
+
+* Add/drop GIN indexes on demand to support existence operator.
 
 * We've gone to a single backend schema for simplicity but it should not
   be too hard to support arbitrary schemata.  It's just I don't want to
