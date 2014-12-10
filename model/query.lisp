@@ -13,7 +13,7 @@
 
 (defun query-key (model operation)
   "Return a string: *PGJ-SCHEMA*:MODEL:OPERATION to key a prepared
-query.  An 'operation' is the name of a DB query, for example GET$."
+query.  An 'operation' is the name of a DB query, for example FETCH$."
   (format nil "~A:~A:~A"
           (symbol-name *pgj-schema*)
           (symbol-name model)
@@ -59,8 +59,8 @@ FORMAT must be a valid Postmodern results format."
      (defun ,name (model ,@query-args)
        (funcall (lookup-query model ',name) ,@query-args))))
 
-;;; In model/interface.lisp we write (say): (get$ model key).  And if
-;;; you macroexpand (make-query $get ...) below you will see this is
+;;; In model/interface.lisp we write (say): (fetch$ model key).  And if
+;;; you macroexpand (make-query $fetch ...) below you will see this is
 ;;; correct.  But we omit the model arg from the QUERY-ARGS of the
 ;;; MAKE-QUERY macro because it does not end up being a parameter of
 ;;; the Postmodern prepared query...
@@ -92,15 +92,15 @@ FORMAT must be a valid Postmodern results format."
         :returning ',key)
      :single))
 
-(make-query get$ (key) (table key)
+(make-query fetch$ (key) (table key)
     ('`(:select 'jdoc :from ,table :where (:= ',key '$1))
      :single))
 
-(make-query get-all$ () (table)
+(make-query fetch-all$ () (table)
     ('`(:select 'jdoc :from ,table)
      :column))
 
-(make-query delete$ (key) (table key)
+(make-query erase$ (key) (table key)
     ('`(:delete-from ,table :where (:= ',key '$1) :returning ',key)
      :single))
 
@@ -108,7 +108,7 @@ FORMAT must be a valid Postmodern results format."
     ('`(:select ',key :from ,table)
      :column))
 
-(make-query count$ () (table)
+(make-query tally$ () (table)
     ('`(:select (:count '*) :from ,table)
      :single!))
 

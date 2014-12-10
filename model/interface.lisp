@@ -41,46 +41,46 @@ if there was no such KEY found."
     (let ((object (if stash-key (funcall stash-key key object) object)))
       (nth-value 0 (update$ model key (funcall to-json object))))))
 
-(defun get (model key &key (from-json *from-json*))
+(defun fetch (model key &key (from-json *from-json*))
   "Lookup the object with primary key KEY (of type compatible with
 Postgres type KEY-TYPE in the model's parameters, in MODEL, a symbol.
 If such an object exists return a parse of the JSON string by the the
 function of one argument designated by FROM-JSON (make it #'identity
 to return just the JSON string proper).  If the object does not exist,
 return nil."
-  (log:debu4 "Get object with key ~A from ~A" key model)
-  (ensure-model-query model 'get$)
-  (let ((jdoc (ensure-transaction-level (get read-committed-ro)
-                (get$ model key))))
+  (log:debu4 "Fetch object with key ~A from ~A" key model)
+  (ensure-model-query model 'fetch$)
+  (let ((jdoc (ensure-transaction-level (fetch read-committed-ro)
+                (fetch$ model key))))
     (if jdoc (funcall from-json jdoc) nil)))
 
-(defun get-all (model &key (from-json *from-json*))
+(defun fetch-all (model &key (from-json *from-json*))
   "Return a list of all objects in MODEL, a symbol.
 Each JSON string is parse by the the function of one argument
 designated by FROM-JSON."
-  (log:debu4 "Get all objects from ~A" model)
-  (ensure-model-query model 'get-all$)
-  (ensure-transaction-level (get read-committed-ro)
-    (mapcar from-json (get-all$ model))))
+  (log:debu4 "Fetch all objects from ~A" model)
+  (ensure-model-query model 'fetch-all$)
+  (ensure-transaction-level (fetch-all read-committed-ro)
+    (mapcar from-json (fetch-all$ model))))
 
-(defun delete (model key)
+(defun erase (model key)
   "Delete the object with primary key KEY, of type compatible with
-Postgres type KEY-TYPE in the model's parameters.  Returns KEY on
-success, NIL if there was no such KEY found."
-  (log:debu3 "Attempt delete of object with key ~A from ~A" key model)
-  (ensure-model-query model 'insert-old$ 'delete$)
-  (ensure-transaction-level (delete repeatable-read-rw)
+Postgres type KEY-TYPE in the model's parameters, from MODEL, a
+symbol.  Returns KEY on success, NIL if there was no such KEY found."
+  (log:debu3 "Attempt erasure of object with key ~A from ~A" key model)
+  (ensure-model-query model 'insert-old$ 'erase$)
+  (ensure-transaction-level (erase repeatable-read-rw)
     (insert-old$ model key)
-    (nth-value 0 (delete$ model key))))
+    (nth-value 0 (erase$ model key))))
 
-(defun delete-all (model)
+(defun erase-all (model)
   "Delete all objects in MODEL, a symbol.  In fact this is a
 recoverable operation in a sense as all deleted rows will still be in
 the <model>-old Postgres relation."
-  (log:debu3 "Attempt delete all from ~A" model)
+  (log:debu3 "Attempt erase all from ~A" model)
   (with-model-transaction ()
     (dolist (key (keys model))
-      (delete model key))))
+      (erase model key))))
 
 (defun keys (model)
   "Returns two values: a list of all primary keys for this MODEL, a
@@ -90,12 +90,12 @@ symbol, and the length of that list."
   (ensure-transaction-level (keys read-committed-ro)
     (keys$ model)))
 
-(defun count (model)
+(defun tally (model)
   "Returns the number of entries in MODEL, a symbol."
-  (log:trace "Call count on ~A" model)
-  (ensure-model-query model 'count$)
+  (log:trace "Call tally on ~A" model)
+  (ensure-model-query model 'tally$)
   (ensure-transaction-level (count read-committed-ro)
-    (nth-value 0 (count$ model))))
+    (nth-value 0 (tally$ model))))
 
 ;; Implicit (or even explicit) assumption here that you are storing
 ;; objects in your model, rather than arrays...

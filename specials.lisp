@@ -46,7 +46,7 @@ inserted itself.  It should return an object which will be inserted in
 the place of the original.")
 
 (defvar *db-handle-serialization-failure-p* t
-  "UPDATE and DELETE calls on the model will use the Postgres
+  "UPDATE and EXCISE calls on the model will use the Postgres
 'repeatable read isolation level' so 'serialization failures' may
 occur.  When this special variable is set to T (the default), these
 failures are handled under the covers.  (However, if excessive time

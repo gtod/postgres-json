@@ -36,8 +36,8 @@ in a given PostgreSQL database."
 is what you want so than when defining your own queries with
 DEFINE-MODEL-QUERY unqualified relation names can be found in our
 default schema (which is not the PUBLIC schema).  This setting does
-_not_ effect the normal model interface functions such as GET and
-FILTER as they use fully qualified relation names at all times.  Will
+_not_ effect the normal model interface functions such as FETCH and
+FILTER as they use fully qualified table names at all times.  Will
 only take effect upon your next connection.  Beware, may be overridden
 by settings in your ~/.psqlrc file.  See also the Postgres
 documentation on search paths and settings."
@@ -63,7 +63,7 @@ once per model.  Returns MODEL."
 
 (defun model-exists-p (model)
   "Does MODEL, a symbol, exist in our backend?"
-  (if (get *meta-model* (symbol->json model)) t nil))
+  (if (fetch *meta-model* (symbol->json model)) t nil))
 
 (defun all-models ()
   "Return a list of all models in the backend."

@@ -3,8 +3,7 @@
 ;;;; doing.
 
 (defpackage :tran-test
-  (:use :cl :postgres-json :postgres-json-model)
-  (:shadowing-import-from :postgres-json :get :delete :count))
+  (:use :cl :postgres-json))
 
 (in-package :tran-test)
 
@@ -63,8 +62,8 @@
           (let ((mary-key (insert 'pgj-tran-1 "Mary")))
             (log:info "mary-key: ~A" mary-key)
             (update 'pgj-tran-1 mary-key "Maria")
-            (get 'pgj-tran-1 mary-key)))
-        (get 'pgj-tran-1 bill-key)))))
+            (fetch 'pgj-tran-1 mary-key)))
+        (fetch 'pgj-tran-1 bill-key)))))
 
 (defun test-5 ()
   (with-conn ()
@@ -72,4 +71,4 @@
       (let ((client-key (insert 'pgj-tran-1 "Gormless Guttering")))
         (let ((invoice-key (insert 'pgj-tran-2 (obj "client-key" client-key
                                                    "number" "123"))))
-          (pp-json (get 'pgj-tran-2 invoice-key)))))))
+          (pp-json (fetch 'pgj-tran-2 invoice-key)))))))

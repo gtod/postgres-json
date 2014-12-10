@@ -84,8 +84,8 @@ variable."
 (defun get-model-parameters (model)
   "Return the model-parameters object for MODEL, a symbol, by
 retrieving them from the backend."
-  (get *meta-model* (symbol->json model)
-       :from-json 'model-parameters-from-json))
+  (fetch *meta-model* (symbol->json model)
+         :from-json 'model-parameters-from-json))
 
 ;;;; The specific parameters for our meta model
 
