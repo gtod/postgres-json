@@ -3,8 +3,7 @@
   :version "0.1.5"
   :license "MIT"
   :homepage "https://github.com/gtod/postgres-json"
-  :description "Create trivial, effectively immutable, simple Common
-Lisp object persistence models using the PostgreSQL 9.4+ jsonb type."
+  :description "Store and query JSON documents in PostgreSQL"
   :depends-on (#:alexandria
                #:postmodern
                #:bordeaux-threads
