@@ -20,9 +20,11 @@
    #:create-db-sequence
    #:create-backend
    #:backend-exists-p
+   #:ensure-backend
    #:alter-role-set-search-path
    #:create-model
    #:model-exists-p
+   #:ensure-model
    #:all-models
    #:drop-backend!
    #:drop-model!

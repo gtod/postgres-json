@@ -30,6 +30,11 @@ in a given PostgreSQL database."
 (defparameter *default-search-path* (format nil "~A,public" (to-sql-name *pgj-schema*))
   "The default value used by ALTER-ROLE-SET-SEARCH-PATH.")
 
+(defun ensure-backend ()
+  "Call CREATE-BACKEND unless the Postgres backend already exists."
+  (unless (backend-exists-p)
+    (create-backend)))
+
 (defun alter-role-set-search-path (user &optional (search-path *default-search-path*))
   "Alter the role of Postgres user USER, a string, to set the
 'search_path' setting to the string SEARCH-PATH.  In most cases this
@@ -64,6 +69,12 @@ once per model.  Returns MODEL."
 (defun model-exists-p (model)
   "Does MODEL, a symbol, exist in our backend?"
   (if (fetch *meta-model* (symbol->json model)) t nil))
+
+(defun ensure-model (model &optional (parameters (make-model-parameters model)))
+  "Call CREATE-MODEL with MODEL and PARAMETERS as arguments, unless MODEL
+already exists."
+  (unless (model-exists-p model)
+    (create-model model parameters)))
 
 (defun all-models ()
   "Return a list of all models in the backend."
