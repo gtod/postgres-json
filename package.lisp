@@ -12,7 +12,7 @@
    #:*db-handle-serialization-failure-p*
    #:*serialization-failure-sleep-times*)
 
-  ;; Postgres backend
+  ;; Postgres backend interface
   (:export
    #:database-safety-net
    #:really-do-it
@@ -24,17 +24,16 @@
    #:alter-role-set-search-path
    #:flush-prepared-queries)
 
-  ;; Model creation and management
+  ;; Model creation and management interface
   (:export
    #:create-model
    #:model-exists-p
    #:ensure-model
    #:all-models
    #:drop-model
-   #:with-model-transaction
    #:make-model-parameters)
 
-  ;; Model interface
+  ;; Model interface proper
   (:export
    #:insert
    #:update
@@ -49,7 +48,11 @@
    #:distinct
    #:history)
 
-  ;; Queries and JSON syntactic sugar for S-SQL
+  ;; Model/database interaction
+  (:export
+   #:with-model-transaction)
+
+  ;; User queries and JSON syntactic sugar for S-SQL
   (:export
    #:define-json-query
    #:jdoc
@@ -63,4 +66,7 @@
    #:stash-key
    #:stash-key-destructive
    #:obj
-   #:pp-json))
+   #:pp-json)
+
+  (:documentation "Postgres-JSON is a JSON document store for Common
+Lisp using PostgreSQL"))
