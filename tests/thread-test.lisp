@@ -33,7 +33,7 @@
   (bt:make-thread
    (lambda ()
      (with-conn ()
-       (pj:update 'pj-cat key (obj "name" (format nil "name-~A" key) "coat" "scruffy"))))))
+       (update 'pj-cat key (obj "name" (format nil "name-~A" key) "coat" "scruffy"))))))
 
 (defun really-do-it (c)
   (declare (ignore c))
@@ -55,13 +55,13 @@
     ;; one transaction rather than 40 or whatever...
     (with-model-transaction (some-cats)
       (dotimes (i number)
-        (pj:insert 'pj-cat (obj "name" (format nil "name-~A" i) "coat" "scruffy"))))))
+        (insert 'pj-cat (obj "name" (format nil "name-~A" i) "coat" "scruffy"))))))
 
 ;; Run third
 (defun update-some ()
   (with-conn ()
     (mapc #'bt:join-thread
-          (loop for key in (pj:keys 'pj-cat)
+          (loop for key in (keys 'pj-cat)
                 collect (update-cat key)))))
 
 ;; In production code you would certainly not expect to see 19
@@ -78,7 +78,7 @@
 (defun update-one ()
   (with-conn ()
     (mapc #'bt:join-thread
-          (loop with key = (first (pj:keys 'pj-cat))
+          (loop with key = (first (keys 'pj-cat))
                 for i from 1 to 20
                 collect (update-cat key)))))
 

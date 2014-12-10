@@ -25,5 +25,4 @@
    (:file "model/user-query")
    (:file "model/query")
    (:file "model/interface")
-   (:file "model/package")
    (:file "interface")))
