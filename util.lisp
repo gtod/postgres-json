@@ -9,7 +9,8 @@
 ;;;; JSON related small functions
 
 (defun obj (&rest args)
-  "Return an 'equal hash-table consisting of pairs of ARGS."
+  "Return an 'equal key/value hash-table consisting of pairs of ARGS.
+For JSON use your keys must be Common Lisp strings."
   (let ((hash (make-hash-table :test #'equal)))
     (loop for (key val) on args by #'cddr do
       (setf (gethash key hash) val))
@@ -22,7 +23,7 @@
     (yason:encode object s)))
 
 (defun pp-json (object &key (stream *standard-output*) (indent 4))
-  "Pretty print lisp OBJECT as JSON to stream with specified indent."
+  "Pretty print lisp OBJECT as JSON to STREAM with specified INDENT."
   (fresh-line stream)
   (let ((s (yason:make-json-output-stream stream :indent indent)))
     (yason:encode object s)))
