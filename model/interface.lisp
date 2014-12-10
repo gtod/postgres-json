@@ -150,15 +150,24 @@ user input."
               (query (sql-compile (json-query-to-s-sql query))
                      :column)))))
 
-(defun history (model key &key (from-json *from-json*))
+(defun history (model key &key (from-json *from-json*) (validity-keys-p t)
+                               (valid-from-key "_validFrom") (valid-to-key "_validTo"))
   "Returns a list, in chronological order, of all previous values of
 the object with primary key KEY, of type compatible with Postgres type
 KEY-TYPE in the model's parameters, in MODEL, a symbol.  If such
-objects exist return a parse of each JSON string by the the function
-of one argument designated by FROM-JSON.  If the object has no
-history, return nil."
+objects exist return a parse of each JSON string by the function of
+one argument designated by FROM-JSON.  If the object has no history,
+return NIL.  If VALIDITY-KEYS-P is true, include the valid-from and
+valid-to Postgres timestamps for the historical object.
+VALID-FROM-KEY and VALID-TO-KEY are strings that will be the key names
+of the respective timestamps."
   (log:debu4 "List history of object with key ~A from ~A" key model)
   (ensure-model-query model 'history$)
-  (let ((column (ensure-transaction-level (get read-committed-ro)
+  (let ((rows (ensure-transaction-level (get read-committed-ro)
                   (history$ model key))))
-    (mapcar from-json column)))
+    (loop for (jdoc valid-from valid-to) in rows
+          for obj = (funcall from-json jdoc)
+          when validity-keys-p
+            do (setf (gethash valid-from-key obj) valid-from)
+               (setf (gethash valid-to-key obj) valid-to)
+          collect obj)))
