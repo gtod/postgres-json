@@ -2,39 +2,22 @@
   (:use #:cl #:alexandria #:postmodern #:s-sql)
   (:shadow #:sequence)
 
-  ;; Specials
-  (:export
-   #:*pgj-schema*
-   #:*default-search-path*
-   #:*to-json*
-   #:*from-json*
-   #:*stash-key*
-   #:*db-handle-serialization-failure-p*
-   #:*serialization-failure-sleep-times*)
-
-  ;; Postgres backend interface
+  ;; Postgres backend
   (:export
    #:database-safety-net
    #:really-do-it
-   #:create-db-sequence
    #:create-backend
    #:backend-exists-p
    #:ensure-backend
-   #:drop-backend
-   #:alter-role-set-search-path
-   #:flush-prepared-queries)
+   #:drop-backend)
 
-  ;; Model creation and management interface
+  ;; Model creation and management
   (:export
    #:create-model
    #:model-exists-p
    #:ensure-model
-   #:all-models
    #:drop-model
-   #:*sequence*
-   #:*key*
-   #:*key-type*
-   #:make-model-parameters)
+   #:all-models)
 
   ;; Model interface
   (:export
@@ -51,7 +34,7 @@
    #:distinct
    #:history)
 
-  ;; Model/database interaction
+  ;; Model and database interaction
   (:export
    #:with-model-transaction)
 
@@ -64,12 +47,36 @@
    #:to-jsonb
    #:jbuild)
 
+  ;; Model parameters
+  (:export
+   #:*sequence*
+   #:*key*
+   #:*key-type*
+   #:*gin-operator-class*
+   #:make-model-parameters)
+
   ;; Trival helper functions
   (:export
    #:stash-key
    #:stash-key-destructive
    #:obj
    #:pp-json)
+
+  ;; Miscellaneous backend functions
+  (:export
+   #:create-db-sequence
+   #:alter-role-set-search-path
+   #:flush-prepared-queries)
+
+  ;; Specials
+  (:export
+   #:*pgj-schema*
+   #:*default-search-path*
+   #:*to-json*
+   #:*from-json*
+   #:*stash-key*
+   #:*db-handle-serialization-failure-p*
+   #:*serialization-failure-sleep-times*)
 
   (:documentation "Postgres-JSON is a JSON document store for Common
 Lisp using PostgreSQL"))
