@@ -16,9 +16,10 @@
 ;;;; Backend interface
 
 (defun create ()
-  (ensure-backend)
-  (ensure-model 'human)
-  (ensure-model 'gift))
+  (with-pj-connection ()
+    (ensure-backend)
+    (ensure-model 'human)
+    (ensure-model 'gift)))
 
 (defun cleanup ()
   (with-pj-connection()

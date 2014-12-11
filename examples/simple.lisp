@@ -7,10 +7,8 @@
   (unless (and pomo:*database* (pomo:connected-p pomo:*database*))
     ;; Change this to your Postmodern connect list...
     (pomo:connect-toplevel "cusoon" "gtod" "" "localhost" :port 5433))
-  (unless (backend-exists-p)
-    (create-backend))
-  (unless (model-exists-p 'cat)
-    (create-model 'cat)))
+  (ensure-backend)
+  (ensure-model 'cat))
 
 (defun insert-some-cats ()
   (insert 'cat (obj "name" "Joey" "coat" "tabby"))

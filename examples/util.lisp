@@ -1,3 +1,5 @@
+;;;; Some little helper code for the human examples
+
 (in-package :pj-human)
 
 (defmacro with-pj-connection (() &body body)

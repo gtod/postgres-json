@@ -32,7 +32,7 @@
 ;;; Macroexpand the define-json-query forms and the individual j->,
 ;;; j->>, jbuild and to-jsonb forms to see the generated S-SQL.  See
 ;;; also the User Guide on "User defined queries" and "JSON query
-;;; syntactic sugar".
+;;; syntactic sugar" for details on these queries.
 
 (define-json-query rich-humans$ (min-balance gender)
   (:order-by

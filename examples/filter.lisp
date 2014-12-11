@@ -8,11 +8,9 @@
 (defun create ()
   (unless (and pomo:*database* (pomo:connected-p pomo:*database*))
     (pomo:connect-toplevel "cusoon" "gtod" "" "localhost" :port 5433))
-  (unless (backend-exists-p)
-    (create-backend))
+  (ensure-backend)
   (dolist (model *models*)
-    (unless (model-exists-p model)
-      (create-model model))))
+    (ensure-model model)))
 
 (defun cleanup ()
   (dolist (model *models*)
@@ -35,10 +33,6 @@
   `(progn
      (print ',form)
      (pp-json ,form)))
-
-
-;; Any point trying to make these work on subsets of the relation?
-;; What about on the old relation?
 
 ;; Containment operator
 ;; See 8.14.3 in Postgres manual 9.4
