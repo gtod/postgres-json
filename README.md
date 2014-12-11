@@ -12,14 +12,13 @@ structures to and from a proper database.
 
 ## Why would you use it?
 
-1. You have some existing JSON documents you would like to manipulate
-in Common Lisp and also store persistently.
+1. You have some existing JSON documents you want to store persistently.
 
-2. You want to easily serialize arbitrarily nested Common Lisp hash
-tables, lists, vectors, strings and numbers to a database.
+2. You want to serialize Common Lisp data such as hash tables, lists,
+vectors, strings and numbers to a database.
 
 3. You like the [ACID](http://en.wikipedia.org/wiki/ACID) qualities of
-PostgreSQL but rigid data schema requirements are not suitable for your
+PostgreSQL but rigid data schema definitions are not suitable for your
 project.
 
 In some sense Postgres-JSON is a primitive *NoSQL document database*
@@ -35,7 +34,7 @@ release candidate as at 20 November 2014.
 * Any Common Lisp JSON library.
 [Yason](http://common-lisp.net/project/yason/) is a dependency of this
 project but you can use whatever library you like:
-see the comparison by Sabra On The Hill [JSON libraries]
+see the comparison by Sabra On The Hill: [JSON libraries]
 (https://sites.google.com/site/sabraonthehill/home/json-libraries).
 
 ## Status
@@ -43,6 +42,15 @@ see the comparison by Sabra On The Hill [JSON libraries]
 This library is **under development**. The interface is relatively
 stable which is the positive way of saying it might still change.
 There are a few other things to complete before an Alpha release.
+
+## Documentation
+
+* [Beginner's guide to JSON with Common Lisp]
+(doc/beginners.md)
+* [User's Guide](doc/user-guide.md)
+* [API](doc/api.md)
+
+In addition most of the implementation code has docstrings.
 
 ## Quickstart
 
@@ -74,11 +82,10 @@ REPL evaluate:
 Followed by:
 
 ```common-lisp
-(defpackage :simple-1
-  (:use :cl :postgres-json :postgres-json-model)
-  (:shadowing-import-from :postgres-json-model :get :delete :count))
+(defpackage :simple
+  (:use :cl :postgres-json)
 
-(in-package :simple-1)
+(in-package :simple)
 
 ;; Once only operation, make a DB schema for all our models
 (create-backend)
@@ -95,7 +102,7 @@ arbitrarily nested lisp object of hash tables and lists as JSON.
 ```common-lisp
 > (insert 'cat (obj "name" "joey" "coat" "tabby"))
 1
-> (pp-json (get 'cat 1))
+> (pp-json (fetch 'cat 1))
 {
     "key":1,
     "coat":"tabby",
@@ -105,11 +112,11 @@ arbitrarily nested lisp object of hash tables and lists as JSON.
 > (insert 'cat (obj "name" "maud" "coat" "tortoiseshell"))
 > (keys 'cat)
 (1 2 3)
-> (delete 'cat 2)
+> (excise 'cat 2)
 2
 > (keys 'cat)
 (1 3)
-> (count 'cat)
+> (tally 'cat)
 2
 > (update 'cat 3 (obj "name" "maud" "coat" "tortoiseshell" "age" 7
                       "likes" '("sunshine" 42)))
@@ -127,142 +134,35 @@ arbitrarily nested lisp object of hash tables and lists as JSON.
 }
 ```
 
-See [simple-1](examples/simple-1.lisp) for similar code to the above
-you can compile and run.  [simple-2](examples/simple-2.lisp) is
-similar but it does not shadow the common lisp symbols such as 'get
-and 'delete.  There is also an extended example and much commentary
-in [human](examples/human.lisp).
+See [simple](examples/simple.lisp) for similar code to the above.
+There is an extended example in [human-1](examples/human-1.lisp) and
+[human-2](examples/human-2.lisp).  If you do `(ql:quickload
+:postgres-json-examples)` all examples will be compiled for you.
 
-Individual calls to a model function such as `insert` which write to
-the DB get their own transaction.  But if you start a model
-transaction yourself all model operations in the body occur within a
-single transaction:
+An example user defined query from [human-2](examples/human-2.lisp)
+and documented in [User defined JSON
+queries](doc/user-guide.md#user-defined-json-queries):
 
 ```common-lisp
-> (log:config :debug)
-
-> (dotimes (i 3)
-    (insert 'cat (obj "name" (format nil "maud-~A" i))))
-
-<DEBUG> [17:59:59] postgres-json  Starting transaction INSERT
-<DEBUG> [17:59:59] postgres-json  Completing transaction INSERT
-<DEBUG> [17:59:59] postgres-json  Starting transaction INSERT
-<DEBUG> [17:59:59] postgres-json  Completing transaction INSERT
-<DEBUG> [17:59:59] postgres-json  Starting transaction INSERT
-<DEBUG> [17:59:59] postgres-json  Completing transaction INSERT
-
-> (with-model-transaction (some-cats)
-    (dotimes (i 3)
-      (insert 'cat (obj "name" (format nil "maud-~A" i)))))
-
-<DEBUG> [18:00:16] pj-test () - Starting transaction SOME-CATS
-<DEBUG> [18:00:16] pj-test () - Completing transaction SOME-CATS
+(define-json-query uncharitable-humans$ ()
+  (:select (jbuild (human "name") (gift "type" "quantity"))
+   :from 'human
+   :inner-join 'gift
+   :on (:= (j-> human "key") (j-> gift "human-key"))
+   :where (:= (j-> gift "quantity") (to-jsonb 1))))
 ```
 
-Note that to get rid of the debugging messages from log4cl just do
-`(log:config :info)`.
-
-## Documentation
-
-The interface to a model is just a few functions for now, illustrated
-above.  All the interface functions have comprehensive doc strings.
-I find the easiest way to read them is by bouncing to say `insert`
-with emacs M-. (ie. slime-edit-definition).
-
-### User's guide (under construction)
-
-#### Schema search paths
-
-We don't have to worry too much about schema search paths because the
-Postgres *qualified name* is harcoded into model based queries.  But
-they are important if you use the `define-json-query` macro and you
-might want to set them when playing in PSQL:
-
-```sql
-SET search_path TO pgj_model, public;
-```
-
-You can specify `to-json` for `insert` and `update` and `from-json`
-for `get` at run time:
-
-```common-lisp
-PJ-TEST> (get 'cat 82 :from-json 'yason:parse)
-#<HASH-TABLE :TEST EQUAL :COUNT 2 {100799D833}>
-PJ-TEST> (pp-json (get 'cat 82 :from-json 'yason:parse))
-{
-    "coat":"rugged tortoiseshell",
-    "name":"clementine"
-}
-```
-#### PostgreSQL sequences
-
-Now there are some good reasons for using just a single auto
-incrementing sequence across **all** your models (for one thing, it
-means that all your JSON documents have a unique key if you every need
-to merge subsets from different models), but you can also have
-one sequence per model:
-
-```
-(create-db-sequence 'foo)
-(create-model 'dog (make-model-parameters 'dog :sequence 'foo))
-```
-
-## Design
-
-### What lisp objects can be serialized?
-
-This depends on your choice of JSON library: If you have a way to
-encode your lisp object (list, hash-table, array, CLOS objects, etc.)
-to JSON you can now put it straight into PostgreSQL 9.4+.
-
-### I do not want integer keys
-
-This is not too hard.  You can supply a keyword argument `use-key` to
-`insert` or (and this will take a little more effort) you could make a
-UUID sequence in PG and get values from that.  TODO.
-
-### Backend
-
-The backend for a model cat (say) looks like
-
-```sql
-                                    Table "pgj_schema.cat"
-   Column   |           Type           |                       Modifiers
-------------+--------------------------+-------------------------------------------------------
- key        | integer                  | not null
- valid_to   | timestamp with time zone | not null default 'infinity'::timestamp with time zone
- valid_from | timestamp with time zone | not null default transaction_timestamp()
- jdoc       | jsonb                    | not null
-Indexes:
-    "cat_pkey" PRIMARY KEY, btree (key)
-    "cat_gin" gin (jdoc)
-```
-
-```sql
-            Table "pgj_schema.cat_old"
-   Column   |           Type           | Modifiers
-------------+--------------------------+-----------
- key        | integer                  | not null
- valid_to   | timestamp with time zone | not null
- valid_from | timestamp with time zone | not null
- jdoc       | jsonb                    | not null
-Indexes:
-    "cat_old_pkey" PRIMARY KEY, btree (key, valid_to)
-    "cat_old_gin" gin (jdoc)
-```
-
-I suggest inserting some data and then playing around inside PSQL...
-
-I have yet to determine just how leak proof the very simple CRUD
-interface should be...
+## Features
 
 #### Immutability
 
-The "immutability" part comes from the fact that when you use the
-model to update or delete, we actually copy the current row to the
-`_old` table before proceeding.  So we have a full history of the
-object's lifetime.  TODO: write some nice interface functions for
-this.
+The "immutability" part comes from the fact that when you
+[`update`](doc/api.md#update) or [`excise`](doc/api.md/#excise) (which
+means delete but is not a standard Common Lisp symbol) a [JSON
+document](doc/user-guide.md#json-document) in a
+[model](doc/user-guide.md#model), a copy of the current row is
+inserted into the `<model>_old` table before proceeding.  So there is
+a full [`history`](doc/api.md#history) of the object's lifetime.
 
 #### PostgreSQL 9.4 + JSON == NoSQL++
 
@@ -276,27 +176,5 @@ However, I think it may well be practical to support referential
 integrity, based just on the primary key column in different models.
 So we should be able to support a *CAT owns one or more HUMANS*
 relationship etc.  This is the point of using PostgreSQL for JSON: we
-can choose precisely how much of the old fashioned database goodness
-to go with the new fashioned JSON devil may care hedonism...
-
-#### Transaction isolation levels
-
-See [transactions](postgres/transactions.lisp) for how `INSERT` and
-`UPDATE` handle isolation levels using a retry loop.  We are not using
-the default Postgres isolation level but rather `repeatable read`.  Do
-let me know if you think it should be `serializable` and why, I am no
-expert.
-
-Also see project hermitage at https://github.com/ept/hermitage for
-plenty of gory detail on isolation levels.
-
-## Notes
-
-Letters, numbers and dashes are OK in symbol names for PostgreSQL
-objects.  Don't try anything too funky besides.
-
-All the Postmodern conditions will leak through this abstraction, at
-present it is a pretty thin layer.  However because we are using the
-PG *repeatable read isolation level* to safely insert and update two
-tables at once work has been done to handle *serialization failures*
-under the covers.  See the PG docs for more info on isolation levels.
+can choose precisely how much of the old fashioned relational database
+goodness to go with the new fashioned JSON devil may care hedonism...
