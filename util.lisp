@@ -1,9 +1,15 @@
 (in-package :postgres-json)
 
+;;;; Symbol/JSON functions.
+;;;; Here be dragons, symbol casing is non trivial.
+
 (defun symbol->json (symbol)
+  "Return the downcased symbol name of SYMBOL."
   (string-downcase (symbol-name symbol)))
 
 (defun json->symbol (string)
+  "Return a symbol in the current package with symbol name being the
+upcased version of STRING."
   (ensure-symbol (string-upcase string)))
 
 ;;;; JSON related small functions
