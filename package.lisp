@@ -31,9 +31,12 @@
    #:ensure-model
    #:all-models
    #:drop-model
+   #:*sequence*
+   #:*key*
+   #:*key-type*
    #:make-model-parameters)
 
-  ;; Model interface proper
+  ;; Model interface
   (:export
    #:insert
    #:update
