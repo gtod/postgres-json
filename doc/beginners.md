@@ -1,10 +1,10 @@
-Using JSON with Common Lisp and Postgres for beginners
-======================================================
+Using JSON with Common Lisp for beginners
+=========================================
 
 ## Context
 
 This document just recapitulates the contents of the JSON section of the
-[User Guide Glossary](user-guide.md#glossary) with more words and
+[User Guide Terminology](user-guide.md#terminology-and-overview) with more words and
 more examples.  Take your pick.
 
 ## Introduction
@@ -66,9 +66,10 @@ values `true`, `false` and `null`:
 ```
 
 You are free to make your own Internet searches and then choices about
-which JSON library to use because Postgres-JSON **does not care** --- *it
-expects to be given a JSON string, which it stores in the Postgres
-backend and when requested you get that same JSON string back again*.
+which JSON library to use because the Postgres-JSON backend **does not
+care** --- *it expects to be given a JSON string, which it stores in a
+Postgres column of type `jsonb` and when requested it returns that
+same JSON string*.
 
 How your lisp objects are converted (or "serialized") into JSON
 strings (often called *to-json*) and how those JSON strings are then

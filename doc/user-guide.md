@@ -4,8 +4,8 @@ Postgres-JSON User Guide
 ## Introduction
 
 If you are already proficient in Common Lisp and relational databases
-and/or JSON you may find the [examples](../examples) and the reference
-documentation (???)  sufficent to get going.  Otherwise the
+and/or JSON you may find the [examples](../examples) and the [reference
+documentation](api.md) sufficent to get going.  Otherwise the
 [Beginner's Guide](beginners.md) and this document may help.
 
 ### Conventions
@@ -67,17 +67,39 @@ just:
         (insert 'human human))))
 ```
 
-## Features
+## Usage
 
-Nothing is every really deleted, so it is trivial to see a full
-history of updates made to a specific JSON document.
+You `ensure-backend`, you `ensure-model` on some models and then
+you use the various [model interface](api.md#model-interface) functions
+to put stuff in and get stuff out of the backend database.
 
-## Terminology
+You can over-ride the default "one transaction per operation"
+behaviour by wrapping a body of model interface calls in a
+[`with-model-transaction`](api.md#model-and-database-interaction)
+form.
+
+Postgres-JSON never truly deletes a JSON document so you can view its
+[`history`](api.md#history).
+
+If you need more complex queries you can write them: [User defined
+queries](#user-defined-json-queries).
+
+### Model interface conventions
+
+Any `KEY` arguments supplied to a model interface function must be
+compatible with the Postgres data type KEY-TYPE, which is one of the
+[model's parameters](api.md#model-parameters).  It defaults to
+`integer`.
+
+## Terminology and overview
+
+Those proficient in Common Lisp and JSON can skip directly
+to [Postgres-JSON terms](#postgres-json-terms).
 
 It's difficult to avoid all forward references in this section.
 Because I think it's easier to grasp the novel Postgres-JSON
 terminology of *backend* and *model interface* having read about well
-know things like JSON and Common Lisp objects, those terms come first.
+known things like JSON and Common Lisp objects, those terms come first.
 
 ### JSON terms
 
@@ -87,38 +109,38 @@ explaining it and parts of that page are repeated below.  It's worth
 understanding a little JSON so that you can understand just what
 Common Lisp *objects* you can sensibly serialize to JSON.
 
-#### JSON Structure
+##### JSON Structure
 
 JSON is built on two structures: the *JSON object* and *JSON array*.
 
-#### JSON object
+##### JSON object
 
 An unorded set of name/value pairs, where the name must be a *JSON
 string* and the value a *JSON value*.
 
-#### JSON array
+##### JSON array
 
-An ordered collection of JSON *values*.
+An ordered collection of *JSON values*.
 
-#### JSON value
+##### JSON value
 
 A JSON value can be a *JSON string* in double quotes, or a *JSON
 number*, or the barewords `true` or `false` or `null`, or a *JSON
 object* or a *JSON array* (it's turtles all the way down).
 
-#### JSON string
+##### JSON string
 
 A JSON string is a sequence of zero or more Unicode characters,
 wrapped in double quotes, using backslash escapes.
 
-#### JSON number
+##### JSON number
 
 A signed decimal number that may contain a fractional part and may use
 exponential E notation. No distinction is made between integer and
 floating-point. (Paraphrased from
 [Wikipedia](http://en.wikipedia.org/wiki/JSON)).
 
-#### JSON document
+##### JSON document
 
 * Abstract DB: A *relation* cat has many *tuples*.
 * Concrete DB: A *table* cat has may *rows*.
@@ -128,7 +150,7 @@ A *JSON document* in the broadest sense is any piece of JSON text.  We
 use it to mean a specific JSON text (typically using a *JSON object*
 as it's *top level*) that resides in a specific *model*.
 
-##### Homogeneous JSON documents
+###### Homogeneous JSON documents
 
 It may be obvious to you, but it's worth saying explicitly that there
 is nothing stopping you creating some *model* `cat` and then stuffing
@@ -151,18 +173,18 @@ you want to put **only** cat like JSON documents into the cat model:
 (insert 'cat (obj "name" "max" "coat" "ginger"))
 (insert 'cat (obj "name" "maud" "coat" "tortoiseshell"))
 ```
-#### Top level
+##### Top level
 
 You can arbitrarily nest JSON structures (objects or arrays) but, by
 the definition of nesting, there will be a root or *top level*
 structure.  (In fact you can store strings and numbers directly in a
 *model* but then you have no top level structure).  It is this
-structure that the Postgres [*existence* operator]
+structure that the Postgres [existence operator]
 (http://www.postgresql.org/docs/9.4/static/datatype-json.html#JSON-CONTAINMENT)
 works on.
 
-Here the *properties* such as `"guid"` and `"company"` are at the top
-level, but `"id"` is not:
+Here the [*properties*](#property) such as `"guid"` and `"company"`
+are at the top level, but `"id"` is not:
 
 ```common-lisp
   {
@@ -181,7 +203,7 @@ level, but `"id"` is not:
 
 ```
 
-#### JSON Serialization
+##### JSON Serialization
 
 The process of converting a Common Lisp *object* to a *JSON document*,
 which is really just a string or stream of JSON.  Typically Lisp
@@ -190,7 +212,7 @@ objects are serialized to JSON before being inserted into a Postgres
 
 ### Common Lisp terms
 
-#### Object
+##### Object
 
 When not explicitly qualifed by a "JSON" prefix, *object* is typically
 used in the most general Common Lisp sense (rather than the more
@@ -223,24 +245,25 @@ JSON.
 Common lisp object in question and JSON.  Of course, with a little
 effort and some simplifying assumptions you can serialize a CLOS
 object (or anything else) to JSON: see for example [model parameters]
-(model/parameters.lisp) which makes a **lot** of simplifying
+(../model/parameters.lisp) which makes a **lot** of simplifying
 assumptions, or the features offered by
 [CL-JSON](http://common-lisp.net/project/cl-json).
 
 ### Postgres-JSON terms
 
-#### Backend
+##### Backend
 
 *Backend* describes a thin layer of abstraction over the Postgres
-schema in which all *models* are created.  A Postgres schema is similar
-to a Common Lisp
-[package](http://www.lispworks.com/documentation/HyperSpec/Body/11_aa.htm)
-in that it provides a namespace for database tables etc.  The backend
-schema is called `pgj_model` --- see `*pgj-schema*` but you need
-only concern yourself with this when using PSQL or defining your
-own queries.  See [search path] and [define-json-query].
+schema [`*pgj-schema*`](api.md#pgj-schema) in which all *models* are
+created.  A Postgres schema is similar to a Common Lisp package in
+that it provides a namespace for database tables etc.  All the [model
+interface](api.md#model-interface) functions use the default schema
+automatically.  But for [user defined
+queries](#user-defined-json-queries) you must go to a little more
+trouble.  The (trivial) backend functions are documented in
+the API under [Postgres backend](api.md#postgres-backend).
 
-#### Model
+##### Model
 
 The term *model* (or *backend model*) serves to describe a (thin)
 layer of abstraction over a pair of Postgres tables in which *JSON
@@ -248,26 +271,29 @@ documents* of a similar nature are stored.  It's a term best
 understood when used concretely: "the cat model", "the human model"
 etc.  Every model has the same *model interface*.
 
-**Specific models in Postgres-JSON are named by Common Lisp symbols.**
-The symbol is a single parameter that simply tells the *model
-interface* functions which Postgres tables and other objects to use.
+Specific models in Postgres-JSON are named by Common Lisp symbols.
+The symbol is a single parameter that simply tells the [*model
+interface*](api.md#model-interface) functions which Postgres tables
+and other objects to use.
 
-#### Model interface
+##### Model interface
 
 The set of Common Lisp functions such as `insert` and `fetch` that
 provide a simple inteface to the underlying database operations on the
-*JSON documents* of a specific *model*.
+*JSON documents* of a specific *model*.  See the [model
+interface](api.md#model-interface) API docs.
 
-#### Model parameters
+##### Model parameters
 
 Parameters specific to a model, such as the Postgres data type of the
 primary key field for example, are stored in an instance of CLOS class
 [`model-parameters`](../model/parameters.lisp).  Because the creation
 of a model and its use can be separated by large gaps of time we eat
 our own dog food and serialize the model parameters to a backend
-*model* called `*meta-model*`.
+*model* called `*meta-model*`.  See [model
+parameters](api.md#model-parameters).
 
-#### Key
+##### Key
 
 Typically used in the database sense of the *primary key* of a *JSON
 document* stored in a specific Postgres-JSON *model*.  *Key* is often
@@ -276,7 +302,7 @@ overloading *key* too much we try and use *property* for the second
 meaning, especially in the context of *JSON objects*, where unlike
 Common Lisp hashes, properties must be strings.
 
-#### Property
+##### Property
 
 * Common Lisp: A *hash table* maps a *key* to a *value*.
 * JavaScript: An *object* maps a *property* to a *value*.
@@ -297,144 +323,196 @@ properties `key`, `coat`, `name`.
 }
 ```
 
-## Postgres-JSON backend interface
+See, for example, [exists](api.md#exists).
 
-## Postgres-JSON model
+## User defined JSON queries
 
-### Basic interface
+*This section is too long, but I don't have time to make it shorter.
+The [examples](../examples/human-2.lisp) and the [API
+doc](api.md#user-queries-and-json-syntactic-sugar-for-s-sql) should
+get you a long way)*.
 
-Any KEY arguments supplied to a model interface function must be
-compatible with the Postgres data type KEY-TYPE, which is one of the
-model's parameters.  It defaults to `integer`.  *Go to bigints? How
-hard to upgrade to bigints live?*
+Because any given [*model*](#model) is just a thin layer over some
+Postgres database tables, we can query them directly.  In some sense
+this means our abstraction leaks but I'm not in the business of trying
+to pretend SQL isn't a fine way to query a relational database like
+Postgres, even if our data is not in table columns but bundled up
+inside a (potentially) complex JSON document which lives in a single
+Postgres column of type `jsonb`.  It turns out you can get a long way
+with the basic Postgres JSON facilities.
 
-### User defined JSON queries
+[`define-json-query`](api.md#define-json-query) is a fairly light
+wrapper over a standard Postmodern S-SQL query form.  Iif you are not
+familair with S-SQL, read one or both of these:
 
-;;; These must return JSON objects only.
-;;; Macroexpand the define-json-query forms and the individual
-;;; j->, j->>, jbuild and to-jsonb forms to see the generated S-SQL.
-;;; See also the User Guide on User defined queries.
+* https://sites.google.com/site/sabraonthehill/postmodern-examples/postmodern-intro-to-s-sql#simple-queries
+* https://marijnhaverbeke.nl/postmodern/s-sql.html).
 
-;;; These queries must return a single return JSON object per
-;;; result row.  Hence jbuild and 'jdoc
+What you get in addition is some syntactic sugar and the optional use
+of parameter names in the prepared queries.
 
+#### Conventions
+
+`define-json-query` prepares Postmodern queries that have a `:column`
+result format and so you must ensure that each row produces just a
+single datum, being a valid Postgres JSON type.  In practice this
+means returning the column named `jdoc` in any model, which is the
+entire JSON document, or using the [`jbuild`](api.md#jbuild) macro to
+build some JSON on the fly.
 
 #### JSON query syntactic sugar
 
+S-SQL largely supports the various JSON operators and "does the right
+thing" for function syntax such as `(:json-build-object ...)`, [see
+the Postgres 9.4 JSON functions and operators
+doc](http://www.postgresql.org/docs/9.4/static/functions-json.html)
+for the full story, the following is somewhat simplified.
 
+The standard syntax becomes a little verbose with heavy use so
+some more concise forms are defined in
+[user-query.lisp](../model/user-query.lisp).  Everything else is still
+S-SQL but any list starting with a symbol in the list below gets
+special treatment when used with `define-json-query`:
 
-;;; S-SQL largely supports the various JSON operators and "does the
-;;; right thing" for function syntax such as (:json-build-object ...),
-;;; see the Postgres 9.4 JSON doc on this and other functions.  But
-;;; it's a little verbose (I think) and so some more consise forms are
-;;; defined here.  Everything else is still S-SQL but any list with
-;;; car 'j-> or 'j->> or 'jbuild or 'to-json gets the expansions shown
-;;; when used with DEFINE-QUERY.
+* [`j->`](api.md#j-) returns a JSON object propery as JSON.
+* [`j->>`](api.md#j--1) returns a JSON object propery as text.
+* [`jbuild`](api.md#jbuild) returns a JSON object built out of JSON pieces on the database side.
+* [`to-jsonb`](api.md#to-jsonb) casts an S-SQL form to Postgres type `jsonb`.
 
-;; You can use the full model name such as 'cat but :as assignments
-;; will also work.  The quote on 'cat or 'c is optional when using any
-;; of these j operators...
+You can use the full model name such as `'cat` with these j macros but
+if in your `:from` or `:join` clause you have used an `:as` assignment
+then you can also use the assigned symbol.  The quote on `'cat` or
+`'c` is optional when using any of these j macros.
 
-;; Maybe jbuild only needs -> ?  Let's assume that for now.
+**Because they are all macros you can simply macroexpand them to see
+what S-SQL they turn into**.  This may be the fastest way to learn.  Do
+not evaluate them, they are not Common Lisp.
 
-#|
+```common-lisp
+; sugar              ; S-SQL
+(j-> "id")           (:-> 'jdoc "id")
+(j-> 'cat "id")      (:-> 'cat.jdoc "id").
+(j->> 'c "id")       (:->> 'c.jdoc "id").
+```
 
-You can simply macroexpand the LHS form to get the RHS...
+```common-lisp
+; sugar              ; S-SQL
+(to-jsonb 1)         (:TYPE (:TO-JSON 1) JSONB)
+```
 
-sugar                ; S-SQL
+```common-lisp
+; sugar                       ; S-SQL
+(jbuild ("id" "name"))        (:JSON-BUILD-OBJECT "id" (:-> 'JDOC "id") "name" (:-> 'JDOC "name"))
+(jbuild ('cat "id" "name"))   (:JSON-BUILD-OBJECT "id" (:-> 'CAT.JDOC "id") "name" (:-> 'CAT.JDOC "name"))
+```
 
-(j-> "id")           ; (:-> 'jdoc "id")
-(j-> 'cat "id")      ; (:-> 'cat.jdoc "id").
-(j->> 'c "id")       ; (:->> 'c.jdoc "id").
-
-(to-jsonb 1)         ; (:TYPE (:TO-JSON 1) JSONB)
-
-(jbuild ("id" "name"))      ; (:JSON-BUILD-OBJECT "id" (:-> 'JDOC "id") "name" (:-> 'JDOC "name"))
-(jbuild ('cat "id" "name")) ; (:JSON-BUILD-OBJECT "id" (:-> 'CAT.JDOC "id") "name" (:-> 'CAT.JDOC "name"))
-
+```common-lisp
 ;; OK, no duplicated keys
-(jbuild ('cat "id" "name") ('dog "age")) ->
+(jbuild (cat "id" "name") (dog "age"))  ; No quotes actually needed
+
 (:JSON-BUILD-OBJECT "id"  (:-> 'CAT.JDOC "id") "name" (:-> 'CAT.JDOC "name")
                     "age" (:-> 'DOG.JDOC "age"))
+```
 
+```common-lisp
 ;; Explicitly label duplicate key
 (jbuild ('cat "id" "name") ('dog ("dog-id" "id") "age"))
+
 (:JSON-BUILD-OBJECT "id"     (:-> 'CAT.JDOC "id") "name" (:-> 'CAT.JDOC "name")
                     "dog-id" (:-> 'DOG.JDOC "id") "age"  (:-> 'DOG.JDOC "age"))
+```
 
-j-> and j->> only take one or two args. As shown above the relation
+`j->` and `j->>` only take one or two args. As shown above the table
 name is optional, unless of course this would lead to ambiguity.
-The realtion name need not be quoted.  So 'cat or cat are both fine.
+*The table name need not be quoted.  So `'cat` or `cat` are both fine.*
 
-to-jsonb takes a single form as an argument, which will be converted
-by the Postgres TO-JSON function and then cast to the Postgres jsonb
+`to-jsonb` takes a single form as an argument, which will be converted
+by the Postgres TO-JSON function and then cast to the Postgres `jsonb`
 type.
 
-jbuild takes 1 or more lists as args:
+`jbuild` takes 1 or more lists as args.  The syntax for each of these
+list is as follows:
 
 If the list starts with a symbol (or quoted symbol) then that is used
-to qualify all the jdoc accesses for the following keys.  Keys may be
-strings (double duty as the label and the accessor) or a pair of
-strings in a list, the first being the label and the second the
-accessor.
+to qualify all the `jdoc` accesses for the following "keys" in the
+list.  Keys may be strings in which case they do double duty as the
+both the [*property*](#property) and the accessor.  A key may also be
+a pair of strings in a list, the first being the property and the
+second the accessor.  This flexibility is required because you are
+building a *JSON object* and you cannot have duplicate properties (any
+more than you can have duplicate keys in a hash table).  So if you
+need the `"id"` property from both the `cat` and `dog` model, one of
+them needs to be relabeled, as show in the examples above.  (This is
+similar to how
+[`with-slots`](http://www.lispworks.com/documentation/HyperSpec/Body/m_w_slts.htm#with-slots)
+works).
 
-|#
+#### JSON query named parameter interpolation
 
-;;;; JSON query named parameter interpolation
+When using [`define-json-query`](api.md#define-json-query) you must
+supply some **QUERY-PARAMS** which are `filter-json` and `email-regex` in
+the example below:
 
-;;; Named parameters to the query may be explicity interpolated.  Here
-;;; we provide the names of explicit parameters to the query
-;;; (filter email-regex) and these are replaced in the query form
-;;; with '$1, '$2 etc...  You MUST provide explicit names for each
-;;; parameter as these become the parameters of the ready-bookings$
-;;; function.  You MAY write the params inline as shown below, or still
-;;; write '$1, '$2 explicitly as in S-SQL.
+```common-lisp
+(define-json-query ready-bookings$ (filter-json email-regex)
+  (:order-by
+   (:select (jbuild ("id" "name" "email"))
+    :from 'booking
+    :where (:and (:or (:@> 'jdoc filter-json))
+                 (:~ (j->> "email") email-regex)))
+   (:type (j->> "price") real)))
+```
 
-;; (define-query ready-bookings$ (filter email-regex)
-;;   (:order-by
-;;    (:select (jbuild ("id" "name" "email"))
-;;     :from 'booking
-;;     :where (:and (:or (:@> 'jdoc filter))
-;;                  (:~ (j->> "email") email-regex)))
-;;    (:type (j->> "price") real)))
+Primarily these parameters become the parameters of the
+`ready-bookings$` function defined by the macro.  But they have a
+secondary (optional) use: you can simply use the same symbols inside
+the query itself in place of the standard `'$1`, `'$2` etc. syntax of
+S-SQL to specify the parameters that will be passed to the prepared
+query on invocation.
 
-;;; The 'containment' operator @> checks if some json you send as a
-;;; query argument is contained in the jdoc column of a specifc model.
-;;; Typically you don't have JSON in the lisp program, you have say a
-;;; hash-table which needs to be serialized to JSON for this to work.
-;;; So lifting the syntax idea from cl-ppcre:register-groups-bind you
-;;; can specify function to map the actual argument from itself to
-;;; something else: for example ((*to-json* filter) email-regex)
-;;; funcalls *to-json* to map filter from a hash-table to a JSON
-;;; string when ready-bookings$ is called...
+In other words, you **must** provide explicit names for each parameter
+as these become the parameters of the `ready-bookings$` function.  You
+**may** write the params inline as shown above, or still write `'$1`,
+`'$2` explicitly, as in standard S-SQL.
 
+The
+[*containment*](http://www.postgresql.org/docs/9.4/static/functions-json.html)
+operator `@>` checks if some JSON you send as a query argument is
+contained in the `jdoc` column of a specifc model.  Typically you
+don't have JSON in the lisp program, you have say a hash-table which
+needs to be serialized to JSON for this to work.  So rather than have
+some variable `filter-json` which is actually a JSON string, we can
+convert our lisp object on the fly by lifting a syntax idea from
+[`cl-ppcre:register-groups-bind`](http://weitz.de/cl-ppcre/#register-groups-bind):
+instead of writing a parameter as a symbol it can be written as a list
+`(fn &rest params)` where `fn` is a function designator for a function
+to map the actual arguments from themselves to something else: for
+example `((*to-json* filter) email-regex)` funcalls `*to-json*` to map
+`filter` from a hash-table to a JSON string when `ready-bookings$` is
+called.
 
+#### Examples
 
-
-;;; Try slime-edit-definition (M-.) on DEFINE-JSON-QUERY to read
-;;; details on the syntactic sugar of j->, j->>, jbuild, to-jsonb and
-;;; also the named parameter interpolation.
-
-
+```common-lisp
 (define-json-query rich-humans$ (min-balance gender)
   (:order-by
 
    ;; jbuild makes a new JSON object which consists of just the
-   ;; key/values pairs in the JSON document with the specified keys.
+   ;; key/values pairs in the JSON document with the specified properties.
    (:select (jbuild ("key" "guid" "gender" "name" "balance"))
+    :from 'human
 
-    :from 'human ;; this is why we need to set the search path above
-                 ;; otherwise it would need to be 'pgj_model.history
-
-    ;; j->> is a little syntactic sugar to get at the top level keys
+    ;; j->> is a little syntactic sugar to get at the top level properties
     ;; in 'jdoc using the Postgres operator :->> which returns text.
     ;; So we must cast to a Postgres number type for comparisons.
     :where (:and (:>= (:type (j->> "balance") real) min-balance)
 
-                 (:= (j->> "gender") gender))) ;; can also do this using 'containment', see below
-
+                 (:= (j->> "gender") gender))) ;; can also do this using
+                                               ;; 'containment', see below
    (:type (j->> "balance") real)))
+```
 
+```common-lisp
 ;; We need filter arg as a JSON string, so request a funcall on *to-json* at run time
 (define-json-query one-friend-humans$ ((*to-json* filter) email-regex)
   (:select 'jdoc ;; 'jdoc is the generic name for the JSON column in all models
@@ -442,90 +520,88 @@ accessor.
 
    ;; Our 'jdoc column is Postgres type jsonb.
    ;; j-> is sugar for Postgres operator -> which returns a top level
-   ;; key in jdoc as Postgres type jsonb.  Thus we apply jsonb
+   ;; property in jdoc as Postgres type jsonb.  Thus we apply jsonb
    ;; functions to it...
-   :where (:and (:or (:@> 'jdoc filter))                     ;; Postgres json 'containment' op
+   :where (:and (:or (:@> 'jdoc filter))                     ;; Postgres json containment
                 (:= (:jsonb-array-length (j-> "friends")) 1) ;; Postgres jsonb function
                 (:~ (j->> "email") email-regex))))           ;; Postgres regex function
+```
 
+See [Empty JSON arrays and Common
+Lisp](#empty-json-arrays-and-common-lisp) for further discusson
+of the `jsonb-array-length` comparison above.
+
+```common-lisp
 ;; Example of a join
 (define-json-query uncharitable-humans$ ()
   (:select (jbuild (human "name") (gift "type" "quantity"))
    :from 'human
    :inner-join 'gift
    :on (:= (j-> human "key") (j-> gift "human-key"))
-   :where (:= (j-> gift "quantity") (to-jsonb 1))
-
-   ;; We could also write the above :where clause as
-   ;; :where (:= (:type (j->> gift "quantity") int4) 1)
-   ;; which is what we did with min-balance in the rich-humans$ query
-   ;; above.  j->> asks that gift "quantity" be converted to Postgres
-   ;; type text, which we then cast to Postgres type int4 to compare
-   ;; with 1.
-
-   ;; What we actually do is convert Postgres type integer 1 to
-   ;; Postgres type jsonb using a little syntactic sugar --- try
-   ;; macroexpanding the (to-jsonb 1) form .  We then compare compare
-   ;; it with key "quantity", macroexpand (j-> gift "quantity"), which
-   ;; is also Postgres type jsonb because Postgres operator -> gives
-   ;; the raw jsonb of the key while Postgres operator ->> converts it
-   ;; to text.  This library only uses Postgres type jsonb. See the
-   ;; Postgres docs at
-   ;; http://www.postgresql.org/docs/9.4/static/functions-json.html
-   ))
-
-
-
-
-## Putting it to work
-
-### Postmodern and friends
-
-This library is built on top of Marijn Haverbeke's
-[Postmodern](http://marijnhaverbeke.nl/postmodern/).  Like that
-library it is unashamedly PostgreSQL dependent.
-
-[User defined queries](#user-defined-queries) are defined using
-Postmodern's S-SQL with the sprinkly of just a little
-[JSON query syntactic sugar](#json-query-syntactic-sugar).
-
-### Package definition and imports
-
-My own preference is for something like the following:
-
-```common-lisp
-(defpackage :simple-1
-  (:use :cl :postgres-json :postgres-json-model)
-  (:shadowing-import-from :postgres-json-model :get :delete :count))
+   :where (:= (j-> gift "quantity") (to-jsonb 1))))
 ```
 
-The symbols in `postgres-json` are the usual fare and are unlikely to
-cause clashes.  Those in `postgres-json-model` are the basic CRUD
-operations on our persistence model and so have common names, some of
-which must be shadowing imported.  Since I rarely use `cl:get`,
-`cl:delete` or `cl:count` the above method is not too confusing for
-me.  However if you prefer to have no such clashes you can do
-
+We could also write the above `:where` clause as
 ```common-lisp
-(defpackage :postgres-json-examples
-  (:use :cl :postgres-json))
+ :where (:= (:type (j->> gift "quantity") int4) 1)
 ```
 
-where now you must fully qualify access to the symbols
-`postgres-json-model:get` etc., which is not too bad because that
-package has a short nickname and you can write `pj:get`.
+which is what we did with `min-balance` in the `rich-humans$` query
+above.  `j->>` asks that gift `"quantity"` be converted to Postgres type
+text, which we then cast to Postgres type int4 to compare with 1.
 
-*In fact, before an initial release, it might be better to relabel
-`get` as `fetch`, `delete` as `erase` and `count` as `total` (or
-whatever) to avoid this issue all together.  Feedback welcome.*
+What we actually did is convert Postgres type integer 1 to Postgres
+type jsonb using `(to-jsonb 1)`.  We then compared it with property
+`"quantity"`, which is also Postgres type jsonb because Postgres
+operator `->` gives the raw jsonb of the key while Postgres operator
+`->>` converts it to text.  *The type of the `jdoc` column in all
+models is Postgres jsonb.*
 
-### Postgres search path
+See also [Prepared queries data
+types](../TODO.md#prepared-queries-data-types) in the TODO.
 
-We only need to set the search path for DEFINE-JSON-QUERY,
-see below.  There is a small overhead for this, see
-(alter-role-set-search-path) for a more permanent solution.
+#### Search path shenanigans
 
-### Empty JSON arrays and Common Lisp
+We don't have to worry too much about schema search paths because the
+Postgres *qualified name* is harcoded into [model based queries]
+(api.md#model-interface) using [`*pgj-schema*`](api.md#pgj-schema).
+But they are important for user defined queries because `:from 'cat`
+(which is what we want to write) does not qualify the cat table, we
+really need `:from 'pgj-model.cat`.  When using PSQL you can do:
+
+```sql
+SET search_path TO pgj_model, public;
+```
+
+so that `select * from cat` will just work.  For connections
+from Common Lisp you can:
+
+* Wrap connection calls in a macro such as this where
+[`*default-search-path*`](api.md#default-search-path) is an exported
+symbol of the Postgres-JSON package.  However there is a little
+overhead to such a call:
+
+
+```common-lisp
+(defmacro with-pj-connection (() &body body)
+  `(pomo:with-connection *connection*
+     (pomo:set-search-path *default-search-path*)
+     ,@body))
+```
+
+* Use
+[`alter-role-set-search-path`](api.md#alter-role-set-search-path)
+where you tell Postgres to use the specified search path for every
+connection of a given user.
+
+* Do anything else that works, such as hardcoding into `postgresql.conf`.
+I considered writing another sugar macro so that `(qn cat)` became
+`'pgj-model.cat` but did not want the syntax for user defined queries
+to stray too far from S-SQL.  YMMV.
+
+## Miscellaneous
+
+#### Empty JSON arrays and Common Lisp
 
 By default Yason will parse JSON arrays as Common Lisp lists and thus
 an empty array becomes an empty list, which is CL `NIL`.  When we then
@@ -559,3 +635,79 @@ which is what we want.  Of course, YMMV with other JSON libraries.
 Yason is optional, you can use any JSON library you like, that is what
 `*to-json*` and `*from-json*` are for, and the similar keyword
 arguments to many interface functions.
+
+#### PostgreSQL sequences
+
+Now there are some good reasons for using just a single auto
+incrementing sequence to generate the primary keys across **all** your
+models (for one thing, it means that all your JSON documents have a
+unique key if you every need to merge subsets from different models),
+but you can also have one sequence per model if you need:
+
+```
+(create-db-sequence 'foo)
+(create-model 'dog (make-model-parameters 'dog :sequence 'foo))
+```
+
+#### I do not want integer keys
+
+This is not too hard.  Set the correct `key-type` in a call to
+`make-model-parameters` and then use keyword argument `use-key` on
+`insert`.  Or (and this will take a little more effort) you could make
+a UUID sequence in PG and get values from that.  TODO.
+
+#### Model's in the Postgres backend
+
+The backend for a model cat (say) looks like
+
+```sql
+                                    Table "pgj_schema.cat"
+   Column   |           Type           |                       Modifiers
+------------+--------------------------+-------------------------------------------------------
+ key        | integer                  | not null
+ valid_to   | timestamp with time zone | not null default 'infinity'::timestamp with time zone
+ valid_from | timestamp with time zone | not null default transaction_timestamp()
+ jdoc       | jsonb                    | not null
+Indexes:
+    "cat_pkey" PRIMARY KEY, btree (key)
+    "cat_gin" gin (jdoc)
+```
+
+```sql
+            Table "pgj_schema.cat_old"
+   Column   |           Type           | Modifiers
+------------+--------------------------+-----------
+ key        | integer                  | not null
+ valid_to   | timestamp with time zone | not null
+ valid_from | timestamp with time zone | not null
+ jdoc       | jsonb                    | not null
+Indexes:
+    "cat_old_pkey" PRIMARY KEY, btree (key, valid_to)
+    "cat_old_gin" gin (jdoc)
+```
+
+I suggest inserting some data and then playing around inside PSQL...
+
+#### Transaction isolation levels
+
+See [transactions](../postgres/transactions.lisp) for how
+[`insert`](api.md#insert) and [`update`](api.md#update) handle
+isolation levels using a retry loop.  We are not using the default
+Postgres isolation level but rather `repeatable read`.  Do let me know
+if you think it should be `serializable` and why, I am no expert.
+
+Also see project hermitage at https://github.com/ept/hermitage for
+plenty of gory detail on isolation levels.
+
+#### Model names
+
+Letters, numbers(?) and dashes are OK in symbol names for PostgreSQL
+objects.  Don't try anything too funky besides.
+
+#### Postmodern conditions
+
+All the Postmodern conditions will leak through this abstraction, at
+present it is a pretty thin layer.  However because we are using the
+Postgres *repeatable read isolation level* to safely insert and update
+two tables at once, work has been done to handle *serialization
+failures* under the covers.
