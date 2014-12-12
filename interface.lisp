@@ -102,7 +102,7 @@ with the model so it uses a RESTART-CASE to guard against human
 error."
   (flet ((drop ()
            (ensure-transaction-level (drop-model repeatable-read-rw)
-             (delete *meta-model* (symbol->json model))
+             (excise *meta-model* (symbol->json model))
              (drop-db-table-cascade model *pgj-schema*)
              (drop-db-table-cascade (sym t model "-old") *pgj-schema*))))
     (restart-case (error 'database-safety-net
