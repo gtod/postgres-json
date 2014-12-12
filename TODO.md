@@ -48,9 +48,6 @@ TODO
                                    {o "orphanParent" t})}))))
 ```
 
-* Test behaviour of nil, false, empty array etc on to-json, from-json
-  etc.  Different libraries, different results.
-
 * Do we even need model-parameters serialized to the DB?  I suppose
   for a compound primary key (if we support one) we would need to know
   the names of the columns in the key...  And certainly if we want a
@@ -72,23 +69,11 @@ TODO
   integer...  Sure, but you can sort by them and local-time can
   reconstitute them...
 
-### Documentation
-
-* Write a *User Guide* which is half tutorial and half reference.
-  This way all the built in variation can be explained at greater
-  leisure than in doc strings.
-
-* We refer to "object" in the doc strings of the model interface
-  functions.  Is this not a jdoc or JSON?  Depends on what point of
-  serialization we are at.  Rethink.  Say what you mean.
-
 ## Want to have
 
 * Allow raw importing of JSON, without the serialization step.
 
 * unique ids from UUID example
-
-* Stash valid_to, valid_from in objects from get-all?
 
 * Make using Fkeys between tables easy...  "Promote" to Fkey as you
   can't do in JSON...  We could promote to foreign key: What key and
@@ -97,20 +82,13 @@ TODO
   named key and stuff it into the FKey col Something similar for
   timestamps?
 
-* Would be nice to get our public API and docstrings converted to
-  Markdown or other github supported markup lang in the simplest
-  possible way.
-
-* Change the README to have the Quickstart right at the top.  Keep
-  focused on ease of use, prove that.  Also change the example to show
-  clearly the JSON strings and then the result of parsing them --- in
-  the beginning I foundered a little on that point...
-
 * Unicode handling tests.  UTF-8, 16?  For web deployment investigate
   quri.
 
 * Clear up to what extent we are assuming the contents of 'jdoc are
   objects rather than arrays (or even scalars)...
+  
+* Proper test suite.
 
 ## Maybe have
 
