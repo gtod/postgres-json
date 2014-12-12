@@ -14,6 +14,14 @@
 ;;; transform into, but they must not be evaluated, the code is not
 ;;; lisp.
 
+;; Maybe a bridge too far from S-SQL
+;; (defmacro qn (model &optional as)
+;;   "Syntactic sugar to qualify the name of MODEL, a symbol in
+;; *PGJ-SCHEMA*.  Wrap in an S-SQL :as form using MODEL as the
+;; abbreviation for the qualified MODEL, or use the symbol AS as the
+;; abbreviation if it is supplied."
+;;   `(:as ',(sym t *pgj-schema* "." model) ',(if as as model)))
+
 (defmacro j-> (form1 &optional form2)
     "S-SQL syntactic sugar to turn a single string FORM1 into a
 Postgres -> operation using the default JSON column 'jdoc and the
