@@ -4,6 +4,6 @@
   :license "MIT"
   :description "Horrible little docstrings to Markdown converter"
   :depends-on (#:alexandria
-               #:uiop/filesystem
+               #:uiop
                #:cl-ppcre)
   :components ((:file "markdown-docstrings")))
