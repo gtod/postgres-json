@@ -28,7 +28,7 @@ Postgres 9.4 manual 8.14.4.")
 (defclass model-parameters (read-only)
   ((model :initarg :model :type symbol :reader model)
    (sequence :initarg :sequence :type symbol :reader sequence)
-   (gin-operator-class :initarg :gin-operator-class :type string :reader gin-operator-class)
+   (gin-operator-class :initarg :gin-operator-class :type symbol :reader gin-operator-class)
    (key :initarg :key :type symbol :reader key)
    (key-type :initarg :key-type :type symbol :reader key-type))
   (:documentation "A class to facilitate customization of backend
