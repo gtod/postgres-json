@@ -7,27 +7,28 @@ A Common Lisp library that provides a user friendly layer over the new
 [jsonb type](http://www.postgresql.org/docs/9.4/static/datatype-json.html)
 of PostgreSQL 9.4, allowing trivial storage and retrieval of
 JSON documents.  Thanks to the excellent JSON libraries for Common
-Lisp, Postgres-JSON thus facilitates easy serialization of your lisp data
+Lisp, Postgres-JSON thus facilitates easy serialization of lisp data
 structures to and from a proper database.
 
 ## Why would you use it?
 
 1. You have some existing JSON documents you want to store persistently.
 
-2. You want to serialize Common Lisp data such as hash tables, lists,
-vectors, strings and numbers to a database.
+2. You want to serialize Common Lisp hash tables, lists, vectors,
+et cetera to a database.
 
 3. You like the [ACID](http://en.wikipedia.org/wiki/ACID) qualities of
-PostgreSQL but rigid data schema definitions are not suitable for your
-project.
+PostgreSQL but rigid data schema are not suitable for your project.
 
-In some sense Postgres-JSON is a primitive *NoSQL document database*
-but don't tell anyone I said that.
+In some sense Postgres-JSON is a primitive *NoSQL document database*.
+It was inspired by the excellent
+[cl-rethinkdb](https://github.com/orthecreedence/cl-rethinkdb)
+interface to [RethinkDB](http://rethinkdb.com/) but uses a traditional
+blocking I/O interface over Postmodern.
 
 ## Built on
 
-* [PostgreSQL 9.4](http://www.postgresql.org/docs/9.4/static/), a
-release candidate as at 20 November 2014.
+* [PostgreSQL 9.4](http://www.postgresql.org).
 
 * Marijn Haverbeke's wonderful [Postmodern](http://marijnhaverbeke.nl/postmodern/).
 
@@ -50,23 +51,40 @@ There are a few other things to complete before an Alpha release.
 * [User's Guide](doc/user-guide.md)
 * [API](doc/api.md)
 
-In addition most of the implementation code has docstrings.
+Most of the library code has docstrings.
 
 ## Quickstart
 
-You will need a working PostgreSQL 9.4 RC1 install.  On Debian I
-followed the instructions at
-https://wiki.postgresql.org/wiki/Apt.  There is a FAQ on
-getting the 9.4 beta which you should read to get the apt source line.
-Since I already had an earlier install, Debian put the new PostgreSQL
-cluster at port 5433 rather than 5432.  YMMV.
+#### Postgres
 
-Make sure you can quickload Postmodern and connect to some database
-with a form like:
+You will need a working PostgreSQL 9.4 install.  On Debian this is as
+simple as `apt-get install postgresql-9.4`.  Try `pg_lsclusters` to
+see what port your 9.4 install is on, if it is not 5432 you will
+need to explicitly supply it as I have in the example below.
 
-`(pomo:connect-toplevel "mydb" "myusername" "" "localhost" :port 5433)`
+If this is your first time using Postgres you can setup a database
+user to match your unix login (in my case `gtod`) at the unix shell as
+follows:
 
-If you now get a result from `(pomo:query "select 1")` you are ready
+```
+sudo su postgres
+createuser gtod
+createdb -O gtod mydb
+exit
+```
+
+`psql -l` or `psql -p5433 -l` should now list your new database.
+
+#### Postgres-JSON
+
+At your REPL:
+
+```
+(ql:quickload :postmodern)
+(pomo:connect-toplevel "mydb" "gtod" "" "localhost" :port 5433)
+```
+
+If you get a result from `(pomo:query "select 1")` you are ready
 to go.
 
 Navigate to your `~/quicklisp/local-projects` directory and do
@@ -79,49 +97,58 @@ REPL evaluate:
 (ql:quickload :postgres-json)
 ```
 
-Followed by:
+Now:
 
 ```common-lisp
 (defpackage :simple
-  (:use :cl :postgres-json)
+  (:use :cl :postgres-json))
 
 (in-package :simple)
 
 ;; Once only operation, make a DB schema for all our models
-(create-backend)
+(ensure-backend)
 
 ;; Once only operation, make a new model to store JSON docs on cats
-(create-model 'cat)
+(ensure-model 'cat)
 ```
 
-In the output below I have elided some of the return values for brevity.
-`obj` is a trivial function to turn a list of pairs into a hash table.
-`pp-json` is a trivial function to pretty print (thanks to yason) an
-arbitrarily nested lisp object of hash tables and lists as JSON.
+In the output below I have elided some of the return values for
+brevity.  `obj` is a trivial function to turn a list of pairs into a
+hash table.  `pp-json` is a trivial function to pretty print a nested
+lisp object of hash tables and lists as JSON.
 
 ```common-lisp
-> (insert 'cat (obj "name" "joey" "coat" "tabby"))
+(insert 'cat (obj "name" "joey" "coat" "tabby"))
 1
-> (pp-json (fetch 'cat 1))
+
+(pp-json (fetch 'cat 1))
 {
     "key":1,
     "coat":"tabby",
     "name":"joey"
 }
-> (insert 'cat (obj "name" "max" "coat" "ginger"))
-> (insert 'cat (obj "name" "maud" "coat" "tortoiseshell"))
-> (keys 'cat)
+
+(insert 'cat (obj "name" "max" "coat" "ginger"))
+
+(insert 'cat (obj "name" "maud" "coat" "tortoiseshell"))
+
+(keys 'cat)
 (1 2 3)
-> (excise 'cat 2)
+
+(excise 'cat 2)
 2
-> (keys 'cat)
+
+(keys 'cat)
 (1 3)
-> (tally 'cat)
+
+(tally 'cat)
 2
-> (update 'cat 3 (obj "name" "maud" "coat" "tortoiseshell" "age" 7
+
+(update 'cat 3 (obj "name" "maud" "coat" "tortoiseshell" "age" 7
                       "likes" '("sunshine" 42)))
 3
-> (pp-json (get 'cat 3))
+
+(pp-json (get 'cat 3))
 {
     "age":7,
     "key":3,
@@ -175,6 +202,7 @@ consistent in their content...
 However, I think it may well be practical to support referential
 integrity, based just on the primary key column in different models.
 So we should be able to support a *CAT owns one or more HUMANS*
-relationship etc.  This is the point of using PostgreSQL for JSON: we
-can choose precisely how much of the old fashioned relational database
-goodness to go with the new fashioned JSON devil may care hedonism...
+relationship etc.  This is the point of using Postgre for JSON
+documents: we can choose precisely how much of the old fashioned
+relational database goodness to mix with the new fashioned JSON devil
+may care hedonism...
