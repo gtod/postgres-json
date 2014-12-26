@@ -97,7 +97,7 @@ symbol, and the length of that list."
 ;; objects in your model, rather than arrays...
 (defun filter (model &key contain properties limit
                           (to-json *to-json*) (from-json *from-json*))
-  "Filter all JSON documents in MODEL, a symbol as follows.  Each
+  "Filter all JSON documents in MODEL, a symbol, as follows.  Each
 document must 'contain', in the Postgres @> operator sense, the object
 CONTAIN which itself must serialize to a JSON document.  If CONTAIN is
 NIL, apply no containment restriction.  PROPERTIES may be a list of

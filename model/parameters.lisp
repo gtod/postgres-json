@@ -4,8 +4,8 @@
 ;;;; provide the default values for MAKE-MODEL-PARAMETERS.
 
 (defvar *sequence* 'pgj-seq
-  "A symbol being the default name of the PostgreSQL sequence to
-provide unique IDs for JSON objects inserted into the PostgreSQL
+  "A symbol being the default name of the Postgres sequence to
+provide unique IDs for JSON objects inserted into the Postgres
 backend base table.")
 
 (defvar *key* 'key
@@ -13,8 +13,9 @@ backend base table.")
 tables.")
 
 (defvar *key-type* 'integer
-  "A symbol being the type of the primary key column in backend
-tables.")
+  "A symbol being the Postgres type of the primary key column in
+backend tables.  Any KEY arguments to model interface functions must
+be compatible with this type.")
 
 ;; jsonb_path_ops is smaller and faster but does not support the
 ;; existence operator: ?
@@ -33,12 +34,11 @@ Postgres 9.4 manual 8.14.4.")
    (key-type :initarg :key-type :type symbol :reader key-type))
   (:documentation "A class to facilitate customization of backend
 features of a model.  We need consistency between calls to
-CREATE-MODEL and the functions that make the prepared queries for a
-given model under the covers (say when INSERT is called).  By
-serializing objects of this class to the DB we ensure that
-consistency.  It also provides a simple example of using our JSON
-persistence model. Slot :type should be included and is used for JSON
-de/serialization."))
+CREATE-MODEL and any of the model interface functions, even if
+separated by large gaps of time.  By serializing objects of this class
+to the DB we ensure that consistency.  It also provides a simple
+example of using our JSON persistence model. Slot :type should be
+included and is used for JSON de/serialization."))
 
 (defgeneric table (model-parameters)
   (:documentation "The Postgres S-SQL qualified table name for these

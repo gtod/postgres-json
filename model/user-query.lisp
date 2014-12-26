@@ -1,11 +1,11 @@
 (in-package :postgres-json)
 
 ;;;; JSON queries syntactic sugar
-;;;; See the User Guide for details
 
 (defun model-from-list-head (head)
   "You can write \(jbuild \('cat \"id\"\)\) or without the quote:
-\(jbuild \(cat \"id\"\)\)."
+\(jbuild \(cat \"id\"\)\).  If HEAD is a symbol or a quoted
+symbol, return said symbol."
   (if (or (symbolp head) (consp head))
       (if (symbolp head) head (cadr head))
       nil))
@@ -49,8 +49,21 @@ using the specified JSON column FORM1 and the property FORM2."
 
 (defmacro jbuild (&rest key-forms)
   "S-SQL syntactic sugar to create a new Postgres JSON object from the
-KEY-FORMS, the structure of which are documented in the Postgres-JSON
-User Guide."
+KEY-FORMS.  Each KEY-FORM is a list.  In the simplest and first case
+it may be a list of strings, said strings indicating properties of the
+top level JSON object in the 'jdoc column of the query; the properties
+and their values will be returned by JBUILD, in a fresh JSON object.
+In the second case the list may start with a symbol \(or a quoted
+symbol\) in which case the following strings indicate properties of
+the top level JSON document in the 'jdoc column in the DB table named
+by the symbol.  Now, a la `with-slots`, each string in the list may
+itself be replaced by a list of two strings, the first being the
+resulting property name in the object returned by JBUILD, the second
+being the accessor property for the top level JSON object in the 'jdoc
+column.  This flexibility is required because we are building a JSON
+object and cannot have duplicate properties so if we need the \"id\"
+property from both a `cat` and a `dog` model, one of them needs to be
+relabeled."
   (let ((pairs '()))
     (flet ((nsubst-keys (column keys)
              (dolist (key keys)
@@ -120,16 +133,32 @@ for use in the define-query macro."
       (values (nreverse params) (nreverse transforms))))
 
 (defmacro define-json-query (name (&rest query-params) &body query)
-  "Define a Postmodern S-SQL based QUERY with name NAME, a symbol,
-using both the 'JSON query named parameter interpolation' for each
-symbol in the list QUERY-PARAMS and the 'JSON query syntactic sugar',
-both documented in the User Guide.  In fact, elements of QUERY-PARAMS
-may be lists of the form (function-designator &rest params) in which
-case the PARAMS are still treated as parameters (in order) but at run
-time FUNCTION-DESIGNATOR is called on each of the actual arguments of
-the PARAMS to transform said arguments before use by the underlying
-query.  For example: (foo (*to-json* bar baz) blot) is an acceptable
-QUERY-PARAMS list, as long as *to-json* is funcallable."
+  "Define a Postmodern S-SQL based QUERY with name NAME, a symbol.
+QUERY may use the macro forms j->, j->> jbuild and to-json, documented
+separately.  Elements of QUERY-PARAMS may be symbols, the number and
+order of said symbols serving to define the parameters the query will
+be supplied with at run time.  Additionally, any occurence of a symbol
+from the QUERY-PARAMS list in the QUERY from proper will be replaced
+with '$1, '$2 etc. as appropriate based on the order of QUERY-PARAMS.
+In this way your queries may use named parameters, but this is not
+mandatory.
+
+Furthermore, a la `cl-ppcre:register-groups-bind`, any element of the
+QUERY-PARAMS list may itself be a list of the form
+\(function-designator &rest params\) in which case the PARAMS are
+still treated as parameters, in order, but at run time
+FUNCTION-DESIGNATOR is called on each of the actual arguments of the
+PARAMS to transform said arguments before use by the underlying query.
+For example `\(foo \(*to-json* bar baz\) blot\)` is an acceptable
+QUERY-PARAMS list, as long as *to-json* is funcallable.  bar and baz
+will be replaced by the result of funcalling *to-json* on them,
+repectively.
+
+The Postmodern result format is always `:column` and so you must
+ensure that each row produces just a single datum, being a valid
+Postgres JSON type.  In practice this means either i) returning the
+column named `jdoc` in any model, which is the entire JSON document,
+or ii) using the `jbuild` macro to build some JSON on the fly."
   (with-unique-names (query-function)
     (multiple-value-bind (params transforms) (decompose-query-params-list query-params)
       (let ((s-sql-query (json-query-to-s-sql (car query) params)))
