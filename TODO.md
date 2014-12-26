@@ -58,6 +58,15 @@ TODO
 * Need to reconvince myself that *query-functions* is threads safe.
   And if it is not, fix it.
 
+* The history in the _old table is nice but it should probably be part
+  of an additional layer built on top of a basic Postgres-JSON,
+  rather than forcing it on by default.  At one end of the spectrum
+  there is no need for Postgres-JSON at all, Common Lisp programmers
+  can just use Postmodern or whatever else and get the JSON goodness
+  manually.  At the other end we smother users with a thick layer of
+  heavy, slow functionality they don't need (maybe such as history).
+  Need to find the happy medium.
+
 ### Interface
 
 * Can the user use keywords instead of symbols when creating/accessing

@@ -24,7 +24,7 @@ In some sense Postgres-JSON is a primitive *NoSQL document database*.
 It was inspired by the excellent
 [cl-rethinkdb](https://github.com/orthecreedence/cl-rethinkdb)
 interface to [RethinkDB](http://rethinkdb.com/) but uses a traditional
-blocking I/O interface over Postmodern.
+blocking I/O interface via Postmodern.
 
 ## Built on
 
@@ -115,7 +115,7 @@ Now:
 In the output below I have elided some of the return values for
 brevity.  `obj` is a trivial function to turn a list of pairs into a
 hash table.  `pp-json` is a trivial function to pretty print a nested
-lisp object of hash tables and lists as JSON.
+lisp object of hash tables and sequences as JSON.
 
 ```common-lisp
 (insert 'cat (obj "name" "joey" "coat" "tabby"))
@@ -185,7 +185,7 @@ queries](doc/user-guide.md#user-defined-json-queries):
 
 The "immutability" part comes from the fact that when you
 [`update`](doc/api.md#update) or [`excise`](doc/api.md/#excise) (which
-means delete but is not a standard Common Lisp symbol) a [JSON
+means *delete* but is not a standard Common Lisp symbol) a [JSON
 document](doc/user-guide.md#json-document) in a
 [model](doc/user-guide.md#model), a copy of the current row is
 inserted into the `<model>_old` table before proceeding.  So there is
@@ -204,5 +204,5 @@ integrity, based just on the primary key column in different models.
 So we should be able to support a *CAT owns one or more HUMANS*
 relationship etc.  This is the point of using Postgre for JSON
 documents: we can choose precisely how much of the old fashioned
-relational database goodness to mix with the new fashioned JSON devil
+relational database goodness to mix with the new fashioned NoSQL devil
 may care hedonism...

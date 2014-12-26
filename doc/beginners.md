@@ -1,22 +1,15 @@
 Using JSON with Common Lisp for beginners
 =========================================
 
-## Context
-
-This document just recapitulates the contents of the JSON section of the
-[User Guide Terminology](user-guide.md#terminology-and-overview) with more words and
-more examples.  Take your pick.
-
-## Introduction
-
 JSON is a [lightweight data-interchange format](http://www.json.org)
-but I think of it as a very readable text representation of *objects*,
-*arrays*, *strings* and *numbers*.  **JSON is just text**: it's a
-textual blueprint for constructing the preceeding list of data
+which amounts to a text representation of *objects*, *arrays*,
+*strings* and *numbers*.  **JSON is just text**: it's a text
+blueprint for constructing the preceeding list of data
 structures/types in any given programming language.
+http://www.json.org is an excellent summary.
 
 There are several JSON libraries for Common Lisp and they make
-different choices about how to parse a given JSON text into
+different choices about how to parse a given JSON text
 into [Common Lisp objects](http://www.lispworks.com/documentation/lw50/CLHS/Body/26_glo_o.htm).
 
 For example, a *JSON object* (**not** to be confused with the much
@@ -28,7 +21,7 @@ unordered set of name/value pairs", like this:
 ```
 
 In Common Lisp we could represent this many ways, a few of which
-follow.  (Let's assume `stream` is an open stream to a file which
+follow.  (We assume `stream` is an open stream to a file which
 contains the above JSON):
 
 ```common-lisp
@@ -65,22 +58,20 @@ values `true`, `false` and `null`:
 (28.8 14 "Fred" YASON:TRUE YASON:FALSE :NULL)
 ```
 
-You are free to make your own Internet searches and then choices about
-which JSON library to use because the Postgres-JSON backend **does not
-care** --- *it expects to be given a JSON string, which it stores in a
-Postgres column of type `jsonb` and when requested it returns that
-same JSON string*.
+Postgres-JSON is agnostic about your choice of JSON library because it
+is JSON strings that go into the Postgres backend, and JSON strings
+that come out.
 
 How your lisp objects are converted (or "serialized") into JSON
 strings (often called *to-json*) and how those JSON strings are then
 parsed or "deserialized" (*from-json*) back into Common Lisp objects
 is the job of your fine JSON library.
 
-And it should now be clear that an arbitrary Common Lisp object such
-as a symbol or a keyword or a function etc. can't be directly
-serialized to JSON.  It would first need to be shoehorned into an
-*object* or *array* or *string* or *number* or `true` or `false` or
-`null` (that's the entire list of possibilities, JSON is simple).
+It should now be clear that a more esoteric Common Lisp object such as
+a symbol, a function or a CLOS object can't be directly serialized to
+JSON.  It would first need to be shoehorned into an *object* or
+*array* or *string* or *number* or `true` or `false` or `null` (that's
+the entire list of possibilities, JSON is simple).
 
 I tend to use Common Lisp hash tables for JSON objects and Common Lisp
 vectors for JSON arrays.  The unreadability of the Common Lisp hash
@@ -113,7 +104,7 @@ When you run `pp-json` you are asking Yason to turn your Common Lisp
 object (here a hash table) into **JSON text**.  It does this and sends
 it to standard output.  The function in `*to-json*` defined as part of
 Postgres-JSON does something similar (automatically) on your behalf
-when you do something like
+when you evaluate
 
 ```common-lisp
 (insert 'cat (obj "name" "Milo" "likes" "snow" "age" 21))
@@ -121,6 +112,6 @@ when you do something like
 
 You should now be asking what `obj` does.  It's a trivial function
 that turns a list of pairs into a Common Lisp hash table.  Since the
-JSON spec requires that the key of a *JSON object* must be a *JSON
-string* you must use Common Lisp strings as the even numbered
-arguments to `obj`.
+JSON spec requires that the key (we call them *properties*) of a *JSON
+object* must be a *JSON string* you must use Common Lisp strings as
+the even numbered arguments to `obj`.

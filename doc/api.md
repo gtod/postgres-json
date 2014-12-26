@@ -11,24 +11,24 @@
 
 ---
 ## Postgres backend
-#### CREATE-BACKEND
+#### create-backend
 *Function*
 
 Create the schema \*PGJ-SCHEMA\* and other backend objects needed to
 house user created PostgreSQL JSON persistence models.  Call just once
 in a given PostgreSQL database.
 
-#### BACKEND-EXISTS-P
+#### backend-exists-p
 *Function*
 
 Does the backend \*PGJ-SCHEMA\* exist?
 
-#### ENSURE-BACKEND
+#### ensure-backend
 *Function*
 
 Call CREATE-BACKEND unless the Postgres backend already exists.
 
-#### DROP-BACKEND
+#### drop-backend
 *Function*
 
 Drop the backend (that is the PostgreSQL schema \*PGJ-SCHEMA\*) in
@@ -39,7 +39,7 @@ a RESTART-CASE to guard against human error.
 
 ---
 ## Model creation and management
-#### CREATE-MODEL
+#### create-model
 *Function*
 
 ```common-lisp
@@ -51,7 +51,7 @@ persistence model **MODEL**, a symbol.  Uses the various values in the
 **PARAMETERS** has table to customize the model.  Should only be called
 once per model.  Returns **MODEL**.
 
-#### MODEL-EXISTS-P
+#### model-exists-p
 *Function*
 
 ```common-lisp
@@ -60,7 +60,7 @@ model
 
 Does **MODEL**, a symbol, exist in our backend?
 
-#### ENSURE-MODEL
+#### ensure-model
 *Function*
 
 ```common-lisp
@@ -70,7 +70,7 @@ model &optional (parameters (make-model-parameters model))
 Call CREATE-MODEL with **MODEL** and **PARAMETERS** as arguments, unless **MODEL**
 already exists.
 
-#### DROP-MODEL
+#### drop-model
 *Function*
 
 ```common-lisp
@@ -81,7 +81,7 @@ Drop model **MODEL**.  This will irrevocably delete all data associated
 with the model so it uses a RESTART-CASE to guard against human
 error.
 
-#### ALL-MODELS
+#### all-models
 *Function*
 
 Return a list of all models in the backend.
@@ -89,7 +89,7 @@ Return a list of all models in the backend.
 
 ---
 ## Model interface
-#### INSERT
+#### insert
 *Function*
 
 ```common-lisp
@@ -107,7 +107,7 @@ fresh primary key inside your object before serialization.  **TO-JSON**
 must be a function designator for a function of one argument to
 serialize lisp objects to JSON strings.  Return the new primary key.
 
-#### UPDATE
+#### update
 *Function*
 
 ```common-lisp
@@ -123,7 +123,7 @@ the original.  **TO-JSON** must be a function designator for a function of
 one argument to serialize lisp objects to JSON strings.  Return **KEY**
 on success, NIL if there was no such **KEY** found.
 
-#### FETCH
+#### fetch
 *Function*
 
 ```common-lisp
@@ -136,7 +136,7 @@ argument designated by **FROM-JSON** (make it #'IDENTITY to return just
 the JSON string proper).  If the JSON document does not exist, return
 NIL.
 
-#### FETCH-ALL
+#### fetch-all
 *Function*
 
 ```common-lisp
@@ -146,7 +146,7 @@ model &key (from-json *from-json*)
 Return a list of all JSON documents in **MODEL**, a symbol, after
 parsing by the the function of one argument designated by **FROM-JSON**.
 
-#### EXCISE
+#### excise
 *Function*
 
 ```common-lisp
@@ -156,7 +156,7 @@ model key
 Delete the JSON document with primary key **KEY** from **MODEL**, a symbol.
 Return **KEY** on success, NIL if there was no such **KEY** found.
 
-#### EXCISE-ALL
+#### excise-all
 *Function*
 
 ```common-lisp
@@ -167,7 +167,7 @@ Delete all JSON documents in **MODEL**, a symbol.  In fact this is a
 recoverable operation in a sense as all deleted rows will still be in
 the <model>-old Postgres relation.
 
-#### KEYS
+#### keys
 *Function*
 
 ```common-lisp
@@ -177,7 +177,7 @@ model
 Returns two values: a list of all primary keys for this **MODEL**, a
 symbol, and the length of that list.
 
-#### TALLY
+#### tally
 *Function*
 
 ```common-lisp
@@ -186,14 +186,14 @@ model
 
 Return a count of JSON documents in **MODEL**, a symbol.
 
-#### FILTER
+#### filter
 *Function*
 
 ```common-lisp
 model &key contain properties limit (to-json *to-json*) (from-json *from-json*)
 ```
 
-Filter all JSON documents in **MODEL**, a symbol as follows.  Each
+Filter all JSON documents in **MODEL**, a symbol, as follows.  Each
 document must 'contain', in the Postgres @> operator sense, the object
 **CONTAIN** which itself must serialize to a JSON document.  If **CONTAIN** is
 NIL, apply no containment restriction.  **PROPERTIES** may be a list of
@@ -209,7 +209,7 @@ documents will be parsed by the function of one argument designated by
 must be taken if **PROPERTIES** or **CONTAIN** derive from unsanitized user
 input.
 
-#### EXISTS
+#### exists
 *Function*
 
 ```common-lisp
@@ -223,7 +223,7 @@ sense.  The returned JSON documents will be parsed by the function of
 one argument designated by **FROM-JSON**.  Requires a Postgres GIN index
 without JSONB_PATH_OPS defined on **MODEL**.
 
-#### DISTINCT
+#### distinct
 *Function*
 
 ```common-lisp
@@ -239,7 +239,7 @@ designated by **FROM-JSON**.  Note that this is _not_ a prepared query so
 care must be taken that **PROPERTY** is sanitized if it derives from
 arbitrary user input.
 
-#### HISTORY
+#### history
 *Function*
 
 ```common-lisp
@@ -259,7 +259,7 @@ the property names of the respective timestamps.
 
 ---
 ## Model and database interaction
-#### WITH-MODEL-TRANSACTION
+#### with-model-transaction
 *Macro*
 
 ```common-lisp
@@ -276,25 +276,41 @@ inserts/updates/deletes is required.
 
 ---
 ## User queries and JSON syntactic sugar for S-SQL
-#### DEFINE-JSON-QUERY
+#### define-json-query
 *Macro*
 
 ```common-lisp
 name (&rest query-params) &body query
 ```
 
-Define a Postmodern S-SQL based **QUERY** with name **NAME**, a symbol,
-using both the 'JSON query named parameter interpolation' for each
-symbol in the list **QUERY-PARAMS** and the 'JSON query syntactic sugar',
-both documented in the User Guide.  In fact, elements of **QUERY-PARAMS**
-may be lists of the form (function-designator &rest params) in which
-case the PARAMS are still treated as parameters (in order) but at run
-time FUNCTION-DESIGNATOR is called on each of the actual arguments of
-the PARAMS to transform said arguments before use by the underlying
-query.  For example: (foo (\*to-json\* bar baz) blot) is an acceptable
-**QUERY-PARAMS** list, as long as \*to-json\* is funcallable.
+Define a Postmodern S-SQL based **QUERY** with name **NAME**, a symbol.
+**QUERY** may use the macro forms j->, j->> jbuild and to-json, documented
+separately.  Elements of **QUERY-PARAMS** may be symbols, the number and
+order of said symbols serving to define the parameters the query will
+be supplied with at run time.  Additionally, any occurence of a symbol
+from the **QUERY-PARAMS** list in the **QUERY** from proper will be replaced
+with '$1, '$2 etc. as appropriate based on the order of **QUERY-PARAMS**.
+In this way your queries may use named parameters, but this is not
+mandatory.
 
-#### J->
+Furthermore, a la `cl-ppcre:register-groups-bind`, any element of the
+**QUERY-PARAMS** list may itself be a list of the form
+(function-designator &rest params) in which case the PARAMS are
+still treated as parameters, in order, but at run time
+FUNCTION-DESIGNATOR is called on each of the actual arguments of the
+PARAMS to transform said arguments before use by the underlying query.
+For example `(foo (\*to-json\* bar baz) blot)` is an acceptable
+**QUERY-PARAMS** list, as long as \*to-json\* is funcallable.  bar and baz
+will be replaced by the result of funcalling \*to-json\* on them,
+repectively.
+
+The Postmodern result format is always `:column` and so you must
+ensure that each row produces just a single datum, being a valid
+Postgres JSON type.  In practice this means either i) returning the
+column named `jdoc` in any model, which is the entire JSON document,
+or ii) using the `jbuild` macro to build some JSON on the fly.
+
+#### j->
 *Macro*
 
 ```common-lisp
@@ -307,7 +323,7 @@ property FORM1; or to turn a symbol **FORM1** and string **FORM2** into a ->
 operation using the specified JSON column **FORM1** and the property
 **FORM2**.
 
-#### J->>
+#### j->>
 *Macro*
 
 ```common-lisp
@@ -319,7 +335,7 @@ S-SQL syntactic sugar to turn a single string **FORM1** into a Postgres
 FORM1; or to turn a symbol **FORM1** and string **FORM2** into a ->> operation
 using the specified JSON column **FORM1** and the property **FORM2**.
 
-#### TO-JSONB
+#### to-jsonb
 *Macro*
 
 ```common-lisp
@@ -328,7 +344,7 @@ form
 
 S-SQL syntactic sugar to cast **FORM** to the Postgres jsonb type.
 
-#### JBUILD
+#### jbuild
 *Macro*
 
 ```common-lisp
@@ -336,24 +352,37 @@ S-SQL syntactic sugar to cast **FORM** to the Postgres jsonb type.
 ```
 
 S-SQL syntactic sugar to create a new Postgres JSON object from the
-**KEY-FORMS**, the structure of which are documented in the Postgres-JSON
-User Guide.
+**KEY-FORMS**.  Each KEY-FORM is a list.  In the simplest and first case
+it may be a list of strings, said strings indicating properties of the
+top level JSON object in the 'jdoc column of the query; the properties
+and their values will be returned by **JBUILD**, in a fresh JSON object.
+In the second case the list may start with a symbol (or a quoted
+symbol) in which case the following strings indicate properties of
+the top level JSON document in the 'jdoc column in the DB table named
+by the symbol.  Now, a la `with-slots`, each string in the list may
+itself be replaced by a list of two strings, the first being the
+resulting property name in the object returned by **JBUILD**, the second
+being the accessor property for the top level JSON object in the 'jdoc
+column.  This flexibility is required because we are building a JSON
+object and cannot have duplicate properties so if we need the "id"
+property from both a `cat` and a `dog` model, one of them needs to be
+relabeled.
 
 
 ---
 ## Model parameters
-#### \*SEQUENCE\*
+#### \*sequence\*
 *DEFVAR*
 
 ```common-lisp
 'pgj-seq
 ```
 
-A symbol being the default name of the PostgreSQL sequence to
-provide unique IDs for JSON objects inserted into the PostgreSQL
+A symbol being the default name of the Postgres sequence to
+provide unique IDs for JSON objects inserted into the Postgres
 backend base table.
 
-#### \*KEY\*
+#### \*key\*
 *DEFVAR*
 
 ```common-lisp
@@ -363,17 +392,18 @@ backend base table.
 A symbol being the name of the primary key column in backend
 tables.
 
-#### \*KEY-TYPE\*
+#### \*key-type\*
 *DEFVAR*
 
 ```common-lisp
 'integer
 ```
 
-A symbol being the type of the primary key column in backend
-tables.
+A symbol being the Postgres type of the primary key column in
+backend tables.  Any KEY arguments to model interface functions must
+be compatible with this type.
 
-#### \*GIN-OPERATOR-CLASS\*
+#### \*gin-operator-class\*
 *DEFPARAMETER*
 
 ```common-lisp
@@ -384,7 +414,7 @@ A symbol, which is TO-SQL-NAME converted to a string, being the
 operator class of the GIN index created on the model relations.  See
 Postgres 9.4 manual 8.14.4.
 
-#### MAKE-MODEL-PARAMETERS
+#### make-model-parameters
 *Function*
 
 ```common-lisp
@@ -400,7 +430,7 @@ variable.
 
 ---
 ## Trival helper functions
-#### STASH-KEY
+#### stash-key
 *Function*
 
 ```common-lisp
@@ -412,7 +442,7 @@ the hash-table and return it.  Otherwise just return **OBJECT**.  You
 might like to write you own verson which can handle objects besides
 hash tables.
 
-#### STASH-KEY-DESTRUCTIVE
+#### stash-key-destructive
 *Function*
 
 ```common-lisp
@@ -424,7 +454,7 @@ hash-table and return it.  Otherwise just return **OBJECT**.  You might
 like to write you own verson which can handle objects besides hash
 tables.
 
-#### OBJ
+#### obj
 *Function*
 
 ```common-lisp
@@ -434,7 +464,7 @@ tables.
 Return an 'equal key/value hash-table consisting of pairs of **ARGS**.
 For JSON use your keys must be Common Lisp strings.
 
-#### PP-JSON
+#### pp-json
 *Function*
 
 ```common-lisp
@@ -446,7 +476,7 @@ Pretty print lisp **OBJECT** as JSON to **STREAM** with specified **INDENT**.
 
 ---
 ## Miscellaneous backend functions
-#### CREATE-DB-SEQUENCE
+#### create-db-sequence
 *Function*
 
 ```common-lisp
@@ -456,7 +486,7 @@ sequence &optional (schema *pgj-schema*)
 Create a PostgreSQL sequence with name **SEQUENCE** in **SCHEMA** (both symbols).
 Requires an active DB connection.
 
-#### ALTER-ROLE-SET-SEARCH-PATH
+#### alter-role-set-search-path
 *Function*
 
 ```common-lisp
@@ -468,13 +498,13 @@ Alter the role of Postgres user **USER**, a string, to set the
 is what you want so than when defining your own queries with
 DEFINE-MODEL-QUERY unqualified relation names can be found in our
 default schema (which is not the PUBLIC schema).  This setting does
-_not_ effect the normal model interface functions such as GET and
-FILTER as they use fully qualified relation names at all times.  Will
+_not_ effect the normal model interface functions such as FETCH and
+FILTER as they use fully qualified table names at all times.  Will
 only take effect upon your next connection.  Beware, may be overridden
 by settings in your ~/.psqlrc file.  See also the Postgres
 documentation on search paths and settings.
 
-#### FLUSH-PREPARED-QUERIES
+#### flush-prepared-queries
 *Function*
 
 If you get a 'Database error 26000: prepared statement ... does not
@@ -484,7 +514,7 @@ error in production code should be investigated.
 
 ---
 ## Specials
-#### \*PGJ-SCHEMA\*
+#### \*pgj-schema\*
 *DEFVAR*
 
 ```common-lisp
@@ -495,7 +525,7 @@ A symbol being the name of the PostgreSQL schema we create to house
 all database backend objects.  If you rebind it said binding must be
 in place for _all_ calls to exported functions of :postgres-json.
 
-#### \*DEFAULT-SEARCH-PATH\*
+#### \*default-search-path\*
 *DEFPARAMETER*
 
 ```common-lisp
@@ -504,7 +534,7 @@ in place for _all_ calls to exported functions of :postgres-json.
 
 The default value used by ALTER-ROLE-SET-SEARCH-PATH.
 
-#### \*TO-JSON\*
+#### \*to-json\*
 *DEFVAR*
 
 ```common-lisp
@@ -516,7 +546,7 @@ objects (submitted to INSERT and UPDATE, for example) to JSON.  Bind
 it at run time for use by the model interface functions.  Or redefine
 it globally for use in your own project.
 
-#### \*FROM-JSON\*
+#### \*from-json\*
 *DEFVAR*
 
 ```common-lisp
@@ -528,7 +558,7 @@ objects from JSON strings retrieved from the DB backend.  Used by GET,
 for example.  Bind it at run time for use by the model interface
 functions.  Or redefine it globally for use in your own project.
 
-#### \*STASH-KEY\*
+#### \*stash-key\*
 *DEFVAR*
 
 ```common-lisp
@@ -540,7 +570,7 @@ unique primary key to be used for the DB insert and the object to be
 inserted itself.  It should return an object which will be inserted in
 the place of the original.
 
-#### \*DB-HANDLE-SERIALIZATION-FAILURE-P\*
+#### \*db-handle-serialization-failure-p\*
 *DEFVAR*
 
 ```common-lisp
@@ -556,7 +586,7 @@ CL-POSTGRES-ERROR:SERIALIZATION-FAILURE).  If you would rather
 explicitly handle _all_ serialization failures in your client code,
 set this to NIL.
 
-#### \*SERIALIZATION-FAILURE-SLEEP-TIMES\*
+#### \*serialization-failure-sleep-times\*
 *DEFVAR*
 
 ```common-lisp
@@ -569,6 +599,3 @@ CL-POSTGRES-ERROR:SERIALIZATION-FAILURE condition.  For each retry we
 sleep the duration specified, plus a random number of milliseconds
 between 0 and 2000.  However, if 0 sleep is specified, we do not sleep
 at all.
-
-
----
