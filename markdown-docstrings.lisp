@@ -88,7 +88,7 @@
          (destructuring-bind (name &optional (value nil value-supplied-p) doc) (rest form)
            (setf (gethash (symbol-name name) *doc-cache*)
                  (with-output-to-string (*standard-output*)
-                   (format t "#### ~A~%" (markdown-escape (string-upcase name)))
+                   (format t "#### ~A~%" (markdown-escape (string-downcase name)))
                    (format t "*~A*~%" head)
                    (terpri)
                    (write-line "```common-lisp")
@@ -105,7 +105,7 @@
            (when-let (docstring (documentation (find-symbol (symbol-name name) *doc-package*) 'function))
              (setf (gethash (symbol-name name) *doc-cache*)
                    (with-output-to-string (*standard-output*)
-                     (format t "#### ~A~%" (string-upcase name))
+                     (format t "#### ~A~%" (string-downcase name))
                      (format t "*~A*~%" (ecase head (cl:defun "Function") (cl:defmacro "Macro")))
                      (terpri)
                      (when lambda-list
