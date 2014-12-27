@@ -55,9 +55,6 @@ TODO
   kill them off without proving they are useuless.  In fact, they may
   well be essential for "Foreign Key promotion".
 
-* Need to reconvince myself that *query-functions* is threads safe.
-  And if it is not, fix it.
-
 * The history in the _old table is nice but it should probably be part
   of an additional layer built on top of a basic Postgres-JSON,
   rather than forcing it on by default.  At one end of the spectrum

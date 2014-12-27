@@ -3,11 +3,10 @@
 ;;;; Cache our queries/model-parameters once we have created/found them.
 
 ;; If we use Postmodern's PREPARE (and kin) to prepare a Postgres
-;; query, Postmodern ensures that the query is prepared on _every_
-;; connection automatically.  So as long as we use a distinct Postgres
-;; connection for every thread we run (it would be hard to do
-;; otherwise) everything should just work...  See pomo
-;; postmodern/prepare.lisp.
+;; query, Postmodern ensures that the query is prepared on any given
+;; connection automatically.  But we are not locking write access to
+;; this hash so it is not thread safe.  See postgres-json-parallel.asd
+;; and parallel.lisp for one solution...
 (defparameter *query-functions* (make-hash-table :test #'equal)
   "Hash of (for example) \"cat:insert$\" => query function.")
 

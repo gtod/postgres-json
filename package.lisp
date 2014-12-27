@@ -68,6 +68,23 @@
    #:alter-role-set-search-path
    #:flush-prepared-queries)
 
+  ;; lparallel support (optional)
+  (:export
+   #:*pgj-kernel*
+   #:make-pgj-kernel
+   #:end-pgj-kernel
+
+   #:call-with-connected-thread
+   #:with-connected-thread
+
+   #:*pgj-channel*
+   #:make-pgj-channel
+
+   #:submit-pgj-function
+   #:submit-pgj-task
+   #:receive-pgj-result
+   #:try-receive-pgj-result)
+
   ;; Specials
   (:export
    #:*pgj-schema*
