@@ -147,5 +147,6 @@ own parameters."
       (let ((model-parameters (if (meta-model-p model)
                                   (meta-model-parameters)
                                   (get-model-parameters model))))
+        (check-type model-parameters model-parameters)
         (log:trace "Preparing query for ~A:~A" model operation)
         (funcall (sym :postgres-json "make-" operation) model model-parameters))))
