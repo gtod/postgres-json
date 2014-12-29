@@ -13,13 +13,6 @@ TODO
 
 * Does it make sense to do two updates to same row in one tran?
 
-* Not happy with tran handling (still).  They user should be able to
-  do their own tran handling using Postmodern tran facilities without
-  our stuff getting in the way.  And they should be able to choose to
-  use the serialization failure retry macro with it as well.  Could we
-  redo the macro handling use Pomo logical trans?  But then maybe we
-  are coupled to Pomo more tightly than we need to be?
-
 * Investigate making all integer keys bigints.  Seems like a premature
   optimization not too.  How hard would a manual migration be for the
   user?  Presumably no problem in lisp, but would have to alter table
@@ -107,6 +100,8 @@ TODO
   Why would you do that?
 
 ## Nice to have
+
+* Push changes to S-SQL and Postmodern (see postgres dir) upstream.
 
 * Compound primary keys shouldn't be too hard. We make it either an
   ordered list or a map.  And stashing the key in your JSON obj would

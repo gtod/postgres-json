@@ -19,7 +19,7 @@ serialize lisp objects to JSON strings.  Return the new primary key."
   (unless use-key
     (ensure-model-query model 'nextval-sequence$))
   (ensure-model-query model 'insert$)
-  (ensure-transaction-level (insert read-committed-rw)
+  (maybe-transaction (insert read-committed-rw)
     (let* ((key (if use-key use-key (nextval-sequence$ model)))
            (object (if stash-key (funcall stash-key key object) object)))
       (nth-value 0 (insert$ model key (funcall to-json object))))))
@@ -35,7 +35,7 @@ one argument to serialize lisp objects to JSON strings.  Return KEY
 on success, NIL if there was no such KEY found."
   (log:debu3 "Attempt update of ~A in ~A" key model)
   (ensure-model-query model 'insert-old$ 'update$)
-  (ensure-transaction-level (update repeatable-read-rw)
+  (maybe-transaction (update repeatable-read-rw)
     (insert-old$ model key)
     (let ((object (if stash-key (funcall stash-key key object) object)))
       (nth-value 0 (update$ model key (funcall to-json object))))))
@@ -48,7 +48,7 @@ the JSON string proper).  If the JSON document does not exist, return
 NIL."
   (log:debu4 "Fetch object with key ~A from ~A" key model)
   (ensure-model-query model 'fetch$)
-  (let ((jdoc (ensure-transaction-level (fetch read-committed-ro)
+  (let ((jdoc (maybe-transaction (fetch read-committed-ro)
                 (fetch$ model key))))
     (if jdoc (funcall from-json jdoc) nil)))
 
@@ -57,7 +57,7 @@ NIL."
 parsing by the the function of one argument designated by FROM-JSON."
   (log:debu4 "Fetch all objects from ~A" model)
   (ensure-model-query model 'fetch-all$)
-  (ensure-transaction-level (fetch-all read-committed-ro)
+  (maybe-transaction (fetch-all read-committed-ro)
     (mapcar from-json (fetch-all$ model))))
 
 (defun excise (model key)
@@ -65,7 +65,7 @@ parsing by the the function of one argument designated by FROM-JSON."
 Return KEY on success, NIL if there was no such KEY found."
   (log:debu3 "Call excise of object with key ~A from ~A" key model)
   (ensure-model-query model 'insert-old$ 'excise$)
-  (ensure-transaction-level (excise repeatable-read-rw)
+  (maybe-transaction (excise repeatable-read-rw)
     (insert-old$ model key)
     (nth-value 0 (excise$ model key))))
 
@@ -83,14 +83,14 @@ the <model>-old Postgres relation."
 symbol, and the length of that list."
   (log:trace "Call keys on ~A" model)
   (ensure-model-query model 'keys$)
-  (ensure-transaction-level (keys read-committed-ro)
+  (maybe-transaction (keys read-committed-ro)
     (keys$ model)))
 
 (defun tally (model)
   "Return a count of JSON documents in MODEL, a symbol."
   (log:trace "Call tally on ~A" model)
   (ensure-model-query model 'tally$)
-  (ensure-transaction-level (count read-committed-ro)
+  (maybe-transaction (count read-committed-ro)
     (nth-value 0 (tally$ model))))
 
 ;; Implicit (or even explicit) assumption here that you are storing
@@ -117,7 +117,7 @@ input."
                     :from ',model
                     :where ,(if filter `(:@> 'jdoc ,filter) "t"))))
       (let ((query (if (integerp limit) `(:limit ,select ,limit) select)))
-        (ensure-transaction-level (filter read-committed-ro)
+        (maybe-transaction (filter read-committed-ro)
           (mapcar from-json
                   (query (sql-compile (json-query-to-s-sql query))
                          :column)))))))
@@ -131,7 +131,7 @@ one argument designated by FROM-JSON.  Requires a Postgres GIN index
 without JSONB_PATH_OPS defined on MODEL."
   (log:trace "Call exists on ~A" model)
   (ensure-model-query model 'exists$)
-  (ensure-transaction-level (contains read-committed-ro)
+  (maybe-transaction (contains read-committed-ro)
     (mapcar from-json (exists$ model property))))
 
 (defun distinct (model property &key (from-json *from-json*))
@@ -146,7 +146,7 @@ arbitrary user input."
   (let ((query `(:select (j-> ,property)
                  :distinct
                  :from ',model)))
-    (ensure-transaction-level (filter read-committed-ro)
+    (maybe-transaction (filter read-committed-ro)
       (mapcar from-json
               (query (sql-compile (json-query-to-s-sql query))
                      :column)))))
@@ -164,7 +164,7 @@ this case.  VALID-FROM-KEY and VALID-TO-KEY are strings that will be
 the property names of the respective timestamps."
   (log:debu4 "List history of object with key ~A from ~A" key model)
   (ensure-model-query model 'history$)
-  (let ((rows (ensure-transaction-level (get read-committed-ro)
+  (let ((rows (maybe-transaction (history read-committed-ro)
                   (history$ model key))))
     (loop for (jdoc valid-from valid-to) in rows
           for obj = (funcall from-json jdoc)

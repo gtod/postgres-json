@@ -11,7 +11,7 @@ in a given PostgreSQL database."
       (error 'database-safety-net
              :attempted-to (format nil "Create the backend, when a schema called ~A already exists." *pgj-schema*)
              :suggestion (format nil "Check carefully what data is in ~A" *pgj-schema*))
-      (ensure-transaction-level (create-backend repeatable-read-rw)
+      (with-model-transaction (create-backend)
         (pomo:create-schema *pgj-schema*)
         (create-db-sequence *pgj-sequence* *pgj-schema*)
         (create-model *meta-model* (meta-model-parameters))
@@ -49,15 +49,15 @@ documentation on search paths and settings."
   (query (format nil "ALTER ROLE ~A SET search_path TO ~A" user search-path)))
 
 (defun create-model (model &optional (parameters (make-model-parameters model)))
-  "Create the PostgreSQL tables and indexes for PostgreSQL JSON
+  "Create the PostgreSQL tables and indexes for Postgre JSON
 persistence model MODEL, a symbol.  Uses the various values in the
-PARAMETERS has table to customize the model.  Should only be called
+PARAMETERS CLOS object to customize the model.  Should only be called
 once per model.  Returns MODEL."
   (let* ((base model)
          (base-old (sym-suffix base "old"))
          (index (sym-suffix base "gin"))
          (index-old (sym-suffix base "old-gin")))
-    (ensure-transaction-level (create-model repeatable-read-rw)
+    (with-model-transaction (create-model)
       (create-base-table base parameters)
       (create-old-table base-old parameters)
       (create-gin-index index base parameters)
@@ -86,7 +86,7 @@ the database Postmodern is currently connected to.  This will
 irrevocably delete ALL your data in ALL your models so it uses
 a RESTART-CASE to guard against human error."
   (flet ((drop ()
-           (ensure-transaction-level (drop-backend read-committed-rw)
+           (with-model-transaction (drop-backend)
              (drop-db-schema-cascade *pgj-schema*))))
     (when (backend-exists-p)
       (let ((attempted-to (format nil "DROP all models' data(!) in schema: ~A" *pgj-schema*)))
@@ -101,7 +101,7 @@ a RESTART-CASE to guard against human error."
 with the model so it uses a RESTART-CASE to guard against human
 error."
   (flet ((drop ()
-           (ensure-transaction-level (drop-model repeatable-read-rw)
+           (with-model-transaction (drop-model)
              (excise *meta-model* (symbol->json model))
              (drop-db-table-cascade model *pgj-schema*)
              (drop-db-table-cascade (sym t model "-old") *pgj-schema*))))

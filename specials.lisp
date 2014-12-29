@@ -45,22 +45,14 @@ unique primary key to be used for the DB insert and the object to be
 inserted itself.  It should return an object which will be inserted in
 the place of the original.")
 
-(defvar *db-handle-serialization-failure-p* t
-  "UPDATE and EXCISE calls on the model will use the Postgres
-'repeatable read isolation level' so 'serialization failures' may
-occur.  When this special variable is set to T (the default), these
-failures are handled under the covers.  (However, if excessive time
-elapses, client code may still see a
-CL-POSTGRES-ERROR:SERIALIZATION-FAILURE).  If you would rather
-explicitly handle _all_ serialization failures in your client code,
-set this to NIL.")
-
 ;; I think it sort of makes sense not to sleep at all for the first
 ;; retry, but then to back off pretty fast.  But I am no expert...
 (defvar *serialization-failure-sleep-times* '(0 1 2 4 7)
   "The length of this list of real numbers determines the number of
-times to retry when a Postgres transaction COMMIT see a
+times to retry when a Postgres transaction COMMIT sees a
 CL-POSTGRES-ERROR:SERIALIZATION-FAILURE condition.  For each retry we
-sleep the duration specified, plus a random number of milliseconds
+sleep the duration specified plus a random number of milliseconds
 between 0 and 2000.  However, if 0 sleep is specified, we do not sleep
-at all.")
+at all.  If set to NIL no condition handling is performed hence the
+client will always see any such serialization failures.")
+

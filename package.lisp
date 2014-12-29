@@ -4,6 +4,7 @@
 
   ;; Postgres backend
   (:export
+   #:*postmodern-connection*
    #:database-safety-net
    #:really-do-it
    #:create-backend
@@ -34,9 +35,26 @@
    #:distinct
    #:history)
 
-  ;; Model and database interaction
+  ;; User transaction handling
   (:export
-   #:with-model-transaction)
+   #:*serialization-failure-sleep-times*
+   #:with-model-transaction
+   #:rollback
+   #:commit)
+
+  ;; Postmodern isolation level transactions
+  (:export
+   #:*pgj-default-isolation-level*
+   #:incompatible-transaction-setting
+
+   #:serializable-rw
+   #:repeatable-read-rw
+   #:read-committed-rw
+   #:read-committed-ro
+
+   #:with-transaction-level
+   #:with-logical-transaction-level
+   #:ensure-transaction-level)
 
   ;; User queries and JSON syntactic sugar for S-SQL
   (:export
@@ -91,9 +109,7 @@
    #:*default-search-path*
    #:*to-json*
    #:*from-json*
-   #:*stash-key*
-   #:*db-handle-serialization-failure-p*
-   #:*serialization-failure-sleep-times*)
+   #:*stash-key*)
 
   (:documentation "Postgres-JSON is a JSON document store for Common
 Lisp using PostgreSQL"))
