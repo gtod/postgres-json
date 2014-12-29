@@ -30,3 +30,14 @@ connection."
            :suggestion "Try pomo:drop-schema"))
   (pomo:drop-schema schema :cascade t)
   (values))
+
+(defun ensure-top-level-connection (&optional (connect-spec *postmodern-connection*))
+  "Ensure a Postmodern top level connection is active by applying the
+contents of the list CONNECT-SPEC to POMO:CONNECT-TOPLEVEL."
+  (unless connect-spec
+    (error "Try setting POSTGRES-JSON:*POSTMODERN-CONNECTION* to a
+list congruent with the parameters expected by POSTMODERN:CONNECT-TOPLEVEL.
+For example: '\(\"mydb\", \"myusername\", \"\", \"localhost\"\).
+This connection list is used by the example and testing code."))
+  (unless (and pomo:*database* (pomo:connected-p pomo:*database*))
+    (apply #'pomo:connect-toplevel connect-spec)))

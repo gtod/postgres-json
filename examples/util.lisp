@@ -3,7 +3,7 @@
 (in-package :pj-human)
 
 (defmacro with-pj-connection (() &body body)
-  `(pomo:with-connection *connection*
+  `(pomo:with-connection *postmodern-connection*
      (pomo:set-search-path *default-search-path*)
      ,@body))
 

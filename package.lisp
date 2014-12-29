@@ -7,6 +7,7 @@
    #:*postmodern-connection*
    #:database-safety-net
    #:really-do-it
+   #:ensure-top-level-connection
    #:create-backend
    #:backend-exists-p
    #:ensure-backend
@@ -105,6 +106,7 @@
 
   ;; Specials
   (:export
+   #:*postmodern-connection*
    #:*pgj-schema*
    #:*default-search-path*
    #:*to-json*

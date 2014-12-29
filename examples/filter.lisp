@@ -6,8 +6,7 @@
 (defparameter *models* '(cat dog prime))
 
 (defun create ()
-  (unless (and pomo:*database* (pomo:connected-p pomo:*database*))
-    (pomo:connect-toplevel "cusoon" "gtod" "" "localhost" :port 5433))
+  (ensure-top-level-connection)
   (ensure-backend)
   (dolist (model *models*)
     (ensure-model model)))

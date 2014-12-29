@@ -56,3 +56,8 @@ between 0 and 2000.  However, if 0 sleep is specified, we do not sleep
 at all.  If set to NIL no condition handling is performed hence the
 client will always see any such serialization failures.")
 
+(defparameter *postmodern-connection* nil
+  "Set this to a list congruent with the parameters expected by
+POSTMODERN:CONNECT-TOPLEVEL, for use by the testing and example
+code.")
+

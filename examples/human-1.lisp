@@ -1,14 +1,16 @@
 (in-package :pj-human)
 
-;;; Set the *connections* form below for your Postgres 9.4 DB and
-;;; evaluate it. Then do (create), (load-humans) and (model-test)
+;;; Set the *postmodern-connection* form below for your Postgres 9.4
+;;; DB if you have not done so elsewhere. Then do (create),
+;;; (load-humans) and (model-test)
 
 ;;; See the User Guide for further details
 
 ;;; Examples of user defined queries are in human-2.lisp, you might
 ;;; want to try them before running the cleanup or drop forms.
 
-(defparameter *connection* '("cusoon" "gtod" "" "localhost" :port 5433))
+;; Set this if you have not already done so
+;; (setf *postmodern-connection* '("mydb" "myusername" "" "localhost"))
 
 (defparameter *human-url* "http://gtod.github.io/human.json")
 (defparameter *human-file* "/tmp/postgres-json-human.json")

@@ -57,10 +57,15 @@ Most of the library code has docstrings.
 
 #### Postgres
 
-You will need a working PostgreSQL 9.4 install.  On Debian this is as
-simple as `apt-get install postgresql-9.4`.  Try `pg_lsclusters` to
-see what port your 9.4 install is on, if it is not 5432 you will
-need to explicitly supply it as I have in the example below.
+You will need a working PostgreSQL 9.4 install.  On Debian this may be
+as simple as `apt-get install postgresql-9.4`.  If this does not work, see
+https://wiki.postgresql.org/wiki/Apt for updating your apt sources.
+
+Once installed, try `pg_lsclusters` to see what port your 9.4 install
+is on, if it is not 5432 you will need to explicitly supply the port
+as I have in the example below.  `pg_upgradecluster` may have ben
+automatically run for you, in which case your new install may already
+be on port 5432.
 
 If this is your first time using Postgres you can setup a database
 user to match your unix login (in my case `gtod`) at the unix shell as
@@ -76,16 +81,6 @@ exit
 `psql -l` or `psql -p5433 -l` should now list your new database.
 
 #### Postgres-JSON
-
-At your REPL:
-
-```
-(ql:quickload :postmodern)
-(pomo:connect-toplevel "mydb" "gtod" "" "localhost" :port 5433)
-```
-
-If you get a result from `(pomo:query "select 1")` you are ready
-to go.
 
 Navigate to your `~/quicklisp/local-projects` directory and do
 
@@ -105,11 +100,15 @@ Now:
 
 (in-package :simple)
 
+;; REPL connection helpers
+(setf *postmodern-connection* '("mydb" "gtod" "" "localhost" :port 5433))
+(ensure-top-level-connection)
+
 ;; Once only operation, make a DB schema for all our models
-(ensure-backend)
+(create-backend)
 
 ;; Once only operation, make a new model to store JSON docs on cats
-(ensure-model 'cat)
+(create-model 'cat)
 ```
 
 In the output below I have elided some of the return values for
@@ -148,7 +147,7 @@ lisp object of hash tables and sequences as JSON.
                       "likes" '("sunshine" 42)))
 3
 
-(pp-json (get 'cat 3))
+(pp-json (fetch 'cat 3))
 {
     "age":7,
     "key":3,
@@ -160,6 +159,8 @@ lisp object of hash tables and sequences as JSON.
     ]
 }
 ```
+
+#### Examples
 
 See [simple](examples/simple.lisp) for similar code to the above.
 There is an extended example in [human-1](examples/human-1.lisp) and
