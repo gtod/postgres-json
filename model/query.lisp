@@ -78,7 +78,7 @@ FORMAT must be a valid Postmodern results format."
                    ;; CREATE-OLD-TABLE since :insert-into will not let
                    ;; me explicitly specify column names...
                      (:select ',key
-                            (:transaction-timestamp)
+                            (:clock-timestamp)
                             'valid-from
                             'jdoc
                             :from ,table
@@ -86,7 +86,7 @@ FORMAT must be a valid Postmodern results format."
 
 (make-query update$ (key jdoc) (table key)
     ('`(:update ,table
-        :set 'jdoc '$2 'valid-from (:transaction-timestamp)
+        :set 'jdoc '$2 'valid-from (:clock-timestamp)
         :where (:= ',key '$1)
         :returning ',key)
      :single))

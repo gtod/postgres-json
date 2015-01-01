@@ -7,12 +7,6 @@ TODO
   https://news.ycombinator.com/item?id=8689159 and
   http://www.postgresql.org/docs/9.4/static/queries-table-expressions.html#QUERIES-LATERAL
 
-* Investigate if should be using transaction time or actual time in
-  model backend inserts.  Did get one primary key clash in some test,
-  may have been related to dodgy transaction handling at the time...
-
-* Does it make sense to do two updates to same row in one tran?
-
 * Investigate making all integer keys bigints.  Seems like a premature
   optimization not too.  How hard would a manual migration be for the
   user?  Presumably no problem in lisp, but would have to alter table
