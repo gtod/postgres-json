@@ -6,7 +6,6 @@
   :description "Store and query JSON documents in PostgreSQL"
   :depends-on (#:alexandria
                #:postmodern
-               #:bordeaux-threads
                #:log4cl
                #:closer-mop
                #:yason)
