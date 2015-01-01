@@ -98,7 +98,7 @@
                    (write-line "```")
                    (terpri)
                    (format t "~A~%~%" (markdown-escape doc))))))
-        ((cl:defclass)
+        ((cl:defclass cl:define-condition)
          (let ((name (cadr form)))
            (when-let (docstring (documentation (find-symbol (symbol-name name) *doc-package*) 'type))
              (setf (gethash (symbol-name name) *doc-cache*)
