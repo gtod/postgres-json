@@ -14,4 +14,6 @@
   (:report (lambda (condition stream)
              (format stream "To save you from yourself I refuse to: ~A.~%May I suggest you: ~A."
                      (attempted-to condition)
-                     (suggestion condition)))))
+                     (suggestion condition))))
+  (:documentation "Signaled to prevent accidental deletion of database
+assets such as tables or schema."))

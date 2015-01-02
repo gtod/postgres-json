@@ -52,9 +52,10 @@ just:
 
 ### Usage synposis
 
-Call `ensure-backend` just once.  Call `ensure-model` on some models
-and then use the various [model interface](api.md#model-interface)
-functions to insert/update/fetch your JSON documents.
+Call [`ensure-backend`](api.md#ensure-backend) just once.  Call
+[`ensure-model`](api.md#ensure-model) on some models and then use the
+various [model interface](api.md#model-interface) functions to
+insert/update/fetch your JSON documents.
 
 You can over-ride the default "one transaction per operation"
 behaviour by wrapping a body of model interface calls in a
@@ -429,6 +430,11 @@ overhead to such a call:
 [`alter-role-set-search-path`](api.md#alter-role-set-search-path)
 where you tell Postgres to use the specified search path for every
 connection of a given user.
+
+* Use the parallel version (courtesy of http://lparallel.org/) where
+each worker has a persistent connection and the search path is set in
+a manner similar to the above.  See
+[threads-test](../tests/thread-test.lisp).
 
 * Do anything else that works, such as hardcoding into `postgresql.conf`.
 I considered writing another sugar macro so that `(qn cat)` became

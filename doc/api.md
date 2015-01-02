@@ -2,15 +2,44 @@
 * [Postgres backend](#postgres-backend)
 * [Model creation and management](#model-creation-and-management)
 * [Model interface](#model-interface)
-* [Model and database interaction](#model-and-database-interaction)
+* [User transaction handling](#user-transaction-handling)
+* [Postmodern isolation level transactions](#postmodern-isolation-level-transactions)
 * [User queries and JSON syntactic sugar for S-SQL](#user-queries-and-json-syntactic-sugar-for-s-sql)
 * [Model parameters](#model-parameters)
 * [Trival helper functions](#trival-helper-functions)
 * [Miscellaneous backend functions](#miscellaneous-backend-functions)
+* [lparallel support (optional)](#lparallel-support-(optional))
 * [Specials](#specials)
 
 ---
 ## Postgres backend
+#### \*postmodern-connection\*
+*DEFPARAMETER*
+
+```common-lisp
+nil
+```
+
+Set this to a list congruent with the parameters expected by
+POSTMODERN:CONNECT-TOPLEVEL, for use by the testing and example
+code.
+
+#### database-safety-net
+*DEFINE-CONDITION*
+
+Signaled to prevent accidental deletion of database
+assets such as tables or schema.
+
+#### ensure-top-level-connection
+*Function*
+
+```common-lisp
+&optional (connect-spec *postmodern-connection*)
+```
+
+Ensure a Postmodern top level connection is active by applying the
+contents of the list **CONNECT-SPEC** to POMO:CONNECT-TOPLEVEL.
+
 #### create-backend
 *Function*
 
@@ -46,9 +75,9 @@ a RESTART-CASE to guard against human error.
 model &optional (parameters (make-model-parameters model))
 ```
 
-Create the PostgreSQL tables and indexes for PostgreSQL JSON
+Create the PostgreSQL tables and indexes for Postgre JSON
 persistence model **MODEL**, a symbol.  Uses the various values in the
-**PARAMETERS** has table to customize the model.  Should only be called
+**PARAMETERS** CLOS object to customize the model.  Should only be called
 once per model.  Returns **MODEL**.
 
 #### model-exists-p
@@ -258,20 +287,121 @@ the property names of the respective timestamps.
 
 
 ---
-## Model and database interaction
+## User transaction handling
+#### \*serialization-failure-sleep-times\*
+*DEFVAR*
+
+```common-lisp
+'(0 1 2 4 7)
+```
+
+The length of this list of real numbers determines the number of
+times to retry when a Postgres transaction COMMIT sees a
+CL-POSTGRES-ERROR:SERIALIZATION-FAILURE condition.  For each retry we
+sleep the duration specified plus a random number of milliseconds
+between 0 and 2000.  However, if 0 sleep is specified, we do not sleep
+at all.  If set to NIL no condition handling is performed hence the
+client will always see any such serialization failures.
+
 #### with-model-transaction
 *Macro*
 
 ```common-lisp
-(&optional (name 'user)) &body body
+(&optional name) &body body
 ```
 
 Evaluate **BODY** inside a Postgres transaction using the 'repeatable
-read' isolation level.  Nested expansions of this macro or other
-transaction macros used internally by POSTGRES-JSON are merely logical
-within **BODY** --- they do not make real Postgres transactions.  So this
-macro is designed for bulk inserts or when Atomicity of multiple
-inserts/updates/deletes is required.
+read' isolation level in read/write mode.  Retry any serialization
+failures although chronic incidence will still result in the client
+seeing CL-POSTGRES-ERROR:SERIALIZATION-FAILURE conditions --- see also
+\*SERIALIZATION-FAILURE-SLEEP-TIMES\*.  Implemented using Postmodern
+WITH-LOGICAL-TRANSACTION so may be nested.  **NAME** can be used with
+Postmodern's abort-transaction and commit-transaction. **NAME** should not
+be a Postgres reserved word.  Ideal for any group of mutating model
+interface functions.
+
+#### rollback
+*Function*
+
+```common-lisp
+name
+```
+
+If this is the root node of a nested set of WITH-MODEL-TRANSACTIONs
+then 'rollback' the transaction **NAME**.  Otherwise rollback to the
+Postgres savepoint **NAME**.
+
+#### commit
+*Function*
+
+```common-lisp
+name
+```
+
+If this is the root node of a nested set of WITH-MODEL-TRANSACTIONs
+then 'commit' the transaction **NAME**.  Otherwise merely release the
+savepoint **NAME**.
+
+
+---
+## Postmodern isolation level transactions
+#### \*pgj-default-isolation-level\*
+*DEFVAR*
+
+```common-lisp
+'repeatable-read-rw
+```
+
+The isolation level to use for WITH-MODEL-TRANSACTION.  By the
+nature of Postgres-JSON can only be REPEATABLE-READ-RW or
+SERIALIZABLE-RW.
+
+#### incompatible-transaction-setting
+*DEFINE-CONDITION*
+
+Signaled for a nested invocation of
+WITH-ENSURED-TRANSACTION-LEVEL or WITH-LOGICAL-TRANSACTION-LEVEL
+inside a previous invocation with an incongruent isolation level.
+
+#### with-transaction-level
+*Macro*
+
+```common-lisp
+(name isolation-level) &body body
+```
+
+Unilaterally evaluate **BODY** inside a Postmodern WITH-TRANSACTION
+form with Postgres 'transaction mode' set to the symbol-value of
+**ISOLATION-LEVEL**, a symbol.  The symbol **NAME** is bound to the Postmodern
+`transaction-handle' and may be used in calls to Postmodern's
+abort-transaction and commit-transaction.
+
+#### with-logical-transaction-level
+*Macro*
+
+```common-lisp
+(name isolation-level) &body body
+```
+
+Similar to Postmodern's WITH-LOGICAL-TRANSACTION but start any top
+level transaction with Postgres 'transaction mode' set to the
+symbol-value of **ISOLATION-LEVEL**.  The symbol **NAME** is bound to the
+Postmodern `transaction-handle' and may be used in calls to
+Postmodern's abort-transaction and commit-transaction.  The condition
+`incompatible-transaction-setting' will be signaled for incongruent
+nested isolation levels.
+
+#### ensure-transaction-level
+*Macro*
+
+```common-lisp
+(isolation-level) &body body
+```
+
+Similar to Postmodern's ENSURE-TRANSACTION but start any top level
+transaction with Postgres 'transaction mode' set to the symbol-value
+of **ISOLATION-LEVEL**.  The condition `incompatible-transaction-setting'
+will be signaled for incongruent nested isolation levels.
 
 
 ---
@@ -513,6 +643,113 @@ error in production code should be investigated.
 
 
 ---
+## lparallel support (optional)
+#### \*pgj-kernel\*
+*DEFVAR*
+
+```common-lisp
+nil
+```
+
+An lparallel kernel to manage worker threads.  Typically bound to
+the result of MAKE-PGJ-KERNEL for use by interface calls such
+WITH-CONNECTED-THREAD.
+
+#### make-pgj-kernel
+*Function*
+
+```common-lisp
+connect-spec &optional (n 4)
+```
+
+Make an lparallel kernel object where each worker thread is given a
+permanent DB connection, made using a Postmodern **CONNECT-SPEC**, a list.
+Start **N** workers.  Ensure your Postgres can handle at least **N**
+concurrent connecions.
+
+#### end-pgj-kernel
+*Function*
+
+End the lparallel kernel in \*PGJ-KERNEL\*.
+
+#### call-with-connected-thread
+*Function*
+
+```common-lisp
+function
+```
+
+Ask that an lparallel worker perform **FUNCTION**, a function, given a
+current Postmodern DB connection.  Block until the result is received
+and return it.  \*PGJ-KERNEL\* must be bound to the result of
+MAKE-PGJ-KERNEL.
+
+#### with-connected-thread
+*Macro*
+
+```common-lisp
+nil &body body
+```
+
+Wrap **BODY** in a lambda and invoke CALL-WITH-CONNECTED-THREAD.
+\*PGJ-KERNEL\* must be bound to the result of MAKE-PGJ-KERNEL.
+
+#### \*pgj-channel\*
+*DEFVAR*
+
+```common-lisp
+nil
+```
+
+A single lparallel channel for submitting tasks via SUBMIT-PGJ-TASK
+and receiving results via RECEIVE-PGJ-RESULT.
+
+#### make-pgj-channel
+*Function*
+
+Make an lparallel channel.  \*PGJ-KERNEL\* must be bound to the
+result of MAKE-PGJ-KERNEL.
+
+#### submit-pgj-function
+*Function*
+
+```common-lisp
+function
+```
+
+Submit the function **FUNCTION**, with a Postmodern connection, as an
+lparallel task on our channel \*PGJ-CHANNEL\*.  \*PGJ-KERNEL\* must be
+bound to the result of MAKE-PGJ-KERNEL.
+
+#### submit-pgj-task
+*Macro*
+
+```common-lisp
+nil &body body
+```
+
+Wrap **BODY** in a lambda and call SUBMIT-PGJ-FUNCTION.
+\*PGJ-KERNEL\* must be bound to the result of MAKE-PGJ-KERNEL.
+
+#### receive-pgj-result
+*Function*
+
+Call lparallel:receive-result on our \*PGJ-CHANNEL\*.
+\*PGJ-KERNEL\* must be bound to the result of MAKE-PGJ-KERNEL.
+
+#### try-receive-pgj-result
+*Function*
+
+```common-lisp
+&key timeout
+```
+
+Call lparallel:try-receive-result on our \*PGJ-CHANNEL\*,
+with timeout **TIMEOUT**, a real.  \*PGJ-KERNEL\* must be bound to the
+result of MAKE-PGJ-KERNEL.
+
+
+---
 ## Specials
 #### \*pgj-schema\*
 *DEFVAR*
@@ -570,32 +807,5 @@ unique primary key to be used for the DB insert and the object to be
 inserted itself.  It should return an object which will be inserted in
 the place of the original.
 
-#### \*db-handle-serialization-failure-p\*
-*DEFVAR*
 
-```common-lisp
-t
-```
-
-UPDATE and EXCISE calls on the model will use the Postgres
-'repeatable read isolation level' so 'serialization failures' may
-occur.  When this special variable is set to T (the default), these
-failures are handled under the covers.  (However, if excessive time
-elapses, client code may still see a
-CL-POSTGRES-ERROR:SERIALIZATION-FAILURE).  If you would rather
-explicitly handle _all_ serialization failures in your client code,
-set this to NIL.
-
-#### \*serialization-failure-sleep-times\*
-*DEFVAR*
-
-```common-lisp
-'(0 1 2 4 7)
-```
-
-The length of this list of real numbers determines the number of
-times to retry when a Postgres transaction COMMIT see a
-CL-POSTGRES-ERROR:SERIALIZATION-FAILURE condition.  For each retry we
-sleep the duration specified, plus a random number of milliseconds
-between 0 and 2000.  However, if 0 sleep is specified, we do not sleep
-at all.
+---
