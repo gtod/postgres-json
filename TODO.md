@@ -3,15 +3,6 @@ TODO
 
 ## Must have
 
-* Investigate new lateral type in Postgres.
-  https://news.ycombinator.com/item?id=8689159 and
-  http://www.postgresql.org/docs/9.4/static/queries-table-expressions.html#QUERIES-LATERAL
-
-* Investigate making all integer keys bigints.  Seems like a premature
-  optimization not too.  How hard would a manual migration be for the
-  user?  Presumably no problem in lisp, but would have to alter table
-  the various model tables, and sequences (indexes?  meta model?)
-
 * Rethinkdb query to emulate
 
 ```common-lisp
@@ -35,21 +26,10 @@ TODO
                                    {o "orphanParent" t})}))))
 ```
 
-* Do we even need model-parameters serialized to the DB?  I suppose
-  for a compound primary key (if we support one) we would need to know
-  the names of the columns in the key...  And certainly if we want a
-  single sequence per table.  Having built them it's a premature op to
-  kill them off without proving they are useuless.  In fact, they may
-  well be essential for "Foreign Key promotion".
+* history-table-p should just be a model parameter.
 
-* The history in the _old table is nice but it should probably be part
-  of an additional layer built on top of a basic Postgres-JSON,
-  rather than forcing it on by default.  At one end of the spectrum
-  there is no need for Postgres-JSON at all, Common Lisp programmers
-  can just use Postmodern or whatever else and get the JSON goodness
-  manually.  At the other end we smother users with a thick layer of
-  heavy, slow functionality they don't need (maybe such as history).
-  Need to find the happy medium.
+* Define a schema for your model, get automatic validation either on
+  client or server side.  Can do server side with PLV8 or whatever...
 
 ### Interface
 
@@ -80,10 +60,19 @@ TODO
 
 * Clear up to what extent we are assuming the contents of 'jdoc are
   objects rather than arrays (or even scalars)...
-  
+
 * Proper test suite.
 
 ## Maybe have
+
+* Investigate new lateral type in Postgres.
+  https://news.ycombinator.com/item?id=8689159 and
+  http://www.postgresql.org/docs/9.4/static/queries-table-expressions.html#QUERIES-LATERAL
+
+* Investigate making all integer keys bigints.  Seems like a premature
+  optimization not too.  How hard would a manual migration be for the
+  user?  Presumably no problem in lisp, but would have to alter table
+  the various model tables, and sequences (indexes?  meta model?)
 
 * I could wrap the serialization failure condition and send a nice
   message to the user...  Maybe I wrap *all* Postmodern conditions and
@@ -118,6 +107,13 @@ TODO
 ```
 
 ## Postmodern/Postgres maybe have
+
+### Server side JSON support
+
+You could send a list of key/value pairs and do the JSON serialization
+on the server: `json_object_agg`.  Server side update support.
+
+PLV8.
 
 ### Prepared queries data types
 
