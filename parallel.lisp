@@ -29,6 +29,7 @@
   `((*standard-output* . ,*standard-output*)
     (*error-output*    . ,*error-output*)
     (*pgj-database* . (apply #'pomo:connect ',connect-spec))
+    (*model-parameters-cache* . (make-hash-table :test #'equal))
     (*query-functions* . (make-hash-table :test #'equal))))
 
 (defun make-pgj-task (function)

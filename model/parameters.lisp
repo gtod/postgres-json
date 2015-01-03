@@ -81,11 +81,17 @@ variable."
 
 ;;; Get
 
+(defparameter *model-parameters-cache* (make-hash-table :test #'equal)
+  "The `model-parameters' for a given model are stored in the Postgres
+backend.  Since accessing them is not cheap we cache them.  It's not
+thread safe, but see :postgres-json-parallel.")
+
 (defun get-model-parameters (model)
   "Return the model-parameters object for MODEL, a symbol, by
-retrieving them from the backend."
-  (fetch *meta-model* (symbol->json model)
-         :from-json 'model-parameters-from-json))
+retrieving them from the meta model, or from cache."
+  (let ((key (symbol->json model)))
+    (symbol-macrolet ((mp (gethash key *model-parameters-cache*)))
+      (if mp mp (setf mp (fetch *meta-model* key :from-json 'model-parameters-from-json))))))
 
 ;;;; The specific parameters for our meta model
 
@@ -109,7 +115,7 @@ models in a 'meta' model, which itself has the following parameters."
         (let* ((name (slot-name slot))
                (type (slot-type slot))
                (slot-value (slot-value params name)))
-          (let ((value (typecase type
+          (let ((value (case type
                          (symbol (symbol->json slot-value))
                          (t slot-value))))
             (yason:encode-object-element (symbol->json name) value)))))))
@@ -121,7 +127,7 @@ models in a 'meta' model, which itself has the following parameters."
         (let* ((name (slot-name slot))
                (type (slot-type slot))
                (value (gethash (symbol->json name) obj)))
-          (setf (slot-value params name) (typecase type
+          (setf (slot-value params name) (case type
                                            (symbol (json->symbol value))
                                            (t value)))))
     params))
