@@ -16,11 +16,6 @@ all database backend objects.  If you rebind it said binding must be
 in place for _all_ calls to exported functions of :postgres-json.")
 
 ;; No reason for user to change this, it sits in a fresh schema we made.
-(defvar *pgj-sequence* 'pgj-seq
-  "A symbol being the name of the PostgreSQL sequence we create
-for (at least) the use of of meta model.")
-
-;; No reason for user to change this, it sits in a fresh schema we made.
 (defvar *meta-model* 'pgj-meta
   "A symbol being the name of the model in which we store meta data
 relating to user models.")

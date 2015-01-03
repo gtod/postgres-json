@@ -3,10 +3,11 @@
 ;;;; These are the default model parameters, their sole purpose is to
 ;;;; provide the default values for MAKE-MODEL-PARAMETERS.
 
-(defvar *sequence* 'pgj-seq
-  "A symbol being the default name of the Postgres sequence to
-provide unique IDs for JSON objects inserted into the Postgres
-backend base table.")
+;; No reason for user to change this, it sits in a fresh schema we made.
+(defvar *pgj-sequence* 'pgj-seq
+  "A symbol being the name of the PostgreSQL sequence we create
+for (at least) the use of of meta model.  Provide unique IDs for JSON
+objects inserted into the Postgres backend base table.")
 
 (defvar *key* 'key
   "A symbol being the name of the primary key column in backend
