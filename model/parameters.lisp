@@ -9,6 +9,10 @@
 for (at least) the use of of meta model.  Provide unique IDs for JSON
 objects inserted into the Postgres backend base table.")
 
+(defvar *keep-history-p* t
+  "Boolean being the default choice of whether to keep history rows in
+a <model>_old table.")
+
 (defvar *key* 'key
   "A symbol being the name of the primary key column in backend
 tables.")
@@ -30,6 +34,7 @@ Postgres 9.4 manual 8.14.4.")
 (defclass model-parameters (read-only)
   ((model :initarg :model :type symbol :reader model)
    (sequence :initarg :sequence :type symbol :reader sequence)
+   (keep-history-p :initarg :keep-history-p :type boolean :reader keep-history-p)
    (gin-operator-class :initarg :gin-operator-class :type symbol :reader gin-operator-class)
    (key :initarg :key :type symbol :reader key)
    (key-type :initarg :key-type :type symbol :reader key-type))
@@ -63,6 +68,7 @@ these parameters."))
 ;;   )
 
 (defun make-model-parameters (model &key (sequence *pgj-sequence*)
+                                         (keep-history-p *keep-history-p*)
                                          (gin-operator-class *gin-operator-class*)
                                          (key *key*) (key-type *key-type*))
   "Create an object of class MODEL-PARAMETERS to specify backend
@@ -71,6 +77,7 @@ typically to be supplied to CREATE-MODEL.  For each keyword argument
 which defaults to a special variable see the documentation of that
 variable."
   (make-instance 'model-parameters :model model :sequence sequence
+                 :keep-history-p keep-history-p
                  :gin-operator-class gin-operator-class
                  :key key :key-type key-type))
 

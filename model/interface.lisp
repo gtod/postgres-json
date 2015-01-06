@@ -34,11 +34,15 @@ the original.  TO-JSON must be a function designator for a function of
 one argument to serialize lisp objects to JSON strings.  Return KEY
 on success, NIL if there was no such KEY found."
   (log:debu3 "Attempt update of ~A in ~A" key model)
-  (ensure-model-query model 'insert-old$ 'update$)
-  (maybe-transaction (update repeatable-read-rw)
-    (insert-old$ model key)
-    (let ((object (if stash-key (funcall stash-key key object) object)))
-      (nth-value 0 (update$ model key (funcall to-json object))))))
+  (ensure-model-query model 'update$)
+  (with-readers (keep-history-p) (get-model-parameters model)
+    (when keep-history-p
+      (ensure-model-query model 'insert-old$))
+    (maybe-transaction (update repeatable-read-rw)
+      (when keep-history-p
+        (insert-old$ model key))
+      (let ((object (if stash-key (funcall stash-key key object) object)))
+        (nth-value 0 (update$ model key (funcall to-json object)))))))
 
 (defun fetch (model key &key (from-json *from-json*))
   "Lookup the JSON document with primary key KEY in MODEL, a symbol.
