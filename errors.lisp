@@ -17,3 +17,7 @@
                      (suggestion condition))))
   (:documentation "Signaled to prevent accidental deletion of database
 assets such as tables or schema."))
+
+(defun really-do-it (c)
+  (declare (ignore c))
+  (invoke-restart 'really-do-it))

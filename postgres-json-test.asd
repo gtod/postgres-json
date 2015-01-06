@@ -9,4 +9,6 @@
   ((:module "t"
     :serial t
     :components ((:file "package")
-                 (:file "transactions")))))
+                 (:file "base")
+                 (:file "transactions")
+                 (:file "model/interface")))))

@@ -1,4 +1,3 @@
-(defpackage :postgres-json-transaction-test
-  (:use #:cl #:postgres-json #:1am)
-  (:export #:setup #:run #:teardown)
-  (:documentation "Test Postgres-JSON."))
+(defpackage :postgres-json-test
+  (:use #:cl #:postgres-json #:1am #:alexandria)
+  (:documentation "Test Postgres-JSON"))
