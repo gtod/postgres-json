@@ -1,6 +1,6 @@
 (asdf:defsystem postgres-json
   :author "Gregory Tod <lisp@gtod.net>"
-  :version "0.1.5"
+  :version "0.2.0"
   :license "MIT"
   :homepage "https://github.com/gtod/postgres-json"
   :description "Store and query JSON documents in PostgreSQL"

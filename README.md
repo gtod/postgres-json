@@ -40,9 +40,14 @@ see the comparison by Sabra On The Hill: [JSON libraries]
 
 ## Status
 
-This library is **under development**. The interface is relatively
-stable which is the positive way of saying it might still change.
-There are a few other things to complete before an Alpha release.
+As at January 2015 and according to the langauge of [Semantic
+versioning](http://semver.org) Postgres-JSON is in the "initial
+development phase".  Anything might change.
+
+That said, the interface is relatively stable and the documentation
+largely complete.  So do not use it in production but any and all
+feedback is most welcome to postgres-json@gtod.net or by raising a
+GitHub issue.
 
 ## Documentation
 
@@ -63,7 +68,7 @@ https://wiki.postgresql.org/wiki/Apt for help updating your apt sources.
 
 Once installed, try `pg_lsclusters` to see what port your 9.4 install
 is on, if it is not 5432 you will need to explicitly supply the port
-as I have in the example below.  `pg_upgradecluster` may have ben
+as I have in the example below.  `pg_upgradecluster` may have been
 automatically run for you, in which case your new install may already
 be on port 5432.
 
@@ -100,7 +105,7 @@ Now:
 
 (in-package :simple)
 
-;; REPL connection helpers
+;; Change to suit your Postgres DB
 (setf *postmodern-connection* '("mydb" "gtod" "" "localhost" :port 5433))
 (ensure-top-level-connection)
 
@@ -143,8 +148,8 @@ lisp object of hash tables and sequences as JSON.
 (tally -cat-)
 2
 
-(update -cat- 3 (obj "name" "maud" "coat" "tortoiseshell" "age" 7
-                     "likes" '("sunshine" 42)))
+(supersede -cat- 3 (obj "name" "maud" "coat" "tortoiseshell" "age" 7
+                        "likes" '("sunshine" 42)))
 3
 
 (pp-json (fetch -cat- 3))
@@ -181,6 +186,9 @@ queries](doc/user-guide.md#user-defined-json-queries):
    :on (:= (j-> human "key") (j-> gift "human-key"))
    :where (:= (j-> gift "quantity") (to-jsonb 1))))
 ```
+
+ A reminder that none of this will work unless
+`*postmodern-connection*` is set correctly for your Postgres database.
 
 ## Features
 
