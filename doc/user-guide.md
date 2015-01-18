@@ -42,31 +42,14 @@ dictionaries and table definitions in 3NF and other projects call for
 just:
 
 ```common-lisp
-  (create-model 'human)
+  (define-global-model human -human- (pgj-object-model))
+  (ensure-backend -human-)
 
   (with-input-from-file (stream *human-file*)
     (with-model-transaction ()
       (dolist (human (yason:parse stream))
-        (insert 'human human))))
+        (insert -human- human))))
 ```
-
-### Usage synposis
-
-Call [`ensure-backend`](api.md#ensure-backend) just once.  Call
-[`ensure-model`](api.md#ensure-model) on some models and then use the
-various [model interface](api.md#model-interface) functions to
-insert/update/fetch your JSON documents.
-
-You can over-ride the default "one transaction per operation"
-behaviour by wrapping a body of model interface calls in a
-[`with-model-transaction`](api.md#model-and-database-interaction)
-form.
-
-Postgres-JSON never truly deletes a JSON document so you can view its
-[`history`](api.md#history).
-
-If you need more complex queries you can write them: [User defined
-queries](#user-defined-json-queries).
 
 ## Terminology
 
@@ -75,6 +58,11 @@ queries](#user-defined-json-queries).
 The [Beginner's Guide](beginners.md) has informal definitions and
 http://www.json.org has formal defintions of the following terms:
 *JSON object, JSON array, JSON value, JSON string, JSON number*.
+
+It's worth repeating that a *JSON object* is a key/value map, where
+the keys must be strings.  It's important to keep this notion distinct
+from the more general notion of a *lisp object*, and often which
+*object* is meant must be gleaned from context.
 
 ##### JSON document
 
@@ -93,11 +81,13 @@ creating some model `cat` and then stuffing *any JSON document you
 like* into it:
 
 ```common-lisp
-(create-model 'cat)
-(insert 'cat 1)
-(insert 'cat "Foo")
-(insert 'cat (list 1 2 "Foo"))
-(insert 'cat (obj "name" "Joey" "coat" "tabby" "age" 7))
+(define-global-model cat -cat- (pgj-model))
+(ensure-backend -cat-)
+
+(insert -cat- 1)
+(insert -cat- "Foo")
+(insert -cat- (list 1 2 "Foo"))
+(insert -cat- (obj "name" "Joey" "coat" "tabby" "age" 7))
 ```
 
 This is the power (and the terror) of the NoSQL approach compared with
@@ -105,10 +95,20 @@ the traditional relational one.  Typically, however, you want to put
 **only** cat like JSON documents into a cat model:
 
 ```common-lisp
-(insert 'cat (obj "name" "Joey" "coat" "tabby" "age" 7))
-(insert 'cat (obj "name" "max" "coat" "ginger"))
-(insert 'cat (obj "name" "maud" "coat" "tortoiseshell"))
+(define-global-model cat -cat- (pgj-object-model))
+(ensure-backend -cat-)
+
+(insert -cat- (obj "name" "Joey" "coat" "tabby" "age" 7))
+(insert -cat- (obj "name" "max" "coat" "ginger"))
+(insert -cat- (obj "name" "maud" "coat" "tortoiseshell"))
 ```
+
+Although we have signaled our intent to use only *JSON objects* as
+cats by giving `cat` the direct superclass `pgj-object-model` this is
+not really enforced by the interface code.  It's just that certain
+methods such as [`enumerate-property`](api.md#enumerate-property)
+are only specialized on `pgj-object-model`.
+
 ##### Top level
 
 You can arbitrarily nest JSON structures (objects or arrays) but, by
@@ -119,22 +119,18 @@ structure that the Postgres [existence operator]
 (http://www.postgresql.org/docs/9.4/static/datatype-json.html#JSON-CONTAINMENT)
 works on.
 
-Here the [*properties*](#property) such as `"guid"` and `"company"`
-are at the top level, but `"id"` is not:
+Here the [*properties*](#property) `"guid"` is at the top level, but `"id"` is not:
 
 ```common-lisp
   {
     "guid": "d3129e77-9931-4fb1-bfca-d2a28bb641bf",
     "name": "Henry Gibson",
-    "gender": "male",
     "friends": [
       {
         "id": 0,
         "name": "Dena Marquez"
       }
     ],
-    "company": "KENGEN",
-    "isActive": false
   },
 
 ```
@@ -154,7 +150,9 @@ When not explicitly qualifed by a "JSON" prefix, *object* is used in
 the most general Common Lisp sense of "any common lisp datum".
 Examples of Common Lisp objects include hash tables, vectors, strings
 and numbers and in fact these are just the sort of objects ideal for
-*JSON serialization*.
+*JSON serialization*.  The `object` parameter of many of the [model
+CRUD functions](api.md#model-crud-generic-functions) is used in this
+sense.
 
 ### Postgres-JSON terms
 
@@ -164,38 +162,31 @@ and numbers and in fact these are just the sort of objects ideal for
 schema [`*pgj-schema*`](api.md#pgj-schema) in which all *models* are
 created.  A Postgres schema is similar to a Common Lisp package in
 that it provides a namespace for database tables etc.  All the [model
-interface](api.md#model-interface) functions use the default schema
-automatically.  But for [user defined
-queries](#user-defined-json-queries) you must go to a little more
-trouble.  The (trivial) backend functions are documented in
-the API under [Postgres backend](api.md#postgres-backend).
+interface](api.md#model-crud-generic-functions) functions use the
+default schema automatically.  But for [user defined
+queries](#user-queries-and-json-syntactic-sugar-for-s-sql) you must go
+to a little more trouble.  The (trivial) backend functions are
+documented in the API under [Postgres
+backend](api.md#postgres-backend).
 
 ##### Model
 
-The term *model* (or *backend model*) serves to describe a thin
-layer of abstraction over a pair of Postgres tables in which *JSON
-documents* of a similar nature are stored.  It's a term best
-understood when used concretely: "the cat model", "the human model"
-etc.  Every model has the same *model interface*.
+The term *model* (or *backend model*) serves to describe a thin layer
+of abstraction over one (or two, if we are keeping history) Postgres
+tables in which *JSON documents* of a similar nature are stored.  It's
+a term best understood when used concretely: "the cat model", "the
+human model" etc.  Every model has the same *model interface*.
 
-Specific models in Postgres-JSON are named by Common Lisp symbols.
+Specific models in Postgres-JSON are CLOS classes, for which
+(typically) we create just a single global instance in order to call
+methods on the model.
 
 ##### Model interface
 
 The set of Common Lisp functions such as `insert` and `fetch` that
 provide a simple inteface to the underlying database operations on the
 *JSON documents* of a specific *model*.  See the [model
-interface](api.md#model-interface) API docs.
-
-##### Model parameters
-
-Parameters specific to a model, such as the Postgres data type of the
-primary key field for example, are stored in an instance of CLOS class
-[`model-parameters`](../model/parameters.lisp).  Because the creation
-of a model and its use can be separated by large gaps of time we eat
-our own dog food and serialize the model parameters to a backend
-*model* called `*meta-model*`.  See [model
-parameters](api.md#model-parameters).
+interface](api.md#model-crud-generic-functions).
 
 ##### Key
 
@@ -214,8 +205,8 @@ Because we want to reserve the word *key* for use in the database
 sense of *primary key*, and because *string* is too general, we use
 the word *property* to describe the left hand side of a *JSON object*
 string/value pair.  Note well, a property is **always a string**. The
-following *JSON object* has the three properties `key`, `coat`,
-`name`.
+following *JSON object* has the three properties `key`, `coat`
+and `name`.
 
 ```common-lisp
 {
@@ -225,7 +216,7 @@ following *JSON object* has the three properties `key`, `coat`,
 }
 ```
 
-See, for example, [exists](api.md#exists).
+See, for example, [having-property](api.md#having-property).
 
 ## User defined JSON queries
 
@@ -257,7 +248,7 @@ But the standard syntax becomes verbose with heavy use so
 some more concise forms are defined in
 [user-query.lisp](../model/user-query.lisp).  Everything else is still
 S-SQL but any list starting with a symbol in the list below gets
-special treatment when used with `define-json-query`:
+special treatment when used in a `define-json-query` query:
 
 * [`j->`](api.md#j-) returns a JSON object propery as JSON.
 * [`j->>`](api.md#j--1) returns a JSON object propery as text.
@@ -400,11 +391,11 @@ types](../TODO.md#prepared-queries-data-types) in the TODO.
 #### Search path shenanigans
 
 We don't have to worry too much about schema search paths because the
-Postgres *qualified name* is harcoded into [model based queries]
-(api.md#model-interface) using [`*pgj-schema*`](api.md#pgj-schema).
-But they are important for user defined queries because `:from 'cat`
-(which is what we want to write) does not qualify the cat table, we
-really need `:from 'pgj-model.cat`.  When using PSQL you can do:
+Postgres *qualified name* is harcoded into model based queries using
+[`*pgj-schema*`](api.md#pgj-schema).  But they are important for user
+defined queries because `:from 'cat` (which is what we want to write)
+does not qualify the cat table, we really need `:from 'pgj-model.cat`.
+When using PSQL you can do:
 
 ```sql
 SET search_path TO pgj_model, public;
@@ -431,9 +422,9 @@ overhead to such a call:
 where you tell Postgres to use the specified search path for every
 connection of a given user.
 
-* Use the parallel version (courtesy of http://lparallel.org/) where
-each worker has a persistent connection and the search path is set in
-a manner similar to the above.  See
+* Use the parallel version of Postgres-JSON (courtesy of
+http://lparallel.org/) where each worker has a persistent connection
+and the search path is set in a manner similar to the above.  See
 [threads-test](../tests/thread-test.lisp).
 
 * Do anything else that works, such as hardcoding into `postgresql.conf`.
@@ -475,76 +466,13 @@ CL-USER> (yason:encode (yason:parse "[]" :json-arrays-as-vectors t))
 
 which is what we want.  Of course, YMMV with other JSON libraries.
 Yason is optional, you can use any JSON library you like, that is what
-`*to-json*` and `*from-json*` are for, and the similar keyword
-arguments to many interface functions.
-
-#### PostgreSQL sequences
-
-Now there are some good reasons for using just a single auto
-incrementing sequence to generate the primary keys across **all** your
-models (for one thing, it means that all your JSON documents have a
-unique key if you every need to merge subsets from different models),
-but you can also have one sequence per model if you need:
-
-```
-(create-db-sequence 'foo)
-(create-model 'dog (make-model-parameters 'dog :sequence 'foo))
-```
-
-#### I do not want integer keys
-
-This is not too hard.  Set the correct `key-type` in a call to
-`make-model-parameters` and then use keyword argument `use-key` on
-`insert`.  Or (and this will take a little more effort) you could make
-a UUID sequence in PG and get values from that.  TODO.
-
-#### Models in the Postgres backend
-
-The backend for a model cat (say) looks like
-
-```sql
-                                    Table "pgj_schema.cat"
-   Column   |           Type           |                       Modifiers
-------------+--------------------------+-------------------------------------------------------
- key        | integer                  | not null
- valid_to   | timestamp with time zone | not null default 'infinity'::timestamp with time zone
- valid_from | timestamp with time zone | not null default transaction_timestamp()
- jdoc       | jsonb                    | not null
-Indexes:
-    "cat_pkey" PRIMARY KEY, btree (key)
-    "cat_gin" gin (jdoc)
-```
-
-```sql
-            Table "pgj_schema.cat_old"
-   Column   |           Type           | Modifiers
-------------+--------------------------+-----------
- key        | integer                  | not null
- valid_to   | timestamp with time zone | not null
- valid_from | timestamp with time zone | not null
- jdoc       | jsonb                    | not null
-Indexes:
-    "cat_old_pkey" PRIMARY KEY, btree (key, valid_to)
-    "cat_old_gin" gin (jdoc)
-```
-
-I suggest inserting some data and then playing around inside PSQL...
-
-#### Transaction isolation levels
-
-See [transactions](../postgres/transactions.lisp) for how
-[`insert`](api.md#insert) and [`update`](api.md#update) handle
-isolation levels using a retry loop.  We are not using the default
-Postgres isolation level but rather `repeatable read`.  Do let me know
-if you think it should be `serializable` and why, I am no expert.
-
-Also see project hermitage at https://github.com/ept/hermitage for
-plenty of gory detail on isolation levels.
+`*to-json*` and `*from-json*` are for, and also [serialize](api.md#serialize)
+and [deserialize](api.md#deserialize).
 
 #### Postmodern conditions
 
-All the Postmodern conditions will leak through this abstraction, at
-present it is a pretty thin layer.  However because we are using the
-Postgres *repeatable read isolation level* to safely insert and update
-two tables at once, work has been done to handle *serialization
-failures* under the covers.
+All the Postmodern conditions will leak through this abstraction, it
+is a pretty thin layer.  However because we are using the Postgres
+*repeatable read isolation level* to safely insert and update two
+tables at once in order to keep history, work has been done to handle
+*serialization failures* under the covers.
