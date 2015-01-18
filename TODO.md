@@ -1,40 +1,7 @@
 TODO
 ====
 
-## Must have
-
-* Rethinkdb query to emulate
-
-```common-lisp
-(def-query-vector approved-orphaned-extra-charges (booking-ids) ()
-  (re:r (:map (:eq-join (:map (:eq-join (:filter (:get-all (:table "extra_charges")
-                                                           booking-ids
-                                                           :index "bookingId")
-                                                 (re:fn (extra-charge)
-                                                   (:&& (:== "orphaned" (:row "state"))
-                                                        (:row "approvedP"))))
-                                        "typeId"
-                                        (:table "extra_charge_types"))
-                              (re:fn (row)
-                                (:merge (:row "left")
-                                        {o "type" (:attr (:row "right") "type")})))
-                        "bookingId"
-                        (:table "bookings"))
-              (re:fn (row)
-                {o "left" (:row "left")
-                   "right" (:merge (:row "right")
-                                   {o "orphanParent" t})}))))
-```
-
-* history-table-p should just be a model parameter.
-
-* Define a schema for your model, get automatic validation either on
-  client or server side.  Can do server side with PLV8 or whatever...
-
-### Interface
-
-* Can the user use keywords instead of symbols when creating/accessing
-  models?  Where else are symbols used, are they keyword safe?
+## Interface
 
 * Timestamps in a JSON document: Either in the document or do we add
   extra columns to the model table?  First see just how far we can get
@@ -58,12 +25,14 @@ TODO
 * Unicode handling tests.  UTF-8, 16?  For web deployment investigate
   quri.
 
-* Clear up to what extent we are assuming the contents of 'jdoc are
-  objects rather than arrays (or even scalars)...
+* More extensive test suite.
 
-* Proper test suite.
+* Revise, cull, doco once again.  Provide more motivating examples.
 
 ## Maybe have
+
+* Define a schema for your model, get automatic validation either on
+  client or server side.  Can do server side with PLV8 or whatever...
 
 * Investigate new lateral type in Postgres.
   https://news.ycombinator.com/item?id=8689159 and
@@ -73,11 +42,6 @@ TODO
   optimization not too.  How hard would a manual migration be for the
   user?  Presumably no problem in lisp, but would have to alter table
   the various model tables, and sequences (indexes?  meta model?)
-
-* I could wrap the serialization failure condition and send a nice
-  message to the user...  Maybe I wrap *all* Postmodern conditions and
-  tell them the abstraction has leaked...?  Given the range of Postmodern
-  conditions it may be possible to handle some sensible subset...
 
 * How practical would it be to serialize FSET collections to JSON?
   Why would you do that?
@@ -93,18 +57,6 @@ TODO
 * There are some fascinating Postgres functions for the jsonb type:
   `select distinct jsonb_object_keys(jdoc) from cat;`.  What use
   might we put them to?
-
-* Add/drop GIN indexes on demand to support existence operator.
-
-* We've gone to a single backend schema for simplicity but it should not
-  be too hard to support arbitrary schemata.  It's just I don't want to
-  mess up the interface functions too much:
-
-```
-(insert 'cat (obj ...))
-
-(insert '(animal cat) (obj ...))
-```
 
 ## Postmodern/Postgres maybe have
 
