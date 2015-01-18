@@ -1,7 +1,7 @@
 (in-package :postgres-json-test)
 
-(defvar *model* 'pgj-test-model)
-(defvar *cat* 'pgj-cat)
+(define-global-model pgj-test-model -model- (pgj-history-model))
+(define-global-model pgj-cat -cat- (pgj-history-model))
 
 (defparameter *updates* 12)
 (defparameter *workers* 4)
@@ -24,23 +24,9 @@
        ,@body)))
 
 (defun maybe-drop (model)
-  (when (model-exists-p model)
+  (when (backend-exists-p model)
     (handler-bind ((database-safety-net #'really-do-it))
-      (drop-model model))))
-
-(defun call-with-temp-model (model model-parameters thunk)
-  (unwind-protect
-       (progn
-         (create-model model model-parameters)
-         (funcall thunk model))
-    (maybe-drop model)))
-
-(defmacro with-temp-model ((model &rest mp-args) &body body)
-  (with-unique-names (mp)
-    `(let ((,mp (make-model-parameters ',model ,@mp-args)))
-       (call-with-temp-model ',model ,mp (lambda (,model)
-                                           (declare (ignorable ,model))
-                                           ,@body)))))
+      (drop-backend model))))
 
 (defun process-results (&optional (timeout *process-results-timeout*))
   (let ((results '()))
@@ -55,8 +41,20 @@
 (defun insert-some-cats (&optional (number 40))
   (with-conn ()
     (with-model-transaction (some-cats)
-      (dotimes (i number (tally *cat*))
-        (insert *cat* (obj "name" (format nil "name-~A" i) "coat" "scruffy"))))))
+      (dotimes (i number (tally -cat-))
+        (insert -cat- (obj "name" (format nil "name-~A" i) "coat" "scruffy"))))))
+
+(defun call-with-temp-model ())
+
+(defmacro with-temp-model ((instance (&rest superclasses)) &body body)
+  (let ((model-name (gensym "PGJ-TEMP-")))
+    `(let ((,instance (make-instance (defclass ,model-name (,@superclasses) ()))))
+       (unwind-protect
+            (progn
+              (create-backend ,instance)
+              ,@body)
+         (maybe-drop ,instance)
+         (setf (find-class ',model-name) nil)))))
 
 ;;;; Interface
 
@@ -64,14 +62,18 @@
   (assert *postmodern-connection*)
   (setf *pgj-kernel* (make-pgj-kernel *postmodern-connection* *workers*))
   (ensure-top-level-connection)
-  (ensure-backend)
-  (ensure-model *model*)
-  (ensure-model *cat*)
+  (ensure-backend -model-)
+  (ensure-backend -cat-)
   (insert-some-cats))
 
 (defun teardown ()
   (with-conn ()
     (handler-bind ((database-safety-net #'really-do-it))
-      (maybe-drop *model*)
-      (maybe-drop *cat*)))
+      (maybe-drop -model-)
+      (maybe-drop -cat-)))
   (end-pgj-kernel))
+
+(defun run-pgj-tests ()
+  (setup)
+  (unwind-protect (run)
+    (teardown)))
