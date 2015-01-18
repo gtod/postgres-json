@@ -3,51 +3,49 @@
 
 (in-package :filtering)
 
-(defparameter *models* '(cat dog prime))
+(define-global-model cat -cat- (pgj-object-model))
 
-(defun create ()
+(defun setup ()
   (ensure-top-level-connection)
-  (ensure-backend)
-  (dolist (model *models*)
-    (ensure-model model)))
+  (ensure-backend -cat-))
 
 (defun cleanup ()
-  (dolist (model *models*)
-    (drop-model model)))
-
-(defun insert-some ()
-  (insert 'cat (obj "name" "Joey" "coat" "tabby" "age" 7
-                    "likes" '("sunshine" "rain")
-                    "trips" (obj "Barcelona" '(2014 2012 2009)
-                                 "Kansas City" '(2013))))
-  (insert 'cat (obj "name" "Maud" "coat" "tortoiseshell" "age" 3))
-  (insert 'cat (obj "name" "Manny" "coat" "tortoiseshell" "age" 9))
-  (insert 'cat (obj "name" "Max" "coat" "graphite" "age" 2))
-
-  (insert 'dog (obj "name" "Rex" "coat" "graphite" "age" 3.5))
-
-  (insert 'prime '(7 11 13)))
+  (drop-backend -cat-))
 
 (defmacro show (form)
   `(progn
      (print ',form)
      (pp-json ,form)))
 
-;; Containment operator
-;; See 8.14.3 in Postgres manual 9.4
-(defun filtering ()
-  (show (filter 'cat :contain (obj "coat" "tortoiseshell")))
+(defun insert-some-cats ()
+  (insert -cat- (obj "name" "Joey" "coat" "tabby" "age" 7
+                    "likes" '("sunshine" "rain")
+                    "trips" (obj "Barcelona" '(2014 2012 2009)
+                                 "Kansas City" '(2013))))
+  (insert -cat- (obj "name" "Maud" "coat" "tortoiseshell" "age" 3))
+  (insert -cat- (obj "name" "Manny" "coat" "tortoiseshell" "age" 9))
+  (insert -cat- (obj "name" "Max" "coat" "graphite" "age" 2)))
 
-  ;; When using containment it's OK to omit spurious keys, but you must get
-  ;; the nesting right.
-  (show (filter 'cat :contain (obj "Kansas City" '(2013)))) ; No
-  (show (filter 'cat :contain (obj "trips" (obj "Kansas City" '(2013))))) ; Works
-  (show (filter 'cat :contain (obj "trips" (obj "Barcelona" '(2012 2009))))) ; Works!
-  )
-
-;; Top level key existence operator
+;; Postgres top level property 'existence' operator, better called HAVING-PROPERTY
 ;; Requires the (slower/bigger) jsonb_ops index
 ;; See 8.14.3/4 in Postgres manual 9.4
 (defun existence ()
-  (show (length (exists 'cat "name")))
-  (show (exists 'cat "trips")))
+  (show (length (having-property -cat- "name")))
+  (show (having-property -cat- "trips")))
+
+;; FILTER uses the Postgres Containment operator
+;; See 8.14.3 in Postgres manual 9.4
+;; A simple version could be implemented like so:
+;; (define-json-query filter ((*to-json* contains))
+;;   (:select 'jdoc
+;;    :from 'cat
+;;    :where (:@> 'jdoc contains)))
+(defun filtering ()
+  (show (filter -cat- :contains (obj "coat" "tortoiseshell")))
+
+  ;; When using containment it's OK to omit spurious keys, but you must get
+  ;; the nesting right.
+  (show (filter -cat- :contains (obj "Kansas City" '(2013)))) ; No
+  (show (filter -cat- :contains (obj "trips" (obj "Kansas City" '(2013))))) ; Works
+  (show (filter -cat- :contains (obj "trips" (obj "Barcelona" '(2012 2009))))) ; Works!
+  )

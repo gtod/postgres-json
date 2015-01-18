@@ -3,9 +3,11 @@
 (in-package :pj-human)
 
 (defmacro with-pj-connection (() &body body)
-  `(pomo:with-connection *postmodern-connection*
-     (pomo:set-search-path *default-search-path*)
-     ,@body))
+  `(progn
+     (assert *postmodern-connection*)
+     (pomo:with-connection *postmodern-connection*
+       (pomo:set-search-path *default-search-path*)
+       ,@body)))
 
 (defmacro show (form)
   `(progn

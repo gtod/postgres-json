@@ -1,42 +1,42 @@
 (in-package :pj-human)
 
-;;; Set the *postmodern-connection* form below for your Postgres 9.4
-;;; DB if you have not done so elsewhere. Then do (create),
-;;; (load-humans) and (model-test)
+;;; Set this if you have not already done so:
+;;; (setf *postmodern-connection* '("mydb" "myusername" "" "localhost"))
 
-;;; See the User Guide for further details
+;;; Then do (setup), (load-humans) and (model-test)
 
 ;;; Examples of user defined queries are in human-2.lisp, you might
 ;;; want to try them before running the cleanup or drop forms.
 
-;; Set this if you have not already done so
-;; (setf *postmodern-connection* '("mydb" "myusername" "" "localhost"))
-
 (defparameter *human-url* "http://gtod.github.io/human.json")
 (defparameter *human-file* "/tmp/postgres-json-human.json")
 
+(define-global-model human -human- (pgj-history-object-model))
+(define-global-model gift -gift- (pgj-object-model))
+
 ;;;; Backend interface
 
-(defun create ()
+(defun setup ()
   (with-pj-connection ()
-    (ensure-backend)
-    (ensure-model 'human)
-    (ensure-model 'gift)))
+    (ensure-backend -human-)
+    (ensure-backend -gift-)))
 
 (defun cleanup ()
   (with-pj-connection()
-    (excise-all 'human)
-    (excise-all 'gift)))
+    (excise-all -human-)
+    (excise-all -gift-)))
 
 (defun drop ()
   (with-pj-connection ()
-    (drop-model 'human)
-    (drop-model 'gift)))
+    (drop-backend -human-)
+    (drop-backend -gift-)))
 
 ;;;; Human model
 
 (defun random-human ()
-  (fetch 'human (elt (keys 'human) (random (tally 'human)))))
+  (let ((tally (tally -human-)))
+    (assert (not (zerop tally)))
+    (fetch -human- (elt (keys -human-) (random tally)))))
 
 (defun load-humans ()
   (unless (probe-file *human-file*)
@@ -48,27 +48,29 @@
       (with-model-transaction ()
         (write-line "Loading humans...")
         (loop for human across (yason:parse stream :json-arrays-as-vectors t)
-              do (insert 'human human)
-              finally (return (tally 'human)))))))
+              do (insert -human- human)
+              finally (return (tally -human-)))))))
 
 ;;;; Interface
 
 (defun model-test ()
   (with-pj-connection ()
-    (show (length (filter 'human :contain (obj "gender" "female"))))
+    (show (length (filter -human- :contains (obj "gender" "female"))))
 
     (show (gethash "name" (random-human)))
 
-    (let ((human (show (first (filter 'human :contain (obj "name" "Marcella Marquez"))))))
+    (let ((human (show (first (filter -human- :contains (obj "name" "Marcella Marquez"))))))
       (with-keys ((key "key") (friends "friends")) human
-        (push (obj "name" "Horace Morris" "id" (length friends)) friends)
-        (show (update 'human key human))
-        (show (gethash "friends" (fetch 'human key)))
-        (show (history 'human key))))
+        ;; This is naughty because it requires knowing yason vectors are adjustable.
+        ;; But specialize DESERIALIZE on your model and do what you like...
+        (vector-push-extend (obj "name" "Horace Morris" "id" (length friends)) friends)
+        (show (supersede -human- key human))
+        (show (gethash "friends" (fetch -human- key)))
+        (show (history -human- key))))
 
-    (show (filter 'human :properties '("age" "tags") :contain (obj "tags" '("ut" "labore"))))
-    (show (length (filter 'human :contain (obj "isActive" t "age" 21))))
+    (show (filter -human- :contains (obj "tags" '("ut" "labore")) :properties '("age" "tags")))
+    (show (length (filter -human- :contains (obj "isActive" t "age" 21))))
 
-    (show (length (exists 'human "eyeColor")))
-    (show (distinct 'human "favoriteFruit")))
+    (show (length (having-property -human- "eyeColor")))
+    (show (enumerate-property -human- "favoriteFruit")))
   (values))

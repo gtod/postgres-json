@@ -16,12 +16,12 @@
 (defun distribute-gifts ()
   (format t "~%Loading gifts...~%")
   (with-model-transaction ()
-    (dotimes (i (tally 'human) (tally 'gift))
+    (dotimes (i (tally -human-) (tally -gift-))
       (let ((human (random-human)))
         (let ((gift (obj "human-key" (gethash "key" human)
                          "type" (random-gift-type)
                          "quantity" (1+ (random 30)))))
-          (insert 'gift gift))))))
+          (insert -gift- gift))))))
 
 ;;;; User defined S-SQL queries
 
@@ -64,7 +64,7 @@
     
     (show (one-friend-humans$ (obj "gender" "female") "^c"))
 
-    (when (zerop (tally 'gift))
+    (when (zerop (tally -gift-))
       (distribute-gifts))
     
     (show (uncharitable-humans$)))
