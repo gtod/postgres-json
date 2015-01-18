@@ -15,5 +15,6 @@
                  (:file "util")
                  (:file "simple")
                  (:file "filter")
+                 (:file "customize")
                  (:file "human-1")
                  (:file "human-2")))))
