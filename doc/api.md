@@ -539,7 +539,9 @@ model object
 ```
 
 Serialize lisp **OBJECT** to a form suitable for
-storage as a JSON document in backend **MODEL**.  Return same.
+storage as a JSON document in backend **MODEL**.  Return same.  Called by
+INSERT, for example, to convert Lisp objects to JSON before DB
+insertion proper.
 
 #### deserialize
 *Generic function*
@@ -549,7 +551,8 @@ model jdoc
 ```
 
 Deserialize the string **JDOC** from **MODEL**'s backend to
-a lisp object.  Return same.
+a lisp object.  Return same.  Called by FETCH, for example, to convert
+JSON strings from the backend into Lisp objects.
 
 #### stash
 *Generic function*

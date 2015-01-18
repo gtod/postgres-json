@@ -147,13 +147,16 @@ irrevocably delete all data associated with the model.")
 
 (defgeneric serialize (model object)
   (:documentation "Serialize lisp OBJECT to a form suitable for
-storage as a JSON document in backend MODEL.  Return same.")
+storage as a JSON document in backend MODEL.  Return same.  Called by
+INSERT, for example, to convert Lisp objects to JSON before DB
+insertion proper.")
   (:method ((model pgj-model) object)
     (funcall *to-json* object)))
 
 (defgeneric deserialize (model jdoc)
   (:documentation "Deserialize the string JDOC from MODEL's backend to
-a lisp object.  Return same.")
+a lisp object.  Return same.  Called by FETCH, for example, to convert
+JSON strings from the backend into Lisp objects.")
   (:method ((model pgj-model) (jdoc string))
     (funcall *from-json* jdoc)))
 
