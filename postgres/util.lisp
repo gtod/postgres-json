@@ -6,19 +6,14 @@ and executing.")
 
 ;;;; Qualified PostgreSQL table names using Postmodern's S-SQL
 
-(defun qualified-name (name schema)
+(defun qualified-name (name &optional (schema *pgj-schema*))
   "Return the S-SQL :dot form of NAME and SCHEMA, both symbols."
   `(:dot ',schema ',name))
 
-(defun qualified-name-string (name schema)
+(defun qualified-name-string (name &optional (schema *pgj-schema*))
   "Return a string of the Postgres 'qualified name' of NAME and SCHEMA,
 both symbols."
-  (format nil "~A.~A" (to-sql-name schema) (to-sql-name name)))
-
-(defun db-name-string (name)
-  "Return the 'qualfied name' of Postgres object with name NAME in
-*PGJ-SCHEMA*, both symbols."
-  (qualified-name-string name *pgj-schema*))
+  (sql-compile (qualified-name name schema)))
 
 ;;;; Utility
 
