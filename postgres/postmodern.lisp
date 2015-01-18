@@ -7,7 +7,7 @@
 (defvar *transaction-mode* "")
 
 (export '(*transaction-mode* call-with-transaction call-with-logical-transaction
-          call-with-ensured-transaction))
+          call-with-ensured-transaction abort-logical-transaction commit-logical-transaction))
 
 (defun call-with-transaction (body)
   (let ((transaction (make-instance 'transaction-handle)))

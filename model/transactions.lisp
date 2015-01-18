@@ -65,10 +65,10 @@ interface functions."
   "If this is the root node of a nested set of WITH-MODEL-TRANSACTIONs
 then 'rollback' the transaction NAME.  Otherwise rollback to the
 Postgres savepoint NAME."
-  (pomo::abort-logical-transaction name))
+  (pomo:abort-logical-transaction name))
 
 (defun commit (name)
   "If this is the root node of a nested set of WITH-MODEL-TRANSACTIONs
 then 'commit' the transaction NAME.  Otherwise merely release the
 savepoint NAME."
-  (pomo::commit-logical-transaction name))
+  (pomo:commit-logical-transaction name))
