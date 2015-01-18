@@ -85,6 +85,21 @@ exit
 
 `psql -l` or `psql -p5433 -l` should now list your new database.
 
+For passwordless Postmodern connections I edit the
+`/etc/postgresql/9.4/main/pg_hba.conf` file (which may be elsewhere on
+non Debian systems).  There is a line:
+
+```
+host    all             all             127.0.0.1/32            md5
+```
+
+Change `md5` to `trust`.  See [auth
+trust](http://www.postgresql.org/docs/9.4/static/auth-methods.html#AUTH-TRUST)
+for the pros and cons of such an approach.
+
+Then `sudo service postgresql restart`.  Again, may be different on
+non Debian systems.
+
 #### Postgres-JSON
 
 Navigate to your `~/quicklisp/local-projects` directory and do
