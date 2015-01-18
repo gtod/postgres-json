@@ -256,10 +256,9 @@ shown above.
 ## Tests
 
 There is a test suite (radically incomplete) which relies upon the
-lparallel support described above so *do not run the tests without a
-bordeaux-threads version strictly greater than 0.8.3 or they will just
-hang.* The same goes for the more informal tests in
-[thread-test](tests/thread-test.lisp).
+lparallel support described above *so you cannot run the tests without
+a recent bordeaux-threads*.  The same goes for the more informal tests
+in [thread-test](tests/thread-test.lisp).
 
 ```
 (ql:quickload :postgres-json-test)

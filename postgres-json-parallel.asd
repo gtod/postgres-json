@@ -5,6 +5,10 @@
   :homepage "https://github.com/gtod/postgres-json"
   :description "lparallel support for Postgres-JSON, a Postgres JSON document store"
   :depends-on (#:postgres-json
-               #:lparallel)
+               #:lparallel
+               ;; Try git clone https://github.com/sionescu/bordeaux-threads.git
+               ;; in your quicklips/local-projects and then (ql:register-local-projects)
+               ;; at the REPL to fix this.
+               (:version #:bordeaux-threads "0.8.3.99"))
   :components
   ((:file "parallel")))
