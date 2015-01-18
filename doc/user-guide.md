@@ -51,6 +51,31 @@ just:
         (insert -human- human))))
 ```
 
+## Overview
+
+A *model* such as `human` above is simply a Common Lisp class.
+[`define-global-model`](api.md#define-global-model) makes this class
+and also makes a single instance of it (here called `-human-`).  We
+only need one instance because Postgres-JSON model classes *have no
+slots* so all instances are functionally equivalent.
+
+Thus to customize a model you specialize generic functions: see
+[customize](../examples/customize.lisp) for examples.  However in many
+cases you will find no customization is necessary --- you simply
+define a model, ensure it has a backend in your Postgres DB and then
+call [model interface](api.md#model-crud-generic-functions) generic
+functions on it.
+
+If necesary you can make some [user defined
+queries](#user-defined-json-queries), exemplified in
+[human-2](../examples/human-2.lisp).
+
+In some sense this is all pretty elementary.  It's easy to get away
+with this because Common Lisp and Postgres are themselves very
+flexible and powerful.  The mapping between JSON and lisp objects is
+relatively natural and so a lot can be accomplished by leveraging
+these three technologies in concert...
+
 ## Terminology
 
 ### JSON terms
@@ -164,7 +189,7 @@ created.  A Postgres schema is similar to a Common Lisp package in
 that it provides a namespace for database tables etc.  All the [model
 interface](api.md#model-crud-generic-functions) functions use the
 default schema automatically.  But for [user defined
-queries](#user-queries-and-json-syntactic-sugar-for-s-sql) you must go
+queries](#user-defined-json-queries) you must go
 to a little more trouble.  The (trivial) backend functions are
 documented in the API under [Postgres
 backend](api.md#postgres-backend).
@@ -179,7 +204,8 @@ human model" etc.  Every model has the same *model interface*.
 
 Specific models in Postgres-JSON are CLOS classes, for which
 (typically) we create just a single global instance in order to call
-methods on the model.
+methods on the model.  We only need a single instance as the **objects
+have no slots** so all instances are functionally equivalent.
 
 ##### Model interface
 
@@ -306,7 +332,7 @@ by the Postgres TO-JSON function and then cast to the Postgres `jsonb`
 type.
 
 `jbuild` takes 1 or more lists as args.  It is documented in the [API]
-(api.md#user-queries-and-json-syntactic-sugar-for-s-sql) but the above
+(api.md#jbuild) but the above
 examples tell the full story.
 
 #### JSON query named parameter interpolation
@@ -454,8 +480,8 @@ Now in order to write a Postgres query such as the following
    :where (:= (:jsonb-array-length (j-> "friends")) 1))
 ```
 
-we need the values of the JSON object key `"friends"` to actually be an
-array, rather than `null` when the person happens to be friendless.
+we need the values of the JSON object property `"friends"` to actually be an
+array, rather than `null`, when the person happens to be friendless.
 So instead we ask yason to do
 
 ```
@@ -466,8 +492,10 @@ CL-USER> (yason:encode (yason:parse "[]" :json-arrays-as-vectors t))
 
 which is what we want.  Of course, YMMV with other JSON libraries.
 Yason is optional, you can use any JSON library you like, that is what
-`*to-json*` and `*from-json*` are for, and also [serialize](api.md#serialize)
-and [deserialize](api.md#deserialize).
+[`*to-json*`](api.md#to-json) and [`*from-json*`](api.md#from-json)
+are for.  You can also specialize [`serialize`](api.md#serialize) and
+[`deserialize`](api.md#deserialize) for more fine grained control
+based on the type of a model.
 
 #### Postmodern conditions
 
