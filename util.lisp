@@ -1,17 +1,5 @@
 (in-package :postgres-json)
 
-;;;; Symbol/JSON functions.
-;;;; Here be dragons, symbol casing is non trivial.
-
-(defun symbol->json (symbol)
-  "Return the downcased symbol name of SYMBOL."
-  (string-downcase (symbol-name symbol)))
-
-(defun json->symbol (string)
-  "Return a symbol in the current package with symbol name being the
-upcased version of STRING."
-  (ensure-symbol (string-upcase string)))
-
 ;;;; JSON related small functions
 
 (defun obj (&rest args)
@@ -22,9 +10,12 @@ For JSON use your keys must be Common Lisp strings."
       (setf (gethash key hash) val))
     hash))
 
-;; from-json is simple yason:encode...
+(defun from-json (string)
+  "Parse the JSON string STRING and return the resulting lisp object."
+  (yason:parse string :json-arrays-as-vectors t))
+
 (defun to-json (object)
-  "Convert a lisp OBJECT to a string of JSON, using YASON:ENCODE."
+  "Convert a lisp OBJECT to a string of JSON."
   (with-output-to-string (s)
     (yason:encode object s)))
 
@@ -34,58 +25,10 @@ For JSON use your keys must be Common Lisp strings."
   (let ((s (yason:make-json-output-stream stream :indent indent)))
     (yason:encode object s)))
 
-(defun stash-key (key object)
-  "If OBJECT is a hash-table add the pair \"key\" => KEY to a copy of
-the hash-table and return it.  Otherwise just return OBJECT.  You
-might like to write you own verson which can handle objects besides
-hash tables."
-  (if (hash-table-p object)
-      (let ((copy (copy-hash-table object)))
-        (setf (gethash "key" copy) key)
-        copy)
-      object))
+;;;; True utility functions and macros, waiting for a real home
 
-(defun stash-key-destructive (key object)
-  "If OBJECT is a hash-table add the pair \"key\" => KEY to the
-hash-table and return it.  Otherwise just return OBJECT.  You might
-like to write you own verson which can handle objects besides hash
-tables."
-  (when (hash-table-p object)
-    (setf (gethash "key" object) key))
-  object)
-
-;;;; CLOS and closer-mop helpers
-
-(defclass read-only () ()
-  (:documentation "Inherit from class READ-ONLY to signal your intent
-not to mutate any slots after object initialization."))
-
-(defun slot-definitions (object)
-  "Return the closer-mop slot-definitions for class of OBJECT."
-  (closer-mop:compute-slots (class-of object)))
-
-(defun slot-name (slot-definition)
-  "Return SLOT-DEFINITION-NAME of SLOT-DEFINITION."
-  (closer-mop:slot-definition-name slot-definition))
-
-(defun slot-type (slot-definition)
-  "Return SLOT-DEFINITION-TYPE of SLOT-DEFINITION."
-  (closer-mop:slot-definition-type slot-definition))
-
-;;;; Utility macros
-
-(defmacro with-readers ((&rest readers) object &body body)
-  "Bind the list of symbols in READERS to the current value of the
-repective reader method, of the same name, invoked on OBJECT.  Then
-evaluate BODY."
-  (if (emptyp readers)
-      `(progn ,@body)
-      (once-only (object)
-        `(let (,@(loop for reader in readers
-                       collect `(,reader (,reader ,object))))
-           ,@body))))
-
-;;;; True utility functions, waiting for a real home
+(defmacro first-value (form)
+  `(nth-value 0 ,form))
 
 (defun sym (package-name &rest args)
   "Return symbol being the concatenation of upcasing ARGS.  See
