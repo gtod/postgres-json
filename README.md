@@ -239,3 +239,16 @@ relationship etc.  This is the point of using Postgres for JSON
 documents: we can choose precisely how much of the old fashioned
 relational database goodness to mix with the new fashioned NoSQL devil
 may care hedonism...
+
+#### lparallel support
+
+There is (preliminary) [lparallel](http://lparallel.org) support in
+the `postgres-json-parallel` system.  As at January 2015 you need a
+bleeding edge bordeaux-threads to use it.  Do a
+
+```
+git clone https://github.com/sionescu/bordeaux-threads.git
+```
+
+in your quicklisp/local-projects directory, register and build, as
+shown above.
