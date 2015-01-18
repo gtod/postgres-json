@@ -26,7 +26,7 @@ symbol, return said symbol."
     "S-SQL syntactic sugar to turn a single string FORM1 into a
 Postgres -> operation using the default JSON column 'jdoc and the
 property FORM1; or to turn a symbol FORM1 and string FORM2 into a ->
-operation using the specified JSON column FORM1 and the property
+operation using the 'jdoc JSON column in table FORM1 and the property
 FORM2."
   (if form2
       (let ((model (model-from-list-head form1)))
@@ -37,7 +37,7 @@ FORM2."
   "S-SQL syntactic sugar to turn a single string FORM1 into a Postgres
 ->> operation using the default JSON column 'jdoc and the property
 FORM1; or to turn a symbol FORM1 and string FORM2 into a ->> operation
-using the specified JSON column FORM1 and the property FORM2."
+using the 'jdoc JSON column in table FORM1 and the property FORM2."
   (if form2
       (let ((model (model-from-list-head form1)))
         `(:->> ',(sym t model ".jdoc") ,form2))
@@ -158,7 +158,7 @@ The Postmodern result format is always `:column` and so you must
 ensure that each row produces just a single datum, being a valid
 Postgres JSON type.  In practice this means either i) returning the
 column named `jdoc` in any model, which is the entire JSON document,
-or ii) using the `jbuild` macro to build some JSON on the fly."
+or ii) using the `jbuild` macro to build a JSON object on the fly."
   (with-unique-names (query-function)
     (multiple-value-bind (params transforms) (decompose-query-params-list query-params)
       (let ((s-sql-query (json-query-to-s-sql (car query) params)))
