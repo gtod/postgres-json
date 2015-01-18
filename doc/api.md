@@ -719,9 +719,10 @@ error in production code should be investigated.
 'repeatable-read-rw
 ```
 
-The isolation level to use for WITH-MODEL-TRANSACTION.  By the
-nature of Postgres-JSON can only be REPEATABLE-READ-RW or
-SERIALIZABLE-RW.
+The isolation level to use for WITH-MODEL-TRANSACTION.  For models
+that maintain history can only be REPEATABLE-READ-RW or
+SERIALIZABLE-RW.  For models without history could conceivably be
+READ-COMMITTED-RW.
 
 #### incompatible-transaction-setting
 *Condition*
