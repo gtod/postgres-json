@@ -31,8 +31,8 @@
         (package-file (asdf:system-relative-pathname system package-file)))
     (uiop/filesystem:collect-sub*directories (asdf:system-source-directory system)
                                              #'constantly #'constantly #'per-directory)
-    (with-output-to-file (out destination :if-does-not-exist :create
-                                          :if-exists :overwrite)
+    (uiop/filesystem:delete-file-if-exists destination)
+    (with-output-to-file (out destination :if-does-not-exist :create)
       (with-input-from-file (stream package-file)
         (write-line "# Postgres-JSON Interface" out)
         ;; We assume defpackage form is first
