@@ -252,3 +252,21 @@ git clone https://github.com/sionescu/bordeaux-threads.git
 
 in your quicklisp/local-projects directory, register and build, as
 shown above.
+
+## Tests
+
+There is a test suite (radically incomplete) which relies upon the
+lparallel support described above so *do not run the tests without a
+bordeaux-threads version strictly greater than 0.8.3 or they will just
+hang.* The same goes for the more informal tests in
+[thread-test](tests/thread-test.lisp).
+
+```
+(ql:quickload :postgres-json-test)
+(in-package :postgres-json-test)
+(setf *postmodern-connection* '("mydb" "myuname" "" "mydbserver"))
+(run-pgj-tests)
+```
+
+It would be nice to have this automated for cl-test-grid but how to
+surmount the need for a working PostgreSQL 9.4 install?
