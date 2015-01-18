@@ -716,13 +716,13 @@ error in production code should be investigated.
 *Dynamic variable*
 
 ```common-lisp
-'repeatable-read-rw
+'+repeatable-read-rw+
 ```
 
-The isolation level to use for WITH-MODEL-TRANSACTION.  For models
-that maintain history can only be REPEATABLE-READ-RW or
-SERIALIZABLE-RW.  For models without history could conceivably be
-READ-COMMITTED-RW.
+The isolation level, a symbol, to use for WITH-MODEL-TRANSACTION.
+For models that maintain history can only be +REPEATABLE-READ-RW+ or
++SERIALIZABLE-RW+.  For models without history could conceivably be
++READ-COMMITTED-RW+.
 
 #### incompatible-transaction-setting
 *Condition*
@@ -730,6 +730,46 @@ READ-COMMITTED-RW.
 Signaled for a nested invocation of
 WITH-ENSURED-TRANSACTION-LEVEL or WITH-LOGICAL-TRANSACTION-LEVEL
 inside a previous invocation with an incongruent isolation level.
+
+#### +serializable-rw+
+*Constant*
+
+```common-lisp
+"isolation level serializable read write"
+```
+
+START TRANSACTION string to set Postgres
+'Serializable' isolation level and read/write.
+
+#### +repeatable-read-rw+
+*Constant*
+
+```common-lisp
+"isolation level repeatable read read write"
+```
+
+START TRANSACTION string to set Postgres 'Repeatable
+read' isolation level and read/write.
+
+#### +read-committed-rw+
+*Constant*
+
+```common-lisp
+"isolation level read committed read write"
+```
+
+START TRANSACTION string to set Postgres 'Read
+committed' isolation level, which is the default, and read write.
+
+#### +read-committed-ro+
+*Constant*
+
+```common-lisp
+"isolation level read committed read only"
+```
+
+START TRANSACTION string to set Postgres 'Read
+committed' isolation level, which is the default, and read only.
 
 #### with-transaction-level
 *Macro*
