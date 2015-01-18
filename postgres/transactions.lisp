@@ -14,10 +14,10 @@
 ;;; Since 'read committed' is the default isolation level, many
 ;;; Postgres users will never have seen such failures.  Postgres-JSON
 ;;; requires either of the above isolation levels because of, say,
-;;; UPDATE keeping a full history under the covers...
+;;; SUPERSEDE keeping a full history under the covers...
 
 ;;; A small change to Postmodern is required to support these
-;;; additons, see postgres/postmodern.lisp
+;;; additions, see postgres/postmodern.lisp
 
 ;;;; Public specials
 
