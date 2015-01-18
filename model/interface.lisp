@@ -1,178 +1,167 @@
 (in-package :postgres-json)
 
-;;;; Define the interface to our PostgreSQL JSON persistence model
+;;;; Define the CRUD++ interface to the Postgre-JSON persistence model
 
-;;; Need to comment on acceptable type of KEY: integer, string, ??
+(defgeneric insert (model object &optional key)
+  (:documentation "Insert lisp object OBJECT into the backend MODEL,
+after JSON serialization.  If KEY is supplied use that as the primary
+key for the JSON document rather than an automatically generated one.
+Return the new primary key.")
+  (:method ((model pgj-model) object &optional key)
+    (maybe-transaction (insert read-committed-rw)
+      (let ((key (or key (nextval-sequence$ model))))
+        (let ((object (stash model object key)))
+          (first-value (insert$ model key (serialize model object))))))))
 
-(defun insert (model object &key use-key (stash-key *stash-key*) (to-json *to-json*))
-  "Insert lisp object OBJECT into the backend MODEL, a symbol,
-after JSON serialization.  If USE-KEY is supplied, use that as the
-primary key for the JSON document rather than the automatically
-generated one.  If STASH-KEY is non null we FUNCALL it with two
-arguments: the value of the key to be used for the DB insert and
-OBJECT.  It should return an object which will be inserted in the
-place of the original.  Typically you would use this to 'stash' the
-fresh primary key inside your object before serialization.  TO-JSON
-must be a function designator for a function of one argument to
-serialize lisp objects to JSON strings.  Return the new primary key."
-  (log:debu3 "Attempt insert of object into ~A" model)
-  (unless use-key
-    (ensure-model-query model 'nextval-sequence$))
-  (ensure-model-query model 'insert$)
-  (maybe-transaction (insert read-committed-rw)
-    (let* ((key (if use-key use-key (nextval-sequence$ model)))
-           (object (if stash-key (funcall stash-key key object) object)))
-      (nth-value 0 (insert$ model key (funcall to-json object))))))
+;; We also need a MERGE, or MIXIN or UPDATE of some sort. The Postgres
+;; people may help us with the next release or there are suggestions
+;; on stackexchange...
+(defgeneric supersede (model key object)
+  (:documentation "Replace the current value of the JSON document
+having primary key KEY in MODEL with the JSON serialization of lisp
+object OBJECT.  Return KEY on success, NIL if no such KEY is found.")
+  (:method ((model pgj-model) key object)
+    (maybe-transaction (supersede read-committed-rw)
+      (let ((object (stash model object key)))
+        (first-value (supersede$ model key (serialize model object)))))))
 
-(defun update (model key object &key (stash-key *stash-key*) (to-json *to-json*))
-  "Update the current value of the JSON document with primary key KEY,
-in backend MODEL, a symbol, to be the JSON serialization of lisp
-object OBJECT.  If STASH-KEY is non null we FUNCALL it with two
-arguments: the value of the key to be used for the DB insert and
-OBJECT.  It should return an object which will be used in the place of
-the original.  TO-JSON must be a function designator for a function of
-one argument to serialize lisp objects to JSON strings.  Return KEY
-on success, NIL if there was no such KEY found."
-  (log:debu3 "Attempt update of ~A in ~A" key model)
-  (ensure-model-query model 'update$)
-  (with-readers (keep-history-p) (get-model-parameters model)
-    (when keep-history-p
-      (ensure-model-query model 'insert-old$))
-    (maybe-transaction (update repeatable-read-rw)
-      (when keep-history-p
-        (insert-old$ model key))
-      (let ((object (if stash-key (funcall stash-key key object) object)))
-        (nth-value 0 (update$ model key (funcall to-json object)))))))
+(defgeneric fetch (model key)
+  (:documentation "If there is a JSON document with primary key KEY in
+MODEL return the result of deserializing it.  Otherwise return NIL.")
+  (:method ((model pgj-model) key)
+    (let ((jdoc (maybe-transaction (fetch read-committed-ro)
+                  (fetch$ model key))))
+      (if jdoc (deserialize model jdoc) nil))))
 
-(defun fetch (model key &key (from-json *from-json*))
-  "Lookup the JSON document with primary key KEY in MODEL, a symbol.
-If such a document exists return a parse of it by the function of one
-argument designated by FROM-JSON (make it #'IDENTITY to return just
-the JSON string proper).  If the JSON document does not exist, return
-NIL."
-  (log:debu4 "Fetch object with key ~A from ~A" key model)
-  (ensure-model-query model 'fetch$)
-  (let ((jdoc (maybe-transaction (fetch read-committed-ro)
-                (fetch$ model key))))
-    (if jdoc (funcall from-json jdoc) nil)))
+(defgeneric fetch-all (model)
+  (:documentation "Return as a list the result of deserializing all
+JSON documents in MODEL.")
+  (:method ((model pgj-model))
+    (maybe-transaction (fetch-all read-committed-ro)
+      (mapcar (curry #'deserialize model) (fetch-all$ model)))))
 
-(defun fetch-all (model &key (from-json *from-json*))
-  "Return a list of all JSON documents in MODEL, a symbol, after
-parsing by the the function of one argument designated by FROM-JSON."
-  (log:debu4 "Fetch all objects from ~A" model)
-  (ensure-model-query model 'fetch-all$)
-  (maybe-transaction (fetch-all read-committed-ro)
-    (mapcar from-json (fetch-all$ model))))
+(defgeneric excise (model key)
+  (:documentation "Delete the JSON document with primary key KEY from
+MODEL.  Return KEY on success, NIL if no such KEY exists.")
+  (:method ((model pgj-model) key)
+    (maybe-transaction (excise read-committed-rw)
+      (first-value (excise$ model key)))))
 
-(defun excise (model key)
-  "Delete the JSON document with primary key KEY from MODEL, a symbol.
-Return KEY on success, NIL if there was no such KEY found."
-  (log:debu3 "Call excise of object with key ~A from ~A" key model)
-  (ensure-model-query model 'insert-old$ 'excise$)
-  (maybe-transaction (excise repeatable-read-rw)
+(defgeneric excise-all (model)
+  (:documentation "Delete all JSON documents in MODEL.  Returns the
+number of documents deleted.")
+  (:method ((model pgj-model))
+    (maybe-transaction (excise-all read-committed-rw)
+      (nth-value 1 (excise-all$ model)))))
+
+(defgeneric keys (model)
+  (:documentation "Return two values: a list of all primary keys for
+MODEL and the length of that list.")
+  (:method ((model pgj-model))
+    (maybe-transaction (keys read-committed-ro)
+      (keys$ model))))
+
+(defgeneric tally (model)
+  (:documentation "Return the count of all JSON documents in MODEL.")
+  (:method ((model pgj-model))
+    (maybe-transaction (count read-committed-ro)
+      (first-value (tally$ model)))))
+
+(defgeneric having-property (model property)
+  (:documentation "Return the result of deserializing all JSON
+documents in MODEL, a symbol, which have a top level object property
+PROPERTY, a string, or if said string appears as an element of a top
+level array.  This is in the Postgres operator ?  sense.  Requires a
+Postgres GIN index with operator class :jsonb-ops defined on MODEL.")
+  (:method ((model pgj-structure-model) (property string))
+    (maybe-transaction (contains read-committed-ro)
+      (mapcar (curry #'deserialize model) (exists$ model property)))))
+
+(defgeneric enumerate-property (model property)
+  (:documentation "Return all distinct values of the top level
+PROPERTY, a string, in all of the JSON documents of MODEL, a symbol.
+JSON deserialization is performed by funcalling *FROM-JSON*.  Note
+that this is _not_ a prepared query so care must be taken that
+PROPERTY is sanitized if it derives from arbitrary user input.")
+  (:method ((model pgj-object-model) (property string))
+    (let ((query `(:select (j-> ,property)
+                   :distinct
+                   :from ,(model-table model))))
+      (maybe-transaction (distinct read-committed-ro)
+        (mapcar *from-json*
+                (query (sql-compile (json-query-to-s-sql query))
+                       :column))))))
+
+(defgeneric filter (model &key contains)
+  (:documentation "Filter all JSON documents in MODEL, a symbol,
+by checking they 'contain' in the Postgres @> operator
+sense, the object CONTAINS which will be serialized to a JSON document
+by funcalling *TO-JSON*.  If CONTAINS is NIL, apply no containment
+restriction.")
+  (:method  ((model pgj-object-model) &key contains properties limit)
+    "Filter all JSON documents in MODEL, a symbol, as follows.  Each
+document must 'contain', in the Postgres @> operator sense, the object
+CONTAINS which will be serialized to a JSON document by funcalling
+*TO-JSON*.  If CONTAINS is NIL, apply no containment restriction.
+PROPERTIES may be a list of strings being properties in the top level
+of the JSON documents in MODEL and only the values of said properties
+will be returned, bundled together in a JSON document.  If PROPERTIES
+is NIL the entire JSON document will be returned.  LIMIT, if supplied,
+must be an integer that represents the maximum number of objects that
+will be returned.  If properties is NIL JSON deserialization is
+performed by DESERILIZE, otherwise by funcalling *FROM-JSON*.  Note
+that this is _not_ a prepared query so extra care must be taken if
+PROPERTIES or CONTAIN derive from unsanitized user input."
+    (let ((filter (if contains (funcall *to-json* contains) nil)))
+      (let ((select `(:select ,(if properties `(jbuild ,properties) 'jdoc)
+                      :from ,(model-table model)
+                      :where ,(if filter `(:@> 'jdoc ,filter) "t"))))
+        (let ((query (if (integerp limit) `(:limit ,select ,limit) select))
+              (from-json (if properties *from-json* (curry #'deserialize model))))
+          (maybe-transaction (filter read-committed-ro)
+            (mapcar from-json
+                    (query (sql-compile (json-query-to-s-sql query))
+                           :column))))))))
+
+;;;; History methods
+
+(defmethod supersede ((model pgj-history-model) key object)
+  "As per SUPERSEDE but keep a separate record of all previous rows."
+  (declare (ignore object))
+  (maybe-transaction (supersede-history repeatable-read-rw)
     (insert-old$ model key)
-    (nth-value 0 (excise$ model key))))
+    (call-next-method)))
 
-(defun excise-all (model)
-  "Delete all JSON documents in MODEL, a symbol.  In fact this is a
-recoverable operation in a sense as all deleted rows will still be in
-the <model>-old Postgres relation."
-  (log:debu3 "Call excise-all from ~A" model)
-  (with-model-transaction ()
+(defmethod excise ((model pgj-history-model) key)
+  "As per EXCISE but keep a separate record of all deleted rows."
+  (maybe-transaction (excise-history repeatable-read-rw)
+    (insert-old$ model key)
+    (call-next-method)))
+
+(defmethod excise-all ((model pgj-history-model))
+  "As per EXCISE-ALL but keep a separate record of all deleted rows."
+  (maybe-transaction (excise-all-history repeatable-read-rw)
     (dolist (key (keys model))
       (excise model key))))
 
-(defun keys (model)
-  "Returns two values: a list of all primary keys for this MODEL, a
-symbol, and the length of that list."
-  (log:trace "Call keys on ~A" model)
-  (ensure-model-query model 'keys$)
-  (maybe-transaction (keys read-committed-ro)
-    (keys$ model)))
-
-(defun tally (model)
-  "Return a count of JSON documents in MODEL, a symbol."
-  (log:trace "Call tally on ~A" model)
-  (ensure-model-query model 'tally$)
-  (maybe-transaction (count read-committed-ro)
-    (nth-value 0 (tally$ model))))
-
-;; Implicit (or even explicit) assumption here that you are storing
-;; objects in your model, rather than arrays...
-(defun filter (model &key contain properties limit
-                          (to-json *to-json*) (from-json *from-json*))
-  "Filter all JSON documents in MODEL, a symbol, as follows.  Each
-document must 'contain', in the Postgres @> operator sense, the object
-CONTAIN which itself must serialize to a JSON document.  If CONTAIN is
-NIL, apply no containment restriction.  PROPERTIES may be a list of
-strings being properties in the top level objects of the JSON
-documents in MODEL and only the values of said properties will be
-returned, bundled together in a JSON document.  If PROPERTIES is NIL
-the entire JSON document will be returned.  LIMIT, if supplied, must
-be an integer that represents the maximum number of objects that will
-be returned.  CONTAIN will be JSON serialized by TO-JSON, a function
-designator for a function of one argument.  The returned JSON
-documents will be parsed by the function of one argument designated by
-FROM-JSON.  Note that this is _not_ a prepared query so extra care
-must be taken if PROPERTIES or CONTAIN derive from unsanitized user
-input."
-  (let ((filter (if contain (funcall to-json contain) nil)))
-    (let ((select `(:select ,(if properties `(jbuild ,properties) 'jdoc)
-                    :from ',model
-                    :where ,(if filter `(:@> 'jdoc ,filter) "t"))))
-      (let ((query (if (integerp limit) `(:limit ,select ,limit) select)))
-        (maybe-transaction (filter read-committed-ro)
-          (mapcar from-json
-                  (query (sql-compile (json-query-to-s-sql query))
-                         :column)))))))
-
-(defun exists (model property &key (from-json *from-json*))
-  "Return all JSON documents in MODEL, a symbol, which have a top
-level object property PROPERTY, a string, or if said string appears as
-an element of a top level array.  This is in the Postgres operator ?
-sense.  The returned JSON documents will be parsed by the function of
-one argument designated by FROM-JSON.  Requires a Postgres GIN index
-without JSONB_PATH_OPS defined on MODEL."
-  (log:trace "Call exists on ~A" model)
-  (ensure-model-query model 'exists$)
-  (maybe-transaction (contains read-committed-ro)
-    (mapcar from-json (exists$ model property))))
-
-(defun distinct (model property &key (from-json *from-json*))
-  "Return all distinct values of the top level PROPERTY, a string, in
-all of the JSON documents of MODEL, a symbol.  Every JSON document
-must be a JSON object, with property PROPERTY defined.  So this
-DISTINCT does not make sense if your JSON documents are arrays.  The
-returned JSON documents wil parsed by the function of one argument
-designated by FROM-JSON.  Note that this is _not_ a prepared query so
-care must be taken that PROPERTY is sanitized if it derives from
-arbitrary user input."
-  (let ((query `(:select (j-> ,property)
-                 :distinct
-                 :from ',model)))
-    (maybe-transaction (filter read-committed-ro)
-      (mapcar from-json
-              (query (sql-compile (json-query-to-s-sql query))
-                     :column)))))
-
-(defun history (model key &key (from-json *from-json*) (validity-keys-p t)
-                               (valid-from-key "_validFrom") (valid-to-key "_validTo"))
-  "Returns a list, in chronological order, of all previous values of
-the JSON document with primary key KEY in MODEL, a symbol.  If such
-documents exist return a parse of each JSON string by the function of
-one argument designated by FROM-JSON.  If the document has no history,
-return NIL.  If VALIDITY-KEYS-P is true, include the 'valid_from' and
+(defgeneric history (model key &key)
+  (:documentation "Return a list of the result of deserializing all
+previous values of the JSON document with primary key KEY in MODEL.")
+  (:method ((model pgj-history-model) key
+            &key (validity-keys-p t)
+                 (valid-from-key "_validFrom") (valid-to-key "_validTo"))
+    "Return a list of the result of deserializing all previous values
+of the JSON document with primary key KEY in MODEL, in chronological
+order.  If VALIDITY-KEYS-P is true, include the 'valid_from' and
 'valid_to' Postgres timestamps for the historical document as
 properties in the top level JSON object --- it must be an object in
 this case.  VALID-FROM-KEY and VALID-TO-KEY are strings that will be
 the property names of the respective timestamps."
-  (log:debu4 "List history of object with key ~A from ~A" key model)
-  (ensure-model-query model 'history$)
-  (let ((rows (maybe-transaction (history read-committed-ro)
+    (let ((rows (maybe-transaction (history read-committed-ro)
                   (history$ model key))))
-    (loop for (jdoc valid-from valid-to) in rows
-          for obj = (funcall from-json jdoc)
-          when validity-keys-p
-            do (setf (gethash valid-from-key obj) valid-from)
-               (setf (gethash valid-to-key obj) valid-to)
-          collect obj)))
+      (loop for (jdoc valid-from valid-to) in rows
+            for obj = (deserialize model jdoc)
+            when validity-keys-p
+              do (setf (gethash valid-from-key obj) valid-from)
+                 (setf (gethash valid-to-key obj) valid-to)
+            collect obj))))
