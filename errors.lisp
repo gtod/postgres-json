@@ -18,6 +18,7 @@
   (:documentation "Signaled to prevent accidental deletion of database
 assets such as tables or schema."))
 
-(defun really-do-it (c)
-  (declare (ignore c))
+(defun really-do-it (condition)
+  "Invoke a 'REALLY-DO-IT restart."
+  (declare (ignore condition))
   (invoke-restart 'really-do-it))
