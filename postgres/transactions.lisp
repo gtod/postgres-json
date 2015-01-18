@@ -21,31 +21,31 @@
 
 ;;;; Public specials
 
-(define-constant serializable-rw
+(define-constant +serializable-rw+
   "isolation level serializable read write" :test 'string=
   :documentation "START TRANSACTION string to set Postgres
 'Serializable' isolation level and read/write.")
 
-(define-constant repeatable-read-rw
+(define-constant +repeatable-read-rw+
   "isolation level repeatable read read write" :test 'string=
   :documentation "START TRANSACTION string to set Postgres 'Repeatable
 read' isolation level and read/write."  )
 
-(define-constant read-committed-ro
+(define-constant +read-committed-ro+
   "isolation level read committed read only" :test 'string=
   :documentation "START TRANSACTION string to set Postgres 'Read
 committed' isolation level, which is the default, and read only.")
 
-(define-constant read-committed-rw
+(define-constant +read-committed-rw+
   "isolation level read committed read write" :test 'string=
   :documentation "START TRANSACTION string to set Postgres 'Read
 committed' isolation level, which is the default, and read write.")
 
-(defvar *pgj-default-isolation-level* 'repeatable-read-rw
-  "The isolation level to use for WITH-MODEL-TRANSACTION.  For models
-that maintain history can only be REPEATABLE-READ-RW or
-SERIALIZABLE-RW.  For models without history could conceivably be
-READ-COMMITTED-RW.")
+(defvar *pgj-default-isolation-level* '+repeatable-read-rw+
+  "The isolation level, a symbol, to use for WITH-MODEL-TRANSACTION.
+For models that maintain history can only be +REPEATABLE-READ-RW+ or
++SERIALIZABLE-RW+.  For models without history could conceivably be
++READ-COMMITTED-RW+.")
 
 ;;;; Implementation
 
@@ -61,7 +61,7 @@ to the isolation level requested.")
 ;; true isolation level is paramount but clearly you can't nest a RW
 ;; level inside a RO one...
 (defvar *isolation-levels-hierarchy*
-  '(read-committed-ro read-committed-rw repeatable-read-rw serializable-rw)
+  '(+read-committed-ro+ +read-committed-rw+ +repeatable-read-rw+ +serializable-rw+)
   "A list of symbols for string constants which set Postgres isolation
 levels, and read only or read/write settings.  Nested transactions must
 be started with an isolation level to the left of, or at the same
@@ -72,7 +72,7 @@ level as, the top level in the nested group.")
 cl-postgres-error:serialization-failure condition.  This function
 returns true if ISOLATION-LEVEL, a symbol, is such an isolation
 level."
-  (member isolation-level '(repeatable-read-rw serializable-rw)))
+  (member isolation-level '(+repeatable-read-rw+ +serializable-rw+)))
 
 (defun isolation-level-position (isolation-level)
   "What POSITION does ISOLATION-LEVEL, a symbol, hold in the

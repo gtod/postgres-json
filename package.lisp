@@ -90,10 +90,10 @@
    #:*pgj-default-isolation-level*
    #:incompatible-transaction-setting
 
-   #:serializable-rw
-   #:repeatable-read-rw
-   #:read-committed-rw
-   #:read-committed-ro
+   #:+serializable-rw+
+   #:+repeatable-read-rw+
+   #:+read-committed-rw+
+   #:+read-committed-ro+
 
    #:with-transaction-level
    #:with-logical-transaction-level

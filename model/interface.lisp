@@ -8,7 +8,7 @@ after JSON serialization.  If KEY is supplied use that as the primary
 key for the JSON document rather than an automatically generated one.
 Return the new primary key.")
   (:method ((model pgj-model) object &optional key)
-    (maybe-transaction (insert read-committed-rw)
+    (maybe-transaction (insert +read-committed-rw+)
       (let ((key (or key (nextval-sequence$ model))))
         (let ((object (stash model object key)))
           (first-value (insert$ model key (serialize model object))))))))
@@ -21,7 +21,7 @@ Return the new primary key.")
 having primary key KEY in MODEL with the JSON serialization of lisp
 object OBJECT.  Return KEY on success, NIL if no such KEY is found.")
   (:method ((model pgj-model) key object)
-    (maybe-transaction (supersede read-committed-rw)
+    (maybe-transaction (supersede +read-committed-rw+)
       (let ((object (stash model object key)))
         (first-value (supersede$ model key (serialize model object)))))))
 
@@ -29,7 +29,7 @@ object OBJECT.  Return KEY on success, NIL if no such KEY is found.")
   (:documentation "If there is a JSON document with primary key KEY in
 MODEL return the result of deserializing it.  Otherwise return NIL.")
   (:method ((model pgj-model) key)
-    (let ((jdoc (maybe-transaction (fetch read-committed-ro)
+    (let ((jdoc (maybe-transaction (fetch +read-committed-ro+)
                   (fetch$ model key))))
       (if jdoc (deserialize model jdoc) nil))))
 
@@ -37,34 +37,34 @@ MODEL return the result of deserializing it.  Otherwise return NIL.")
   (:documentation "Return as a list the result of deserializing all
 JSON documents in MODEL.")
   (:method ((model pgj-model))
-    (maybe-transaction (fetch-all read-committed-ro)
+    (maybe-transaction (fetch-all +read-committed-ro+)
       (mapcar (curry #'deserialize model) (fetch-all$ model)))))
 
 (defgeneric excise (model key)
   (:documentation "Delete the JSON document with primary key KEY from
 MODEL.  Return KEY on success, NIL if no such KEY exists.")
   (:method ((model pgj-model) key)
-    (maybe-transaction (excise read-committed-rw)
+    (maybe-transaction (excise +read-committed-rw+)
       (first-value (excise$ model key)))))
 
 (defgeneric excise-all (model)
   (:documentation "Delete all JSON documents in MODEL.  Returns the
 number of documents deleted.")
   (:method ((model pgj-model))
-    (maybe-transaction (excise-all read-committed-rw)
+    (maybe-transaction (excise-all +read-committed-rw+)
       (nth-value 1 (excise-all$ model)))))
 
 (defgeneric keys (model)
   (:documentation "Return two values: a list of all primary keys for
 MODEL and the length of that list.")
   (:method ((model pgj-model))
-    (maybe-transaction (keys read-committed-ro)
+    (maybe-transaction (keys +read-committed-ro+)
       (keys$ model))))
 
 (defgeneric tally (model)
   (:documentation "Return the count of all JSON documents in MODEL.")
   (:method ((model pgj-model))
-    (maybe-transaction (count read-committed-ro)
+    (maybe-transaction (count +read-committed-ro+)
       (first-value (tally$ model)))))
 
 (defgeneric having-property (model property)
@@ -74,7 +74,7 @@ PROPERTY, a string, or if said string appears as an element of a top
 level array.  This is in the Postgres operator ?  sense.  Requires a
 Postgres GIN index with operator class :jsonb-ops defined on MODEL.")
   (:method ((model pgj-structure-model) (property string))
-    (maybe-transaction (contains read-committed-ro)
+    (maybe-transaction (contains +read-committed-ro+)
       (mapcar (curry #'deserialize model) (exists$ model property)))))
 
 (defgeneric enumerate-property (model property)
@@ -87,7 +87,7 @@ PROPERTY is sanitized if it derives from arbitrary user input.")
     (let ((query `(:select (j-> ,property)
                    :distinct
                    :from ,(model-table model))))
-      (maybe-transaction (distinct read-committed-ro)
+      (maybe-transaction (distinct +read-committed-ro+)
         (mapcar *from-json*
                 (query (sql-compile (json-query-to-s-sql query))
                        :column))))))
@@ -118,7 +118,7 @@ PROPERTIES or CONTAIN derive from unsanitized user input."
                       :where ,(if filter `(:@> 'jdoc ,filter) "t"))))
         (let ((query (if (integerp limit) `(:limit ,select ,limit) select))
               (from-json (if properties *from-json* (curry #'deserialize model))))
-          (maybe-transaction (filter read-committed-ro)
+          (maybe-transaction (filter +read-committed-ro+)
             (mapcar from-json
                     (query (sql-compile (json-query-to-s-sql query))
                            :column))))))))
@@ -128,19 +128,19 @@ PROPERTIES or CONTAIN derive from unsanitized user input."
 (defmethod supersede ((model pgj-history-model) key object)
   "As per SUPERSEDE but keep a separate record of all previous rows."
   (declare (ignore object))
-  (maybe-transaction (supersede-history repeatable-read-rw)
+  (maybe-transaction (supersede-history +repeatable-read-rw+)
     (insert-old$ model key)
     (call-next-method)))
 
 (defmethod excise ((model pgj-history-model) key)
   "As per EXCISE but keep a separate record of all deleted rows."
-  (maybe-transaction (excise-history repeatable-read-rw)
+  (maybe-transaction (excise-history +repeatable-read-rw+)
     (insert-old$ model key)
     (call-next-method)))
 
 (defmethod excise-all ((model pgj-history-model))
   "As per EXCISE-ALL but keep a separate record of all deleted rows."
-  (maybe-transaction (excise-all-history repeatable-read-rw)
+  (maybe-transaction (excise-all-history +repeatable-read-rw+)
     (dolist (key (keys model))
       (excise model key))))
 
@@ -157,7 +157,7 @@ order.  If VALIDITY-KEYS-P is true, include the 'valid_from' and
 properties in the top level JSON object --- it must be an object in
 this case.  VALID-FROM-KEY and VALID-TO-KEY are strings that will be
 the property names of the respective timestamps."
-    (let ((rows (maybe-transaction (history read-committed-ro)
+    (let ((rows (maybe-transaction (history +read-committed-ro+)
                   (history$ model key))))
       (loop for (jdoc valid-from valid-to) in rows
             for obj = (deserialize model jdoc)

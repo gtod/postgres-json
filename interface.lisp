@@ -6,7 +6,7 @@
   "Create the schema *PGJ-SCHEMA* and other backend objects needed to
 house user created PostgreSQL JSON persistence models.  Call just once
 in a given PostgreSQL database."
-  (maybe-transaction (create-backend read-committed-rw)
+  (maybe-transaction (create-backend +read-committed-rw+)
     (pomo:create-schema *pgj-schema*)
     (create-db-sequence *pgj-sequence* *pgj-schema*)
     *pgj-schema*))
@@ -44,7 +44,7 @@ Postmodern is currently connected to.  This will irrevocably delete
 ALL your data in ALL your models so it uses a RESTART-CASE to guard
 against human error."
   (flet ((drop ()
-           (maybe-transaction (drop-backend read-committed-rw)
+           (maybe-transaction (drop-backend +read-committed-rw+)
              (drop-db-schema-cascade *pgj-schema*))))
     (when (pgj-schema-exists-p)
       (let ((attempted-to (format nil "DROP all models' data(!) in schema: ~A" *pgj-schema*)))

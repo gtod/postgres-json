@@ -3,34 +3,34 @@
 ;;;; Transactions with isolation levels
 
 (test no-nesting-actual-tran
-  (with-transaction-level (foo read-committed-rw)
+  (with-transaction-level (foo +read-committed-rw+)
     (signals cl-postgres:postgresql-warning
-      (with-transaction-level (foo read-committed-rw)
+      (with-transaction-level (foo +read-committed-rw+)
         (pomo:query "create temp table foo (bar int)")))))
 
 (test not-nestable-isolation-levels
-  (ensure-transaction-level (read-committed-ro)
+  (ensure-transaction-level (+read-committed-ro+)
     (tally -model-)
     (signals postgres-json:incompatible-transaction-setting
-      (ensure-transaction-level (repeatable-read-rw)
+      (ensure-transaction-level (+repeatable-read-rw+)
         (excise -model- 7))))
 
-  (ensure-transaction-level (read-committed-rw)
+  (ensure-transaction-level (+read-committed-rw+)
     (tally -model-)
     (signals postgres-json:incompatible-transaction-setting
-      (ensure-transaction-level (serializable-rw)
+      (ensure-transaction-level (+serializable-rw+)
         (excise -model- 7))))
 
-  (ensure-transaction-level (repeatable-read-rw)
+  (ensure-transaction-level (+repeatable-read-rw+)
     (tally -model-)
-    (ensure-transaction-level (read-committed-ro)
+    (ensure-transaction-level (+read-committed-ro+)
       (keys -model-)
       (signals postgres-json:incompatible-transaction-setting
-        (ensure-transaction-level (serializable-rw)
+        (ensure-transaction-level (+serializable-rw+)
           (excise -model- 7))))))
 
 (test read-only-tran
-  (with-transaction-level (foo read-committed-ro)
+  (with-transaction-level (foo +read-committed-ro+)
     (signals cl-postgres:database-error
       (pomo:query "create temp table foo (bar int)"))))
 
@@ -137,7 +137,7 @@
       (submit-pgj-task ()
         ;; We set the right isolation level but fail to handle the
         ;; resulting serialization failures 400001...
-        (ensure-transaction-level (repeatable-read-rw)
+        (ensure-transaction-level (+repeatable-read-rw+)
           (supersede))))
     (is (results-serialization-failure-p (process-results)))))
 
