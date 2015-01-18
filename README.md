@@ -59,7 +59,7 @@ Most of the library code has docstrings.
 
 You will need a working PostgreSQL 9.4 install.  On Debian this may be
 as simple as `apt-get install postgresql-9.4`.  If this does not work, see
-https://wiki.postgresql.org/wiki/Apt for updating your apt sources.
+https://wiki.postgresql.org/wiki/Apt for help updating your apt sources.
 
 Once installed, try `pg_lsclusters` to see what port your 9.4 install
 is on, if it is not 5432 you will need to explicitly supply the port
@@ -104,11 +104,11 @@ Now:
 (setf *postmodern-connection* '("mydb" "gtod" "" "localhost" :port 5433))
 (ensure-top-level-connection)
 
-;; Once only operation, make a DB schema for all our models
-(create-backend)
+;; Create a Postgres-JSON model (and global instance) to store cats
+(define-global-model cat -cat- (pgj-object-model))
 
-;; Once only operation, make a new model to store JSON docs on cats
-(create-model 'cat)
+;; Ensure there is a database backend for our cat model
+(ensure-backend -cat-)
 ```
 
 In the output below I have elided some of the return values for
@@ -117,37 +117,37 @@ hash table.  `pp-json` is a trivial function to pretty print a nested
 lisp object of hash tables and sequences as JSON.
 
 ```common-lisp
-(insert 'cat (obj "name" "joey" "coat" "tabby"))
+(insert -cat- (obj "name" "joey" "coat" "tabby"))
 1
 
-(pp-json (fetch 'cat 1))
+(pp-json (fetch -cat- 1))
 {
     "key":1,
     "coat":"tabby",
     "name":"joey"
 }
 
-(insert 'cat (obj "name" "max" "coat" "ginger"))
+(insert -cat- (obj "name" "max" "coat" "ginger"))
 
-(insert 'cat (obj "name" "maud" "coat" "tortoiseshell"))
+(insert -cat- (obj "name" "maud" "coat" "tortoiseshell"))
 
-(keys 'cat)
+(keys -cat-)
 (1 2 3)
 
-(excise 'cat 2)
+(excise -cat- 2)
 2
 
-(keys 'cat)
+(keys -cat-)
 (1 3)
 
-(tally 'cat)
+(tally -cat-)
 2
 
-(update 'cat 3 (obj "name" "maud" "coat" "tortoiseshell" "age" 7
-                      "likes" '("sunshine" 42)))
+(update -cat- 3 (obj "name" "maud" "coat" "tortoiseshell" "age" 7
+                     "likes" '("sunshine" 42)))
 3
 
-(pp-json (fetch 'cat 3))
+(pp-json (fetch -cat- 3))
 {
     "age":7,
     "key":3,
@@ -164,8 +164,10 @@ lisp object of hash tables and sequences as JSON.
 
 See [simple](examples/simple.lisp) for similar code to the above.
 There is an extended example in [human-1](examples/human-1.lisp) and
-[human-2](examples/human-2.lisp).  If you do `(ql:quickload
-:postgres-json-examples)` all examples will be compiled for you.
+[human-2](examples/human-2.lisp).  An example of the simple
+customizations available by specializing generic functions is shown in
+[customize](examples/customize.lisp).  `(ql:quickload
+:postgres-json-examples)` will compile all the examples.
 
 An example user defined query from [human-2](examples/human-2.lisp)
 and documented in [User defined JSON
@@ -184,13 +186,20 @@ queries](doc/user-guide.md#user-defined-json-queries):
 
 #### Immutability
 
-The "immutability" part comes from the fact that when you
-[`update`](doc/api.md#update) or [`excise`](doc/api.md/#excise) (which
-means *delete* but is not a standard Common Lisp symbol) a [JSON
+By writing
+
+```common-lisp
+(define-global-model cat -cat- (pgj-history-object-model))
+```
+
+our `cat` model descends from a class which maintains history.  Now when
+you call [`supersede`](doc/api.md#supersede) (which means *replace*
+but is not a Common Lisp standard symbol) or
+[`excise`](doc/api.md/#excise) (which means *delete*...) a [JSON
 document](doc/user-guide.md#json-document) in a
 [model](doc/user-guide.md#model), a copy of the current row is
 inserted into the `<model>_old` table before proceeding.  So there is
-a full [`history`](doc/api.md#history) of the object's lifetime.
+a full [`history`](doc/api.md#history) of the document's lifetime.
 
 #### PostgreSQL 9.4 + JSON == NoSQL++
 
@@ -203,7 +212,7 @@ consistent in their content...
 However, I think it may well be practical to support referential
 integrity, based just on the primary key column in different models.
 So we should be able to support a *CAT owns one or more HUMANS*
-relationship etc.  This is the point of using Postgre for JSON
+relationship etc.  This is the point of using Postgres for JSON
 documents: we can choose precisely how much of the old fashioned
 relational database goodness to mix with the new fashioned NoSQL devil
 may care hedonism...
