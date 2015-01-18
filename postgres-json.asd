@@ -6,8 +6,8 @@
   :description "Store and query JSON documents in PostgreSQL"
   :depends-on (#:alexandria
                #:postmodern
+               #:global-vars
                #:log4cl
-               #:closer-mop
                #:yason)
   :serial t
   :components
@@ -15,15 +15,20 @@
    (:file "util")
    (:file "errors")
    (:file "specials")
-   (:file "postgres/s-sql")
-   (:file "postgres/postmodern")
-   (:file "postgres/util")
-   (:file "postgres/commands")
-   (:file "postgres/transactions")
-   (:file "model/transactions")
-   (:file "model/backend")
-   (:file "model/parameters")
-   (:file "model/user-query")
-   (:file "model/query")
-   (:file "model/interface")
+   (:module "postgres"
+    :serial t
+    :components ((:file "s-sql")
+                 (:file "postmodern")
+                 (:file "util")
+                 (:file "commands")
+                 (:file "transactions")))
+   (:module "model"
+    :serial t
+    :components ((:file "transactions")
+                 (:file "user-query")
+                 (:file "types")
+                 (:file "model")
+                 (:file "history")
+                 (:file "query")
+                 (:file "interface")))
    (:file "interface")))

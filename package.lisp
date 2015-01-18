@@ -1,47 +1,89 @@
 (defpackage :postgres-json
-  (:use #:cl #:alexandria #:postmodern #:s-sql)
-  (:shadow #:sequence)
+  (:use #:cl #:alexandria #:postmodern #:s-sql #:global-vars)
 
-  ;; Postgres backend
+  ;; Connections
   (:export
    #:*postmodern-connection*
-   #:database-safety-net
-   #:really-do-it
-   #:ensure-top-level-connection
-   #:create-backend
-   #:backend-exists-p
+   #:ensure-top-level-connection)
+
+  ;; Model types
+  (:export
+   #:pgj-model
+   #:pgj-history-model
+   #:pgj-object-model
+   #:pgj-history-object-model)
+
+  ;; Basic model management
+  (:export
+   #:define-global-model
    #:ensure-backend
    #:drop-backend)
 
-  ;; Model creation and management
-  (:export
-   #:create-model
-   #:model-exists-p
-   #:ensure-model
-   #:drop-model
-   #:all-models)
-
-  ;; Model interface
+  ;; Model CRUD generic functions
   (:export
    #:insert
-   #:update
+   #:supersede
    #:fetch
    #:fetch-all
    #:excise
    #:excise-all
    #:keys
    #:tally
+   #:having-property
+   #:enumerate-property
    #:filter
-   #:exists
-   #:distinct
    #:history)
 
-  ;; User transaction handling
+  ;; Model transactions
   (:export
-   #:*serialization-failure-sleep-times*
    #:with-model-transaction
    #:rollback
-   #:commit)
+   #:commit
+   #:*serialization-failure-sleep-times*)
+
+  ;; JSON helper functions and specials
+  (:export
+   #:obj
+   #:pp-json
+   #:*to-json*
+   #:*from-json*)
+
+  ;; User queries and JSON syntactic sugar for S-SQL
+  (:export
+   #:define-json-query
+   #:jdoc
+   #:j->
+   #:j->>
+   #:to-jsonb
+   #:jbuild)
+
+  ;; Model customization generic functions
+  (:export
+   #:model-sequence
+   #:model-key-name
+   #:model-key-type
+   #:model-initial-gin-operator-class
+   #:serialize
+   #:deserialize
+   #:stash)
+
+  ;; Further model management
+  (:export
+   #:create-backend
+   #:backend-exists-p
+   #:database-safety-net
+   #:really-do-it
+   #:*gin-operator-classes*
+   #:use-gin-index)
+
+  ;; Postgres backend
+  (:export
+   #:*pgj-schema*
+   #:drop-pgj-schema
+   #:*default-search-path*
+   #:alter-role-set-search-path
+   #:create-db-sequence
+   #:flush-prepared-queries)
 
   ;; Postmodern isolation level transactions
   (:export
@@ -57,39 +99,10 @@
    #:with-logical-transaction-level
    #:ensure-transaction-level)
 
-  ;; User queries and JSON syntactic sugar for S-SQL
-  (:export
-   #:define-json-query
-   #:jdoc
-   #:j->
-   #:j->>
-   #:to-jsonb
-   #:jbuild)
-
-  ;; Model parameters
-  (:export
-   #:*sequence*
-   #:*key*
-   #:*key-type*
-   #:*gin-operator-class*
-   #:make-model-parameters)
-
-  ;; Trival helper functions
-  (:export
-   #:stash-key
-   #:stash-key-destructive
-   #:obj
-   #:pp-json)
-
-  ;; Miscellaneous backend functions
-  (:export
-   #:create-db-sequence
-   #:alter-role-set-search-path
-   #:flush-prepared-queries)
-
   ;; lparallel support (optional)
   (:export
    #:*pgj-kernel*
+   #:*pgj-database*
    #:make-pgj-kernel
    #:end-pgj-kernel
 
@@ -103,15 +116,6 @@
    #:submit-pgj-task
    #:receive-pgj-result
    #:try-receive-pgj-result)
-
-  ;; Specials
-  (:export
-   #:*postmodern-connection*
-   #:*pgj-schema*
-   #:*default-search-path*
-   #:*to-json*
-   #:*from-json*
-   #:*stash-key*)
 
   (:documentation "Postgres-JSON is a JSON document store for Common
 Lisp using PostgreSQL"))
