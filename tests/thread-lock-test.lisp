@@ -4,10 +4,7 @@
 ;;;; it needed a lock for write access.  The following code was a
 ;;;; demonstration of that need (thanks to the SBCL doc on threads).
 
-;;;; However, it was simpler to just stop caching the model parameters
-;;;; because it amounted to a premature optimization: because the
-;;;; query gets prepared and put into *query-functions* it's not as if
-;;;; we have to go to the DB for model params for each model request...
+;;;; But since postgres-json-parallel.asd it is moot.
 
 ;;;; So this is just a reminder of the need for thread safe locks on
 ;;;; hash table writes.
