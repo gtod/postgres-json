@@ -57,13 +57,22 @@ A *model* such as `human` above is simply a Common Lisp class.
 [`define-global-model`](api.md#define-global-model) makes this class
 and also makes a single instance of it (here called `-human-`).  We
 only need one instance because Postgres-JSON model classes *have no
-slots* so all instances are functionally equivalent.
+slots* so all instances are functionally equivalent.  Of course, you
+are free to define a model class and any instances without using
+`define-global-model`.
 
-Thus to customize a model you specialize generic functions: see
+There are a few [Model types](api.md#model-types) to chose as a direct
+superclass for your model but typically you want `pgj-object-model` or
+`pgj-history-object-model`.  The later gives you
+[`history`](api.md#history).  *TODO: more history generic functions*.
+
+To customize a model you simply [specialize generic functions]
+(api.md#model-customization-generic-functions): see
 [customize](../examples/customize.lisp) for examples.  However in many
 cases you will find no customization is necessary --- you simply
-define a model, ensure it has a backend in your Postgres DB and then
-call [model interface](api.md#model-crud-generic-functions) generic
+[define a model](api.md#define-global-model), [ensure it has a
+backend](api.md#ensure-backend) in your Postgres DB and then call
+[model interface](api.md#model-crud-generic-functions) generic
 functions on it.
 
 If necesary you can make some [user defined
