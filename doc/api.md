@@ -213,10 +213,10 @@ model property
 ```
 
 Return the result of deserializing all JSON
-documents in **MODEL**, a symbol, which have a top level object property
-**PROPERTY**, a string, or if said string appears as an element of a top
-level array.  This is in the Postgres operator ?  sense.  Requires a
-Postgres GIN index with operator class :jsonb-ops defined on **MODEL**.
+documents in **MODEL** which have a top level object property **PROPERTY**, a
+string, or if said string appears as an element of a top level array.
+This is in the Postgres operator ?  sense.  Requires a Postgres GIN
+index with operator class :jsonb-ops defined on **MODEL**.
 
 #### enumerate-property
 *Generic function*
@@ -226,10 +226,10 @@ model property
 ```
 
 Return all distinct values of the top level
-**PROPERTY**, a string, in all of the JSON documents of **MODEL**, a symbol.
-JSON deserialization is performed by funcalling \*FROM-JSON\*.  Note
-that this is _not_ a prepared query so care must be taken that
-**PROPERTY** is sanitized if it derives from arbitrary user input.
+**PROPERTY**, a string, in all of the JSON documents of **MODEL**.  JSON
+deserialization is performed by funcalling \*FROM-JSON\*.  Note that
+this is _not_ a prepared query so care must be taken that **PROPERTY** is
+sanitized if it derives from arbitrary user input.
 
 #### filter
 *Generic function*
@@ -238,11 +238,10 @@ that this is _not_ a prepared query so care must be taken that
 model &key contains
 ```
 
-Filter all JSON documents in **MODEL**, a symbol,
-by checking they 'contain' in the Postgres @> operator
-sense, the object **CONTAINS** which will be serialized to a JSON document
-by funcalling \*TO-JSON\*.  If **CONTAINS** is NIL, apply no containment
-restriction.
+Filter all JSON documents in **MODEL** by checking they
+'contain', in the Postgres @> operator sense, the object **CONTAINS** which
+will be serialized to a JSON document by funcalling \*TO-JSON\*.  If
+**CONTAINS** is NIL, apply no containment restriction.
 
 #### filter
 *Method*
@@ -251,19 +250,19 @@ restriction.
 (model pgj-object-model) &key contains properties limit
 ```
 
-Filter all JSON documents in **MODEL**, a symbol, as follows.  Each
-document must 'contain', in the Postgres @> operator sense, the object
-**CONTAINS** which will be serialized to a JSON document by funcalling
-\*TO-JSON\*.  If **CONTAINS** is NIL, apply no containment restriction.
-**PROPERTIES** may be a list of strings being properties in the top level
-of the JSON documents in **MODEL** and only the values of said properties
-will be returned, bundled together in a JSON document.  If **PROPERTIES**
-is NIL the entire JSON document will be returned.  **LIMIT**, if supplied,
-must be an integer that represents the maximum number of objects that
-will be returned.  If properties is NIL JSON deserialization is
-performed by DESERILIZE, otherwise by funcalling \*FROM-JSON\*.  Note
-that this is _not_ a prepared query so extra care must be taken if
-**PROPERTIES** or CONTAIN derive from unsanitized user input.
+Filter all JSON documents in **MODEL** as follows.  Each document
+must 'contain', in the Postgres @> operator sense, the object **CONTAINS**
+which will be serialized to a JSON document by funcalling \*TO-JSON\*.
+If **CONTAINS** is NIL, apply no containment restriction.  **PROPERTIES** may
+be a list of strings being properties in the top level of the JSON
+documents in **MODEL** and only the values of said properties will be
+returned, bundled together in a JSON document.  If **PROPERTIES** is NIL
+the entire JSON document will be returned.  **LIMIT**, if supplied, must
+be an integer that represents the maximum number of objects that will
+be returned.  If properties is NIL JSON deserialization is performed
+by DESERILIZE, otherwise by funcalling \*FROM-JSON\*.  Note that this is
+_not_ a prepared query so extra care must be taken if **PROPERTIES** or
+CONTAIN derive from unsanitized user input.
 
 #### history
 *Generic function*
