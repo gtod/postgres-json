@@ -17,6 +17,21 @@ both symbols."
 
 ;;;; Utility
 
+(defgeneric pomo-timestamp-to-string (stamp)
+  (:method ((stamp string))
+    stamp)
+  ;; I don't want simple-date as a dependency but you might need it.
+  ;; See model interface function HISTORY, for example.
+  ;; And see system postgres-json-time.asd
+  ;; (:method ((stamp simple-date:timestamp))
+  ;;   (pomo-timestamp-to-string
+  ;;    (local-time:universal-to-timestamp
+  ;;     (simple-date:timestamp-to-universal-time stamp))))
+  (:documentation "When systems such as simple-date or
+cl-postgres+local-time are used they will return their respective
+timestamp types for Postgres timestamps.  This generic function
+ensures the timestamp ends up as a string, ie JSON."))
+
 (defun run (form)
   "Compile and then run the S-SQL form FORM, unless *DEBUG-SQL* is true
 is which case just PRINT the FORM."

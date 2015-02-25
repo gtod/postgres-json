@@ -161,6 +161,8 @@ the property names of the respective timestamps."
       (loop for (jdoc valid-from valid-to) in rows
             for obj = (deserialize model jdoc)
             when validity-keys-p
-              do (setf (gethash valid-from-key obj) valid-from)
-                 (setf (gethash valid-to-key obj) valid-to)
+              do (setf (gethash valid-from-key obj)
+                       (pomo-timestamp-to-string valid-from))
+                 (setf (gethash valid-to-key obj)
+                       (pomo-timestamp-to-string valid-to))
             collect obj))))
