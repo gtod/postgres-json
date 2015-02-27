@@ -26,3 +26,9 @@
 
 ;; (defun test-parse ()
 ;;   (jsown-to-fset (jsown:parse "[{}, [], null, true, false, 1, 2, \"three\", { \"foo\":17}]")))
+
+(defmethod stash ((model pgj-object-model) (object fset:map) key)
+  "Add a key named by the downcased symbol name of MODEL-KEY-NAME of
+MODEL, with value KEY, to the map OBJECT.  Return the new map."
+  (let ((key-name (stash-key-name model)))
+    (fset:with object key-name key)))

@@ -554,6 +554,16 @@ a lisp object.  Return same.  Called by FETCH, for example, to convert
 JSON strings from the backend into Lisp objects.
 
 #### stash
+*Method*
+
+```common-lisp
+(model pgj-object-model) (object map) key
+```
+
+Add a key named by the downcased symbol name of MODEL-KEY-NAME of
+**MODEL**, with value **KEY**, to the map **OBJECT**.  Return the new map.
+
+#### stash
 *Generic function*
 
 ```common-lisp

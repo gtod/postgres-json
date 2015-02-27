@@ -160,6 +160,11 @@ JSON strings from the backend into Lisp objects.")
   (:method ((model pgj-model) (jdoc string))
     (funcall *from-json* jdoc)))
 
+(defun stash-key-name (model)
+  "The string key name used for stashing primary keys in MODEL
+objects."
+  (string-downcase (symbol-name (model-key-name model))))
+
 (defgeneric stash (model object key)
   (:documentation "Called before SERIALIZE which is called before
 document inserts or updates.  An opportunity to modify the lisp OBJECT
@@ -173,7 +178,7 @@ MODEL's backend.")
     "Destructively modify hash-table OBJECT by assigning the value KEY
 to a key named by the downcased symbol name of MODEL-KEY-NAME of
 MODEL.  Returns the modified OBJECT."
-    (let ((key-name (string-downcase (symbol-name (model-key-name model)))))
+    (let ((key-name (stash-key-name model)))
       (setf (gethash key-name object) key)
       object)))
 
