@@ -143,26 +143,23 @@ CONTAIN derive from unsanitized user input."
     (dolist (key (keys model))
       (excise model key))))
 
-(defgeneric history (model key &key)
+(defgeneric history (model key &optional validity-keys-p)
   (:documentation "Return a list of the result of deserializing all
 previous values of the JSON document with primary key KEY in MODEL.")
-  (:method ((model pgj-history-model) key
-            &key (validity-keys-p t)
-                 (valid-from-key "_validFrom") (valid-to-key "_validTo"))
+  (:method ((model pgj-history-model) key &optional (validity-keys-p t))
     "Return a list of the result of deserializing all previous values
 of the JSON document with primary key KEY in MODEL, in chronological
-order.  If VALIDITY-KEYS-P is true, include the 'valid_from' and
-'valid_to' Postgres timestamps for the historical document as
-properties in the top level JSON object --- it must be an object in
-this case.  VALID-FROM-KEY and VALID-TO-KEY are strings that will be
-the property names of the respective timestamps."
+order.  If VALIDITY-KEYS-P is true, return a list tuple of the 1.
+object, 2. the 'valid_from' and 3. the 'valid_to' Postgres timestamps
+for the historical document."
     (let ((rows (maybe-transaction (history +read-committed-ro+)
                   (history$ model key))))
-      (loop for (jdoc valid-from valid-to) in rows
-            for obj = (deserialize model jdoc)
-            when validity-keys-p
-              do (setf (gethash valid-from-key obj)
-                       (pomo-timestamp-to-string valid-from))
-                 (setf (gethash valid-to-key obj)
-                       (pomo-timestamp-to-string valid-to))
-            collect obj))))
+      (mapper (lambda (row)
+                (destructuring-bind (jdoc valid-from valid-to) row
+                  (let ((obj (deserialize model jdoc)))
+                    (if validity-keys-p
+                        (list obj
+                              (pomo-timestamp-to-string valid-from)
+                              (pomo-timestamp-to-string valid-to))
+                        obj))))
+              rows))))

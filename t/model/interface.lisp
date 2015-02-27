@@ -10,4 +10,4 @@
       (insert with-history 123 8)
       (supersede with-history 8 124)
       (supersede with-history 8 125)
-      (is (= 2 (length (history with-history 8 :validity-keys-p nil)))))))
+      (is (= 2 (length (history with-history 8)))))))

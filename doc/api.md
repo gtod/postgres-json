@@ -268,7 +268,7 @@ CONTAIN derive from unsanitized user input.
 *Generic function*
 
 ```common-lisp
-model key &key
+model key &optional validity-keys-p
 ```
 
 Return a list of the result of deserializing all
@@ -278,16 +278,14 @@ previous values of the JSON document with primary key **KEY** in **MODEL**.
 *Method*
 
 ```common-lisp
-(model pgj-history-model) key &key (validity-keys-p t) (valid-from-key "_validFrom") (valid-to-key "_validTo")
+(model pgj-history-model) key &optional (validity-keys-p t)
 ```
 
 Return a list of the result of deserializing all previous values
 of the JSON document with primary key **KEY** in **MODEL**, in chronological
-order.  If **VALIDITY-KEYS-P** is true, include the 'valid_from' and
-'valid_to' Postgres timestamps for the historical document as
-properties in the top level JSON object --- it must be an object in
-this case.  **VALID-FROM-KEY** and **VALID-TO-KEY** are strings that will be
-the property names of the respective timestamps.
+order.  If **VALIDITY-KEYS-P** is true, return a list tuple of the 1.
+object, 2. the 'valid_from' and 3. the 'valid_to' Postgres timestamps
+for the historical document.
 
 
 ---
