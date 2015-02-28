@@ -23,7 +23,6 @@
 			  #:substitute #:substitute-if #:substitute-if-not
 			  #:some #:every #:notany #:notevery))
 
-
 (in-package :pj-human)
 
 ;;; Set this if you have not already done so:
@@ -39,6 +38,11 @@
 
 (define-global-model human -human- (pgj-history-object-model))
 (define-global-model gift -gift- (pgj-object-model))
+
+(defmacro show (form)
+  `(progn
+     (print ',form)
+     (print ,form)))
 
 ;;;; Backend interface
 
@@ -80,7 +84,7 @@
 
 (defun model-test ()
   (with-pj-connection ()
-    (show (length (contains -human- (map ("gender" "female")))))
+    (show (size (contains -human- (map ("gender" "female")))))
 
     (show (@ (random-human) "name"))
 
@@ -94,8 +98,8 @@
 
     (show (contains -human- (map ("tags" '("ut" "labore")))
                     :properties '("age" "tags")))
-    (show (length (contains -human- (map ("isActive" t) ("age" 21)))))
+    (show (size (contains -human- (map ("isActive" t) ("age" 21)))))
 
-    (show (length (having-property -human- "eyeColor")))
+    (show (size (having-property -human- "eyeColor")))
     (show (enumerate-property -human- "favoriteFruit")))
   (values))
