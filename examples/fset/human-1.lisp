@@ -62,7 +62,7 @@
 (defun random-human ()
   (let ((tally (tally -human-)))
     (assert (not (zerop tally)))
-    (fetch -human- (elt (keys -human-) (random tally)))))
+    (fetch -human- (lookup (keys -human-) (random tally)))))
 
 (defun load-humans ()
   (unless (probe-file *human-file*)

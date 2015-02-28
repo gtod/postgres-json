@@ -43,3 +43,7 @@
 MODEL, with value KEY, to the map OBJECT.  Return the new map."
   (let ((key-name (stash-key-name model)))
     (fset:with object key-name key)))
+
+(defmethod keys :around ((model pgj-model))
+  "Ensure KEYS returns an fset:seq."
+  (fset:convert 'fset:seq (call-next-method)))
