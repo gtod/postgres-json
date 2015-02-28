@@ -8,5 +8,5 @@
                #:jsown
                #:fset)
   :components
-  ((:file "json-fset")
+  ((:file "fset")
    (:file "yason")))
