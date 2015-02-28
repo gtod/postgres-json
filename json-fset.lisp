@@ -18,19 +18,25 @@
     (list (if (eq :obj (car object))
               (let ((map (fset:empty-map)))
                 (dolist (pair (cdr object) map)
-                  (destructuring-bind (car . cdr) pair
-                    (setq map (fset:with map car (jsown-to-fset cdr))))))
+                  (destructuring-bind (key . value) pair
+                    (fset:adjoinf map key (jsown-to-fset value)))))
               (gmap:gmap :seq #'jsown-to-fset (:list object))))))
 
 (setf *from-json* (compose #'jsown-to-fset #'jsown:parse))
-
-;; (defun test-parse ()
-;;   (jsown-to-fset (jsown:parse "[{}, [], null, true, false, 1, 2, \"three\", { \"foo\":17}]")))
 
 ;; Redefine mapper to return Fset seqs
 (fmakunbound 'mapper)
 (defun mapper (fn sequence)
   (gmap:gmap :seq fn (:list sequence)))
+
+;;; Redefine some functions used in the test code for Fset collections
+(fmakunbound 'geth)
+(defun geth (key place)
+  (fset:lookup place key))
+
+(fmakunbound 'len)
+(defun len (seq)
+  (fset:size seq))
 
 (defmethod stash ((model pgj-object-model) (object fset:map) key)
   "Add a key named by the downcased symbol name of MODEL-KEY-NAME of

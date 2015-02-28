@@ -6,6 +6,14 @@
   "To support fset:seq we provide this wrapper around cl:mapcar."
   (mapcar fn sequence))
 
+;;; Used in some test code
+
+(defun geth (key place)
+  (gethash key place))
+
+(defun len (seq)
+  (length seq))
+
 ;;;; JSON related small functions
 
 (defun obj (&rest args)
