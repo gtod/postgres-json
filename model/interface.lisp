@@ -147,8 +147,7 @@ CONTAIN derive from unsanitized user input."
 (defmethod excise-all ((model pgj-history-model))
   "As per EXCISE-ALL but keep a separate record of all deleted rows."
   (maybe-transaction (excise-all-history +repeatable-read-rw+)
-    (dolist (key (keys model))
-      (excise model key))))
+    (mapper (curry #'excise model) (keys$ model))))
 
 (defgeneric history (model key &optional validity-keys-p)
   (:documentation "Return a list of the result of deserializing all
