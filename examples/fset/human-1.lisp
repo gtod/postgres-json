@@ -80,11 +80,11 @@
 
 (defun model-test ()
   (with-pj-connection ()
-    (show (length (filter -human- :contains (map ("gender" "female")))))
+    (show (length (contains -human- (map ("gender" "female")))))
 
     (show (@ (random-human) "name"))
 
-    (let ((human (show (first (filter -human- :contains (map ("name" "Marcella Marquez")))))))
+    (let ((human (show (first (contains -human- (map ("name" "Marcella Marquez")))))))
       (let ((key (@ human "key"))
             (friends (@ human "friends")))
         (push-last friends (map ("name" "Horace Morris") ("id" (size friends))))
@@ -92,9 +92,9 @@
         (show (@ (fetch -human- key) "friends"))
         (show (history -human- key))))
 
-    (show (filter -human- :contains (map ("tags" '("ut" "labore")))
-                          :properties '("age" "tags")))
-    (show (length (filter -human- :contains (map ("isActive" t) ("age" 21)))))
+    (show (contains -human- (map ("tags" '("ut" "labore")))
+                    :properties '("age" "tags")))
+    (show (length (contains -human- (map ("isActive" t) ("age" 21)))))
 
     (show (length (having-property -human- "eyeColor")))
     (show (enumerate-property -human- "favoriteFruit")))

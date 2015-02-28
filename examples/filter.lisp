@@ -41,11 +41,11 @@
 ;;    :from 'cat
 ;;    :where (:@> 'jdoc contains)))
 (defun filtering ()
-  (show (filter -cat- :contains (obj "coat" "tortoiseshell")))
+  (show (contains -cat- (obj "coat" "tortoiseshell")))
 
   ;; When using containment it's OK to omit spurious keys, but you must get
   ;; the nesting right.
-  (show (filter -cat- :contains (obj "Kansas City" '(2013)))) ; No
-  (show (filter -cat- :contains (obj "trips" (obj "Kansas City" '(2013))))) ; Works
-  (show (filter -cat- :contains (obj "trips" (obj "Barcelona" '(2012 2009))))) ; Works!
+  (show (contains -cat- (obj "Kansas City" '(2013)))) ; No
+  (show (contains -cat- (obj "trips" (obj "Kansas City" '(2013))))) ; Works
+  (show (contains -cat- (obj "trips" (obj "Barcelona" '(2012 2009))))) ; Works!
   )

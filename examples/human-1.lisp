@@ -55,11 +55,11 @@
 
 (defun model-test ()
   (with-pj-connection ()
-    (show (length (filter -human- :contains (obj "gender" "female"))))
+    (show (length (contains -human- (obj "gender" "female"))))
 
     (show (gethash "name" (random-human)))
 
-    (let ((human (show (first (filter -human- :contains (obj "name" "Marcella Marquez"))))))
+    (let ((human (show (first (contains -human- (obj "name" "Marcella Marquez"))))))
       (with-keys ((key "key") (friends "friends")) human
         ;; This is naughty because it requires knowing yason vectors are adjustable.
         ;; But specialize DESERIALIZE on your model and do what you like...
@@ -68,8 +68,8 @@
         (show (gethash "friends" (fetch -human- key)))
         (show (history -human- key))))
 
-    (show (filter -human- :contains (obj "tags" '("ut" "labore")) :properties '("age" "tags")))
-    (show (length (filter -human- :contains (obj "isActive" t "age" 21))))
+    (show (contains -human- (obj "tags" '("ut" "labore")) :properties '("age" "tags")))
+    (show (length (contains -human- (obj "isActive" t "age" 21))))
 
     (show (length (having-property -human- "eyeColor")))
     (show (enumerate-property -human- "favoriteFruit")))

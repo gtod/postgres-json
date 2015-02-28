@@ -231,11 +231,11 @@ deserialization is performed by funcalling \*FROM-JSON\*.  Note that
 this is _not_ a prepared query so care must be taken that **PROPERTY** is
 sanitized if it derives from arbitrary user input.
 
-#### filter
+#### contains
 *Generic function*
 
 ```common-lisp
-model &key contains
+model contains &key
 ```
 
 Filter all JSON documents in **MODEL** by checking they
@@ -243,11 +243,11 @@ Filter all JSON documents in **MODEL** by checking they
 will be serialized to a JSON document by funcalling \*TO-JSON\*.  If
 **CONTAINS** is NIL, apply no containment restriction.
 
-#### filter
+#### contains
 *Method*
 
 ```common-lisp
-(model pgj-object-model) &key contains properties limit
+(model pgj-object-model) contains &key properties limit
 ```
 
 Filter all JSON documents in **MODEL** as follows.  Each document

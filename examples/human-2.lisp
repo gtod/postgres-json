@@ -25,8 +25,8 @@
 
 ;;;; User defined S-SQL queries
 
-;;; For when FILTER and the other interface functions demonstrated in
-;;; human-1 are not sufficient.
+;;; For when CONTAINS and the other interface functions demonstrated
+;;; in human-1 are not sufficient.
 
 ;;; These queries must return a single JSON object per result row.
 ;;; Macroexpand the define-json-query forms and the individual j->,
@@ -42,10 +42,10 @@
                  (:= (j->> "gender") gender)))
    (:type (j->> "balance") real)))
 
-(define-json-query one-friend-humans$ ((*to-json* filter) email-regex)
+(define-json-query one-friend-humans$ ((*to-json* contains) email-regex)
   (:select 'jdoc
    :from 'human
-   :where (:and (:or (:@> 'jdoc filter))
+   :where (:and (:or (:@> 'jdoc contains))
                 (:= (:jsonb-array-length (j-> "friends")) 1)
                 (:~ (j->> "email") email-regex))))
 

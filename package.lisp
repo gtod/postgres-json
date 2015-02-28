@@ -31,7 +31,7 @@
    #:tally
    #:having-property
    #:enumerate-property
-   #:filter
+   #:contains
    #:history)
 
   ;; Model transactions

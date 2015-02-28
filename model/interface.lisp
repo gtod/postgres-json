@@ -92,12 +92,12 @@ sanitized if it derives from arbitrary user input.")
                 (query (sql-compile (json-query-to-s-sql query))
                        :column))))))
 
-(defgeneric filter (model &key contains)
+(defgeneric contains (model contains &key)
   (:documentation "Filter all JSON documents in MODEL by checking they
 'contain', in the Postgres @> operator sense, the object CONTAINS which
 will be serialized to a JSON document by funcalling *TO-JSON*.  If
 CONTAINS is NIL, apply no containment restriction.")
-  (:method  ((model pgj-object-model) &key contains properties limit)
+  (:method  ((model pgj-object-model) contains &key properties limit)
     "Filter all JSON documents in MODEL as follows.  Each document
 must 'contain', in the Postgres @> operator sense, the object CONTAINS
 which will be serialized to a JSON document by funcalling *TO-JSON*.
