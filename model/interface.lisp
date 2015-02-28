@@ -38,7 +38,7 @@ MODEL return the result of deserializing it.  Otherwise return NIL.")
 JSON documents in MODEL.")
   (:method ((model pgj-model))
     (maybe-transaction (fetch-all +read-committed-ro+)
-      (mapcar (curry #'deserialize model) (fetch-all$ model)))))
+      (mapper (curry #'deserialize model) (fetch-all$ model)))))
 
 (defgeneric excise (model key)
   (:documentation "Delete the JSON document with primary key KEY from
@@ -75,7 +75,7 @@ This is in the Postgres operator ?  sense.  Requires a Postgres GIN
 index with operator class :jsonb-ops defined on MODEL.")
   (:method ((model pgj-structure-model) (property string))
     (maybe-transaction (contains +read-committed-ro+)
-      (mapcar (curry #'deserialize model) (exists$ model property)))))
+      (mapper (curry #'deserialize model) (exists$ model property)))))
 
 (defgeneric enumerate-property (model property)
   (:documentation "Return all distinct values of the top level
@@ -88,7 +88,7 @@ sanitized if it derives from arbitrary user input.")
                    :distinct
                    :from ,(model-table model))))
       (maybe-transaction (distinct +read-committed-ro+)
-        (mapcar *from-json*
+        (mapper *from-json*
                 (query (sql-compile (json-query-to-s-sql query))
                        :column))))))
 
@@ -118,7 +118,7 @@ CONTAIN derive from unsanitized user input."
         (let ((query (if (integerp limit) `(:limit ,select ,limit) select))
               (from-json (if properties *from-json* (curry #'deserialize model))))
           (maybe-transaction (filter +read-committed-ro+)
-            (mapcar from-json
+            (mapper from-json
                     (query (sql-compile (json-query-to-s-sql query))
                            :column))))))))
 

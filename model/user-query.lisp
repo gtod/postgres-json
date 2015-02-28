@@ -165,4 +165,4 @@ or ii) using the `jbuild` macro to build a JSON object on the fly."
         `(let ((,query-function (prepare ,s-sql-query :column)))
            (defun ,name (,@params &key (from-json *from-json*))
              (let (,@transforms)
-               (mapcar from-json (funcall ,query-function ,@params)))))))))
+               (mapper from-json (funcall ,query-function ,@params)))))))))

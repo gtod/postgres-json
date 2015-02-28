@@ -27,6 +27,11 @@
 ;; (defun test-parse ()
 ;;   (jsown-to-fset (jsown:parse "[{}, [], null, true, false, 1, 2, \"three\", { \"foo\":17}]")))
 
+;; Redefine mapper to return Fset seqs
+(fmakunbound 'mapper)
+(defun mapper (fn sequence)
+  (gmap:gmap :seq fn (:list sequence)))
+
 (defmethod stash ((model pgj-object-model) (object fset:map) key)
   "Add a key named by the downcased symbol name of MODEL-KEY-NAME of
 MODEL, with value KEY, to the map OBJECT.  Return the new map."

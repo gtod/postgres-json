@@ -1,5 +1,11 @@
 (in-package :postgres-json)
 
+;;;; Compatability functions for Fset
+
+(defun mapper (fn sequence)
+  "To support fset:seq we provide this wrapper around cl:mapcar."
+  (mapcar fn sequence))
+
 ;;;; JSON related small functions
 
 (defun obj (&rest args)
