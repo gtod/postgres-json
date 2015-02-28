@@ -28,6 +28,7 @@
    #:excise
    #:excise-all
    #:keys
+   #:arb-key
    #:tally
    #:having-property
    #:enumerate-property

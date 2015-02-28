@@ -61,6 +61,13 @@ MODEL and the length of that list.")
     (maybe-transaction (keys +read-committed-ro+)
       (keys$ model))))
 
+(defgeneric arb-key (model)
+  (:documentation "Return an arbitrary primary key for an object in
+MODEL or NIL if none exist.")
+  (:method ((model pgj-model))
+    (maybe-transaction (keys +read-committed-ro+)
+      (arb-key$ model))))
+
 (defgeneric tally (model)
   (:documentation "Return the count of all JSON documents in MODEL.")
   (:method ((model pgj-model))

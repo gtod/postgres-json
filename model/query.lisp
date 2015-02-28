@@ -87,6 +87,10 @@ valid Postmodern results format."
     ('`(:select ',key-name :from ,table)
      :column))
 
+(make-query arb-key$ () (table key-name)
+    ('`(:limit (:select ',key-name :from ,table) 1)
+     :single))
+
 (make-query tally$ () (table)
     ('`(:select (:count '*) :from ,table)
      :single!))
