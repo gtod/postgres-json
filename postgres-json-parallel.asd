@@ -11,4 +11,6 @@
                ;; at the REPL to fix this.
                (:version #:bordeaux-threads "0.8.3.99"))
   :components
-  ((:file "parallel")))
+  ((:module "base"
+    :serial t
+    :components ((:file "parallel")))))

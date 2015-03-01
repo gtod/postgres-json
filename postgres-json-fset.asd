@@ -8,5 +8,7 @@
                #:jsown
                #:fset)
   :components
-  ((:file "fset")
-   (:file "yason")))
+  ((:module "base"
+    :serial t
+    :components ((:file "fset")
+                 (:file "yason")))))

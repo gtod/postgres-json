@@ -11,10 +11,12 @@
                #:yason)
   :serial t
   :components
-  ((:file "package")
-   (:file "util")
-   (:file "errors")
-   (:file "specials")
+  ((:module "base"
+    :serial t
+    :components ((:file "package")
+                 (:file "util")
+                 (:file "errors")
+                 (:file "specials")))
    (:module "postgres"
     :serial t
     :components ((:file "s-sql")
@@ -31,4 +33,4 @@
                  (:file "history")
                  (:file "query")
                  (:file "interface")))
-   (:file "interface")))
+   (:file "base/interface")))
