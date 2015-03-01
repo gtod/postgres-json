@@ -1,14 +1,6 @@
 TODO
 ====
 
-## Interface
-
-* Timestamps in a JSON document: Either in the document or do we add
-  extra columns to the model table?  First see just how far we can get
-  with columns in the JSON doc...  But then they have to be just an
-  integer...  Sure, but you can sort by them and local-time can
-  reconstitute them...
-
 ## Want to have
 
 * Allow raw importing of JSON, without the serialization step.
@@ -25,14 +17,17 @@ TODO
 * Unicode handling tests.  UTF-8, 16?  For web deployment investigate
   quri.
 
-* More extensive test suite.
+* More extensive test suite.  Find a way to run tests automatically
+(given a valid Postgres 9.4 install).  Make serialization failure
+tests more deterministic.
 
 * Revise, cull, doco once again.  Provide more motivating examples.
 
 ## Maybe have
 
-* Define a schema for your model, get automatic validation either on
-  client or server side.  Can do server side with PLV8 or whatever...
+* Define a JSON schema for your model, get automatic validation either
+  on client or server side.  Can do server side with PLV8 or
+  whatever...
 
 * Investigate new lateral type in Postgres.
   https://news.ycombinator.com/item?id=8689159 and
@@ -42,9 +37,6 @@ TODO
   optimization not too.  How hard would a manual migration be for the
   user?  Presumably no problem in lisp, but would have to alter table
   the various model tables, and sequences (indexes?  meta model?)
-
-* How practical would it be to serialize FSET collections to JSON?
-  Why would you do that?
 
 ## Nice to have
 
