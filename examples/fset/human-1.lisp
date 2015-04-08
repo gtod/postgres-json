@@ -39,6 +39,7 @@
 (define-global-model human -human- (pgj-history-object-model))
 (define-global-model gift -gift- (pgj-object-model))
 
+(fmakunbound 'show)
 (defmacro show (form)
   `(progn
      (print ',form)
